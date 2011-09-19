@@ -28,6 +28,15 @@
     [window addSubview:webView];
     javascriptBridge = [WebViewJavascriptBridge createWithDelegate:self];
     webView.delegate = javascriptBridge;
+    [webView loadHTMLString:
+     @"<!doctype html>"
+     "<html><head></head><body><script>"
+     "  document.addEventListener('WebViewJavascriptBridgeReady', function() {"
+     "      __bridgeIsReady = true;"
+     "      if (window.__onBridgeReady) { window.__onBridgeReady(); }"
+     "  }, false);"
+     "<script src='http://localhost:1234/require/app-ios></script>"
+     "</script></body></html>" baseURL:nil];
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
