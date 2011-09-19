@@ -1,0 +1,1 @@
+../../dependencies/WebViewJavascriptBridge/WebViewJavascriptBridge/Classes/WebViewJavascriptBridge.m

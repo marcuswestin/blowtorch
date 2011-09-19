@@ -1,0 +1,3 @@
+[submodule "dependencies/WebViewJavascriptBridge"]
+	path = dependencies/WebViewJavascriptBridge
+	url = git@github.com:marcuswestin/WebViewJavascriptBridge.git
