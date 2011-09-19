@@ -1,30 +1,42 @@
-#import "BlowTorchAppDelegate.h"
+#import "BlowTorch.h"
 
 @implementation BlowTorchAppDelegate
 
 @synthesize window, webView, javascriptBridge;
 
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-    self.window.backgroundColor = [UIColor whiteColor];
-    [self.window makeKeyAndVisible];
-    
-    webView = [[UIWebView alloc] initWithFrame:self.window.bounds];
-    [window addSubview:webView];
-    javascriptBridge = [WebViewJavascriptBridge createWithDelegate:self];
-    webView.delegate = javascriptBridge;
-
-    return YES;
+/* API
+ *****/
+- (void) handleCommand:(NSString*)command withData:(NSDictionary*)data andCallbackID:(NSString*)callbackID {
+    [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:withData:andCallbackID must be overridden"];
 }
+
 
 /* Webview messaging
  *******************/
-- (void) handleMessage:(NSString *)message {
-    
+- (void) handleMessage:(NSString *)messageString {
+    NSDictionary* message = [messageString objectFromJSONString];
+    NSString *callbackID = [message objectForKey:@"callbackID"];
+    NSString *command = [message objectForKey:@"command"];
+    NSDictionary *data = [message objectForKey:@"data"];
+    [self handleCommand:command withData:data andCallbackID:callbackID];
 }
 
 /* App lifecycle
  ***************/
+- (void) createWebView {
+    webView = [[UIWebView alloc] initWithFrame:self.window.bounds];
+    [window addSubview:webView];
+    javascriptBridge = [WebViewJavascriptBridge createWithDelegate:self];
+    webView.delegate = javascriptBridge;
+}
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    self.window.backgroundColor = [UIColor whiteColor];
+    [self.window makeKeyAndVisible];
+    [self createWebView];
+    return YES;
+}
 
 - (void)applicationWillResignActive:(UIApplication *)application {
     /* Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state. Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game. */

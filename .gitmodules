@@ -1,3 +1,6 @@
 [submodule "dependencies/WebViewJavascriptBridge"]
 	path = dependencies/WebViewJavascriptBridge
 	url = git@github.com:marcuswestin/WebViewJavascriptBridge.git
+[submodule "dependencies/JSONKit"]
+	path = dependencies/JSONKit
+	url = https://github.com/johnezang/JSONKit.git
