@@ -6,7 +6,6 @@
 
 /* API
  *****/
-
 - (void) handleCommand:(NSString*)command withData:(NSDictionary*)data andCallbackID:(NSString*)callbackID;
 
 /* Private
