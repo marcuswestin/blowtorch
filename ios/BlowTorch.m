@@ -14,6 +14,10 @@
 /* Webview messaging
  *******************/
 - (void) handleMessage:(NSString *)messageString {
+    if ([messageString isEqualToString:@"dev:reload"]) {
+        [self loadPage];
+        return;
+    }
     NSDictionary* message = [messageString objectFromJSONString];
     NSString *callbackID = [message objectForKey:@"callbackID"];
     NSString *command = [message objectForKey:@"command"];
@@ -23,11 +27,7 @@
 
 /* App lifecycle
  ***************/
-- (void) createWebView {
-    webView = [[UIWebView alloc] initWithFrame:self.window.bounds];
-    [window addSubview:webView];
-    javascriptBridge = [WebViewJavascriptBridge createWithDelegate:self];
-    webView.delegate = javascriptBridge;
+- (void) loadPage {
     [webView loadHTMLString:
      @"<!doctype html>"
      "<html><head></head><body><script>"
@@ -35,8 +35,19 @@
      "      __bridgeIsReady = true;"
      "      if (window.__onBridgeReady) { window.__onBridgeReady(); }"
      "  }, false);"
-     "<script src='http://localhost:1234/require/app-ios></script>"
+     "  window.onerror = function(e){ alert(e) }"
+     "</script>"
+     "<script src='http://localhost:3333/require/blowtorch/dev-tools'></script>"
+     "<script src='http://localhost:3333/require/blowtorch/app-ios'></script>"
      "</script></body></html>" baseURL:nil];
+}
+
+- (void) createWebView {
+    webView = [[UIWebView alloc] initWithFrame:self.window.bounds];
+    [window addSubview:webView];
+    javascriptBridge = [WebViewJavascriptBridge createWithDelegate:self];
+    webView.delegate = javascriptBridge;
+    [self loadPage];
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
