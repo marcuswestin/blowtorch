@@ -7,3 +7,12 @@
 [submodule "node_modules/require"]
 	path = node_modules/require
 	url = git@github.com:clover/require.git
+[submodule "dependencies/dom.js"]
+	path = dependencies/dom.js
+	url = git@github.com:marcuswestin/dom.js.git
+[submodule "dependencies/ui.js"]
+	path = dependencies/ui.js
+	url = git@github.com:marcuswestin/ui.js.git
+[submodule "dependencies/std.js"]
+	path = dependencies/std.js
+	url = git@github.com:marcuswestin/std.js.git
