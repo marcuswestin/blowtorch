@@ -35,20 +35,22 @@
      "</body></html>" baseURL:nil];
 }
 
-- (void) createWebView {
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // create window
+    CGRect screenBounds = [[UIScreen mainScreen] bounds];
+    screenBounds.origin.y += 10;
+    screenBounds.size.height -= 20;
+    window = [[UIWindow alloc] initWithFrame:screenBounds];
+    window.backgroundColor = [UIColor whiteColor];
+    [window makeKeyAndVisible];
     [window setRootViewController:[[UIViewController alloc] init]]; // every app should have a root view controller
-    webView = [[UIWebView alloc] initWithFrame:self.window.bounds];
+    // create webview
+    webView = [[UIWebView alloc] initWithFrame:screenBounds];
     [window addSubview:webView];
     javascriptBridge = [WebViewJavascriptBridge createWithDelegate:self];
     webView.delegate = javascriptBridge;
     [self loadPage];
-}
-
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-    self.window.backgroundColor = [UIColor whiteColor];
-    [self.window makeKeyAndVisible];
-    [self createWebView];
+    // done!
     return YES;
 }
 
