@@ -10,7 +10,6 @@
     [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:withData:andCallbackID must be overridden"];
 }
 
-
 /* Webview messaging
  *******************/
 - (void) handleMessage:(NSString *)messageString {
@@ -30,16 +29,10 @@
 - (void) loadPage {
     [webView loadHTMLString:
      @"<!doctype html>"
-     "<html><head></head><body><script>"
-     "  document.addEventListener('WebViewJavascriptBridgeReady', function() {"
-     "      __bridgeIsReady = true;"
-     "      if (window.__onBridgeReady) { window.__onBridgeReady(); }"
-     "  }, false);"
-     "  window.onerror = function(e){ alert(e) }"
-     "</script>"
+     "<html><head></head><body>"
      "<script src='http://localhost:3333/require/blowtorch/dev-tools'></script>"
      "<script src='http://localhost:3333/require/blowtorch/app-ios'></script>"
-     "</script></body></html>" baseURL:nil];
+     "</body></html>" baseURL:nil];
 }
 
 - (void) createWebView {
