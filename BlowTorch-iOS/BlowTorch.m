@@ -36,7 +36,7 @@
 }
 
 - (void) createWebView {
-    [window setRootViewController:[[UIViewController alloc] init]]; // every app needs a root view controller
+    [window setRootViewController:[[UIViewController alloc] init]]; // every app should have a root view controller
     webView = [[UIWebView alloc] initWithFrame:self.window.bounds];
     webView.delegate = javascriptBridge;
     [window addSubview:webView];
