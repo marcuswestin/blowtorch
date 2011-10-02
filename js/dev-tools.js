@@ -11,5 +11,5 @@ function initDevTools() {
 	el.style.padding = '5px';
 	el.style.background = '#ccf';
 	el.innerHTML = 'R';
-	el.ontouchstart = function() { WebViewJavascriptBridge.sendMessage('dev:reload') }
+	el.onclick = function() { WebViewJavascriptBridge.sendMessage(JSON.stringify({ command:'blowtorch:reload' })) }
 }
