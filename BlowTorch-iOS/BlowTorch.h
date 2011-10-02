@@ -2,11 +2,13 @@
 #import "JSONKit.h"
 #import "WebViewJavascriptBridge.h"
 
+typedef void (^ResponseCallback)(NSString* errorMessage, NSDictionary* response);
+
 @interface BlowTorchAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate>
 
 /* API
  *****/
-- (void) handleCommand:(NSString*)command withData:(NSDictionary*)data andCallbackID:(NSString*)callbackID;
+- (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 
 /* Private
  *********/

@@ -6,22 +6,31 @@
 
 /* API
  *****/
-- (void) handleCommand:(NSString*)command withData:(NSDictionary*)data andCallbackID:(NSString*)callbackID {
-    [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:withData:andCallbackID must be overridden"];
+- (void) handleCommand:(NSString *)command data:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
+    [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:data:responseCallback must be overridden"];
 }
 
 /* Webview messaging
  *******************/
 - (void) handleMessage:(NSString *)messageString {
-    if ([messageString isEqualToString:@"dev:reload"]) {
-        [self loadPage];
-        return;
-    }
     NSDictionary* message = [messageString objectFromJSONString];
     NSString *callbackID = [message objectForKey:@"callbackID"];
     NSString *command = [message objectForKey:@"command"];
     NSDictionary *data = [message objectForKey:@"data"];
-    [self handleCommand:command withData:data andCallbackID:callbackID];
+
+    if ([command isEqualToString:@"blowtorch:reload"]) {
+        [self loadPage];
+    } else if ([command isEqualToString:@"blowtorch:log"]) {
+        NSLog(@"console.log %@", data);
+    } else {
+        [self handleCommand:command data:data responseCallback:^(NSString *errorMessage, NSDictionary *response) {
+            NSLog(@"Send response to %@", command);
+            NSDictionary* responseMessage = errorMessage
+                ? [NSDictionary dictionaryWithObjectsAndKeys:callbackID, @"responseID", errorMessage, @"error", nil]
+                : [NSDictionary dictionaryWithObjectsAndKeys:callbackID, @"responseID", response, @"data", nil];
+            [javascriptBridge sendMessage:[responseMessage JSONString]];
+        }];
+    }
 }
 
 /* App lifecycle
