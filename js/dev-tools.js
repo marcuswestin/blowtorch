@@ -13,3 +13,9 @@ function initDevTools() {
 	el.innerHTML = 'R';
 	el.onclick = function() { WebViewJavascriptBridge.sendMessage(JSON.stringify({ command:'blowtorch:reload' })) }
 }
+
+
+console.log = function() {
+	var args = Array.prototype.slice.call(arguments, 0)
+	WebViewJavascriptBridge.sendMessage(JSON.stringify({ command:'blowtorch:log', data:{ args:args } }))
+}
