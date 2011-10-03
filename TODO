@@ -1,0 +1,5 @@
+- Figure out how to bundle compiled JS without explicitly adding it to the xcode project
+- Move SQL code into BT
+- Send update statements with the insert values, i.e ['(?)', val] rather than '('+val+')'
+- disable blowtorch node_modules access from using apps
+- add uglify-js submodule
