@@ -40,7 +40,7 @@
      @"<!doctype html>"
      "<html><head></head><body>"
      "<script src='http://localhost:3333/require/blowtorch/dev-tools'></script>"
-     "<script src='http://localhost:3333/require/blowtorch/app-ios'></script>"
+     "<script src='http://localhost:3333/require/blowtorch/bootstrap-ios'></script>"
      "</body></html>" baseURL:nil];
 }
 
