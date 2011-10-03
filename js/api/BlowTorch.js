@@ -1,9 +1,11 @@
-var unique = require('std/unique')
+var unique = require('std/unique'),
+	sql = require('./sql')
 
 module.exports = {
 	init: init,
 	setMessageHandler: setMessageHandler,
-	send: send
+	send: send,
+	sql: sql
 }
 
 var callbacks = {},
