@@ -2,7 +2,7 @@
 
 @implementation BlowTorchAppDelegate
 
-@synthesize window, webView, javascriptBridge;
+@synthesize window, webView, javascriptBridge, interceptionCache;
 
 /* API
  *****/
@@ -59,7 +59,10 @@
     javascriptBridge = [WebViewJavascriptBridge createWithDelegate:self];
     webView.delegate = javascriptBridge;
     [self loadPage];
-    // done!
+
+    interceptionCache = [[BlowTorchInterceptionCache alloc] init];
+    [NSURLCache setSharedURLCache:interceptionCache];
+    
     return YES;
 }
 
@@ -81,6 +84,26 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     /* Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:. */
+}
+
+@end
+
+@implementation BlowTorchInterceptionCache
+
+- (NSCachedURLResponse*)cachedResponseForRequest:(NSURLRequest *)request {
+    BOOL isDev = YES;
+    if (isDev) { return [super cachedResponseForRequest:request]; }
+    
+    NSRange match;
+    match = [[[request URL] path] rangeOfString:@"/bootstrap-ios"];
+    if (match.location == NSNotFound) { return [super cachedResponseForRequest:request]; }
+
+    NSString* filePath = [[NSBundle mainBundle] pathForResource:@"app.js" ofType:@"ios-build"];
+    NSData* jsData = [NSData dataWithContentsOfFile:filePath];
+
+    NSURLResponse* response = [[NSURLResponse alloc] initWithURL:[request URL] MIMEType:@"application/javascript" expectedContentLength:[jsData length] textEncodingName:nil];
+    NSCachedURLResponse* cachedResponse = [[NSCachedURLResponse alloc] initWithResponse:response data:jsData];
+    return cachedResponse;
 }
 
 @end
