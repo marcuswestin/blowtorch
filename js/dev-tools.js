@@ -5,12 +5,13 @@ function initDevTools() {
 	window.onerror = function(e) { alert('error: ' + e)};
 
 	var el = document.body.appendChild(document.createElement('div'));
-	el.style.position = 'absolute';
+	el.style.position = 'fixed';
 	el.style.top = 0;
 	el.style.right = 0;
-	el.style.padding = '5px';
-	el.style.background = '#ccf';
-	el.innerHTML = 'R';
+	el.style.height = el.style.width = '15px'
+	el.style.textAlign = 'center'
+	el.style.background = '#ccf'
+	el.innerHTML = '-'
 	el.onclick = function() { WebViewJavascriptBridge.sendMessage(JSON.stringify({ command:'blowtorch:reload' })) }
 }
 
