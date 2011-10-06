@@ -93,9 +93,8 @@
 - (NSCachedURLResponse*)cachedResponseForRequest:(NSURLRequest *)request {
     BOOL isDev = YES;
     if (isDev) { return [super cachedResponseForRequest:request]; }
-    
-    NSRange match;
-    match = [[[request URL] path] rangeOfString:@"/bootstrap-ios"];
+
+    NSRange match = [[[request URL] path] rangeOfString:@"/bootstrap-ios"];
     if (match.location == NSNotFound) { return [super cachedResponseForRequest:request]; }
 
     NSString* filePath = [[NSBundle mainBundle] pathForResource:@"app.js" ofType:@"ios-build"];
