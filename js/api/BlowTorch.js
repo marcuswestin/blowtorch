@@ -5,7 +5,8 @@ module.exports = {
 	init: init,
 	setMessageHandler: setMessageHandler,
 	send: send,
-	sql: sql
+	sql: sql,
+	alert: BTAlert
 }
 
 var callbacks = {},
@@ -38,3 +39,5 @@ function init(callback) {
 	})
 	callback()
 }
+
+function BTAlert() { alert(JSON.stringify(arguments)) }
