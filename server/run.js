@@ -9,13 +9,12 @@ http.createServer(handleRequest).listen(port)
 console.log('running on port', port)
 
 function handleRequest(req, res) {
-	// if (req.method != 'POST') {
-	// 	handle404(req, res)
-	// 	return
-	// }
+	if (req.method != 'POST') {
+		handle404(req, res)
+		return
+	}
 	
 	var url = req.url, match
-	console.log(url)
 	if (match = url.match(/^\/upgrade/)) {
 		handleUpgradeRequest(req, res)
 	} else if (match = url.match(/^\/version\/([_a-zA-Z0-9]*)/)) {
