@@ -31,14 +31,12 @@ function handle404(req, res) {
 }
 
 var versions = ['']
-
 var currentVersion = 'version_x'
 function handleUpgradeRequest(req, res) {
-	console.log("handleUpgradeRequest")
 	parsePostBody(req, function(err, requestData) {
-		console.log("parsePostBody done", requestData)
+		if (err) { return sendError(res, err) }
+		console.log("handleUpgradeRequest", requestData)
 		sendJson(res, { client_id:'xyz', new_version:currentVersion })
-		console.log("sendJson done")
 	})
 }
 
