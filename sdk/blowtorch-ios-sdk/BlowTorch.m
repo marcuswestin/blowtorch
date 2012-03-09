@@ -1,4 +1,10 @@
 #import "BlowTorch.h"
+#import "AFJSONUtilities.h"
+
+@interface BlowTorch (hidden)
+- (NSData*) getUpgradeRequestBody;
+- (NSDictionary*) getClientInfo;
+@end
 
 @implementation BlowTorch
 
@@ -15,6 +21,7 @@
 - (void)requestUpgrade {
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://marcus.local:4000/upgrade"]];
     [request setHTTPMethod:@"POST"];
+    [request setHTTPBody:[self getUpgradeRequestBody]];
     [[AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, id JSON) {
         NSLog(@"Response %@", [JSON objectForKey:@"client_id"]);
     } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error, id JSON) {
@@ -96,6 +103,32 @@
 
 - (void)applicationWillTerminate:(UIApplication *)application {
     /* Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:. */
+}
+
+@end
+
+@implementation BlowTorch (hidden)
+
+- (NSData *)getUpgradeRequestBody {
+    NSDictionary* clientInfo = [self getClientInfo];
+    NSError *error = nil;
+    NSData *JSONData = AFJSONEncode(clientInfo, &error);
+    return error ? nil : JSONData;
+}
+
+- (NSDictionary *)getClientInfo {
+    NSString* fileName = @"blowtorch-clientInfo";
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = [paths objectAtIndex:0];
+    NSString *filePath = [documentsDirectory stringByAppendingPathComponent:fileName];
+    
+    NSDictionary* clientInfo = [NSDictionary dictionaryWithContentsOfFile:filePath];
+    if (!clientInfo) {
+        NSString* guid = [[NSProcessInfo processInfo] globallyUniqueString];
+        clientInfo = [NSDictionary dictionaryWithObject:guid forKey:@"clientId"];
+        [clientInfo writeToFile:filePath atomically:YES];
+    }
+    return clientInfo;
 }
 
 @end

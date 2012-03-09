@@ -36,7 +36,7 @@ var currentVersion = 'version_x'
 function handleUpgradeRequest(req, res) {
 	console.log("handleUpgradeRequest")
 	parsePostBody(req, function(err, requestData) {
-		console.log("parsePostBody done")
+		console.log("parsePostBody done", requestData)
 		sendJson(res, { client_id:'xyz', new_version:currentVersion })
 		console.log("sendJson done")
 	})
