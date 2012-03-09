@@ -1,6 +1,6 @@
 #import "BlowTorch.h"
 
-@implementation BlowTorchAppDelegate
+@implementation BlowTorch
 
 @synthesize window, webView, javascriptBridge, interceptionCache;
 
@@ -8,6 +8,18 @@
  *****/
 - (void) handleCommand:(NSString *)command data:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
     [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:data:responseCallback must be overridden"];
+}
+
+/* Upgrade API
+ *************/
+- (void)requestUpgrade {
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://marcus.local:4000/upgrade"]];
+    [request setHTTPMethod:@"POST"];
+    [[AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, id JSON) {
+        NSLog(@"Response %@", [JSON objectForKey:@"client_id"]);
+    } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error, id JSON) {
+        NSLog(@"Failure");
+    }] start];
 }
 
 /* Webview messaging

@@ -1,17 +1,22 @@
 #import <UIKit/UIKit.h>
 #import "JSONKit.h"
 #import "WebViewJavascriptBridge.h"
+#import "AFNetworking.h"
 
 typedef void (^ResponseCallback)(NSString* errorMessage, NSDictionary* response);
 
 @interface BlowTorchInterceptionCache : NSURLCache
 @end
 
-@interface BlowTorchAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate>
+@interface BlowTorch : NSObject <WebViewJavascriptBridgeDelegate>
 
 /* API
  *****/
 - (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
+
+/* Upgrade API
+ *************/
+- (void) requestUpgrade;
 
 /* Private
  *********/

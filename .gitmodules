@@ -19,3 +19,6 @@
 [submodule "node_modules/uglify-js"]
 	path = node_modules/uglify-js
 	url = https://github.com/mishoo/UglifyJS.git
+[submodule "dependencies/AFNetworking"]
+	path = dependencies/AFNetworking
+	url = https://github.com/AFNetworking/AFNetworking.git

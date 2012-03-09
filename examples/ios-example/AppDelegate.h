@@ -7,6 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "BlowTorch.h"
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
