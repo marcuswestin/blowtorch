@@ -55,8 +55,14 @@ function handleVersionDownloadRequest(req, res, version) {
 function parsePostBody(post, callback) {
 	var postData = ''
 	post.on('error', function(error) { callback(error, null) })
-	post.on('data', function(chunk) { postData += chunk })
 	post.on('end', function() { callback(null, postData) })
+	post.on('data', function(chunk) {
+		postData += chunk
+		if (postData.length > 1e6) {
+			callback(new Error('POST body is too big'), null)
+			request.connection.destroy()
+		}
+	})
 }
 
 function sendError(res, err) {
