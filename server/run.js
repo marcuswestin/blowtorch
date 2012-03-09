@@ -1,7 +1,8 @@
 #!/usr/local/bin/node
 
 var http = require('http'),
-	fs = require('fs')
+	fs = require('fs'),
+	uuid = require('uuid')
 
 var port = 4000
 http.createServer(handleRequest).listen(port)
@@ -25,18 +26,23 @@ function handleRequest(req, res) {
 }
 
 function handle404(req, res) {
+	console.log(404, req.method, req.url)
 	var message = 'not found'
 	res.writeHead(404, { 'Content-Length':message.length })
 	res.end(message)
 }
 
-var versions = ['']
-var currentVersion = 'version_x'
 function handleUpgradeRequest(req, res) {
-	parsePostBody(req, function(err, requestData) {
+	parseJsonPostBody(req, function(err, reqObj) {
 		if (err) { return sendError(res, err) }
-		console.log("handleUpgradeRequest", requestData)
-		sendJson(res, { client_id:'xyz', new_version:currentVersion })
+		console.log("handleUpgrade request", reqObj)
+		var client_info = reqObj.client_info || {},
+			resObj = { client_info:client_info }
+		if (!client_info.client_id) {
+			client_info.client_id = uuid.v1()
+		}
+		console.log("handleUpgrade response", resObj)
+		sendJson(res, resObj)
 	})
 }
 
@@ -50,16 +56,21 @@ function handleVersionDownloadRequest(req, res, version) {
 }
 
 // Util
-function parsePostBody(post, callback) {
+function parseJsonPostBody(post, callback) {
 	var postData = ''
-	post.on('error', function(error) { callback(error, null) })
-	post.on('end', function() { callback(null, postData) })
+	post.on('error', function(error) {
+		callback(error, null)
+	})
 	post.on('data', function(chunk) {
 		postData += chunk
 		if (postData.length > 1e6) {
 			callback(new Error('POST body is too big'), null)
 			request.connection.destroy()
 		}
+	})
+	post.on('end', function() {
+		try { callback(null, JSON.parse(postData)) }
+		catch(e) { callback(e, null) }
 	})
 }
 

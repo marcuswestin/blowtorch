@@ -4,6 +4,8 @@
 @interface BlowTorch (hidden)
 - (NSData*) getUpgradeRequestBody;
 - (NSDictionary*) getClientInfo;
+- (NSDictionary*) storeClientInfo:(NSDictionary*)clientInfo;
+- (NSString*) getClientInfoFilePath;
 @end
 
 @implementation BlowTorch
@@ -22,11 +24,11 @@
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://marcus.local:4000/upgrade"]];
     [request setHTTPMethod:@"POST"];
     [request setHTTPBody:[self getUpgradeRequestBody]];
-    [[AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, id JSON) {
-        NSLog(@"Response %@", [JSON objectForKey:@"client_id"]);
-    } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error, id JSON) {
-        NSLog(@"Failure");
-    }] start];
+    [[AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, NSDictionary* upgradeResponse) {
+        NSDictionary* clientInfo = [upgradeResponse objectForKey:@"client_info"];
+        [self storeClientInfo:clientInfo];
+        NSLog(@"Response %@", clientInfo);
+    } failure:nil] start];
 }
 
 /* Webview messaging
@@ -110,25 +112,36 @@
 @implementation BlowTorch (hidden)
 
 - (NSData *)getUpgradeRequestBody {
-    NSDictionary* clientInfo = [self getClientInfo];
+    NSDictionary* requestObj = [NSDictionary dictionaryWithObject:[self getClientInfo] forKey:@"client_info"];
     NSError *error = nil;
-    NSData *JSONData = AFJSONEncode(clientInfo, &error);
+    NSData *JSONData = AFJSONEncode(requestObj, &error);
     return error ? nil : JSONData;
 }
 
 - (NSDictionary *)getClientInfo {
-    NSString* fileName = @"blowtorch-clientInfo";
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
-    NSString *filePath = [documentsDirectory stringByAppendingPathComponent:fileName];
-    
+    NSString* filePath = [self getClientInfoFilePath];
     NSDictionary* clientInfo = [NSDictionary dictionaryWithContentsOfFile:filePath];
     if (!clientInfo) {
-        NSString* guid = [[NSProcessInfo processInfo] globallyUniqueString];
-        clientInfo = [NSDictionary dictionaryWithObject:guid forKey:@"clientId"];
-        [clientInfo writeToFile:filePath atomically:YES];
+        clientInfo = [NSDictionary dictionary];
     }
     return clientInfo;
+}
+
+- (NSDictionary *)storeClientInfo:(NSDictionary*)newClientInfo {
+    NSString* filePath = [self getClientInfoFilePath];
+    NSMutableDictionary *currentClientInfo = [NSMutableDictionary dictionaryWithDictionary:[self getClientInfo]];
+    for (NSString* key in newClientInfo) {
+        [currentClientInfo setValue:[newClientInfo valueForKey:key] forKey:key];
+    }
+    [currentClientInfo writeToFile:filePath atomically:YES];
+    return currentClientInfo;
+}
+
+- (NSString *)getClientInfoFilePath {
+    NSString* fileName = @"blowtorch-client_info-1";
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = [paths objectAtIndex:0];
+    return [documentsDirectory stringByAppendingPathComponent:fileName];
 }
 
 @end

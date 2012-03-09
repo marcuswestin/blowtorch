@@ -22,3 +22,6 @@
 [submodule "dependencies/AFNetworking"]
 	path = dependencies/AFNetworking
 	url = https://github.com/AFNetworking/AFNetworking.git
+[submodule "dependencies/node-uuid"]
+	path = dependencies/node-uuid
+	url = https://github.com/broofa/node-uuid.git
