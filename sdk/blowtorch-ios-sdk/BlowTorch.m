@@ -12,7 +12,7 @@
 
 /* Webview messaging
  *******************/
-- (void) handleMessage:(NSString *)messageString {
+- (void)javascriptBridge:(WebViewJavascriptBridge *)bridge receivedMessage:(NSString *)messageString fromWebView:(UIWebView *)fromWebView {
     NSDictionary* message = [messageString objectFromJSONString];
     NSString *callbackID = [message objectForKey:@"callbackID"];
     NSString *command = [message objectForKey:@"command"];
@@ -28,7 +28,7 @@
             NSDictionary* responseMessage = errorMessage
                 ? [NSDictionary dictionaryWithObjectsAndKeys:callbackID, @"responseID", errorMessage, @"error", nil]
                 : [NSDictionary dictionaryWithObjectsAndKeys:callbackID, @"responseID", response, @"data", nil];
-            [javascriptBridge sendMessage:[responseMessage JSONString]];
+            [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
         }];
     }
 }
@@ -56,7 +56,7 @@
     // create webview
     webView = [[UIWebView alloc] initWithFrame:screenBounds];
     [window addSubview:webView];
-    javascriptBridge = [WebViewJavascriptBridge createWithDelegate:self];
+    javascriptBridge = [WebViewJavascriptBridge javascriptBridgeWithDelegate:self];
     webView.delegate = javascriptBridge;
     [self loadPage];
 

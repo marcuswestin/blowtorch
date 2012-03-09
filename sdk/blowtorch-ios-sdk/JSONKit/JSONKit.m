@@ -1,1 +1,1 @@
-../../dependencies/JSONKit/JSONKit.m
+../../../dependencies/JSONKit/JSONKit.m

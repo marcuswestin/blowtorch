@@ -1,1 +1,1 @@
-../../dependencies/WebViewJavascriptBridge/WebViewJavascriptBridge/Classes/WebViewJavascriptBridge.h
+../../../dependencies/WebViewJavascriptBridge/WebViewJavascriptBridge/WebViewJavascriptBridge.h

@@ -1,1 +1,1 @@
-../../dependencies/JSONKit/JSONKit.h
+../../../dependencies/JSONKit/JSONKit.h
