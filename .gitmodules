@@ -25,3 +25,6 @@
 [submodule "dependencies/node-uuid"]
 	path = dependencies/node-uuid
 	url = https://github.com/broofa/node-uuid.git
+[submodule "dependencies/Light-Untar-for-iOS"]
+	path = dependencies/Light-Untar-for-iOS
+	url = https://github.com/mhausherr/Light-Untar-for-iOS.git

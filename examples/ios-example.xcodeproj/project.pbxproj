@@ -26,6 +26,7 @@
 		2CDA006B150AAD25003A4E7F /* AFURLConnectionOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA005F150AAD25003A4E7F /* AFURLConnectionOperation.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		2CDA006C150AAD25003A4E7F /* AFXMLRequestOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA0061150AAD25003A4E7F /* AFXMLRequestOperation.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		2CDA006D150AAD25003A4E7F /* UIImageView+AFNetworking.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA0063150AAD25003A4E7F /* UIImageView+AFNetworking.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		2CDA007B150ADA96003A4E7F /* NSFileManager+Tar.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA007A150ADA96003A4E7F /* NSFileManager+Tar.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +67,8 @@
 		2CDA0061150AAD25003A4E7F /* AFXMLRequestOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AFXMLRequestOperation.m; sourceTree = "<group>"; };
 		2CDA0062150AAD25003A4E7F /* UIImageView+AFNetworking.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImageView+AFNetworking.h"; sourceTree = "<group>"; };
 		2CDA0063150AAD25003A4E7F /* UIImageView+AFNetworking.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImageView+AFNetworking.m"; sourceTree = "<group>"; };
+		2CDA0079150ADA96003A4E7F /* NSFileManager+Tar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSFileManager+Tar.h"; sourceTree = "<group>"; };
+		2CDA007A150ADA96003A4E7F /* NSFileManager+Tar.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSFileManager+Tar.m"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,6 +141,7 @@
 				2CD374D71509889D002478F2 /* BlowTorch.m */,
 				2CDA004E150AAD25003A4E7F /* AFNetworking */,
 				2CD374D81509889D002478F2 /* JSONKit */,
+				2CDA0078150ADA96003A4E7F /* Light-Untar */,
 				2CD374DB1509889D002478F2 /* WebViewJavascriptBridge */,
 			);
 			name = "blowtorch-ios-sdk";
@@ -188,6 +192,15 @@
 				2CDA0063150AAD25003A4E7F /* UIImageView+AFNetworking.m */,
 			);
 			path = AFNetworking;
+			sourceTree = "<group>";
+		};
+		2CDA0078150ADA96003A4E7F /* Light-Untar */ = {
+			isa = PBXGroup;
+			children = (
+				2CDA0079150ADA96003A4E7F /* NSFileManager+Tar.h */,
+				2CDA007A150ADA96003A4E7F /* NSFileManager+Tar.m */,
+			);
+			path = "Light-Untar";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -266,6 +279,7 @@
 				2CDA006B150AAD25003A4E7F /* AFURLConnectionOperation.m in Sources */,
 				2CDA006C150AAD25003A4E7F /* AFXMLRequestOperation.m in Sources */,
 				2CDA006D150AAD25003A4E7F /* UIImageView+AFNetworking.m in Sources */,
+				2CDA007B150ADA96003A4E7F /* NSFileManager+Tar.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -334,6 +348,10 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ios-example/ios-example-Prefix.pch";
 				INFOPLIST_FILE = "ios-example/ios-example-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../sdk/blowtorch-ios-sdk/libarchive\"",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -345,6 +363,10 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "ios-example/ios-example-Prefix.pch";
 				INFOPLIST_FILE = "ios-example/ios-example-Info.plist";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)/../sdk/blowtorch-ios-sdk/libarchive\"",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};

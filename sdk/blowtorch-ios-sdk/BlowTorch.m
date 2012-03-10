@@ -1,11 +1,15 @@
 #import "BlowTorch.h"
 #import "AFJSONUtilities.h"
+#import "NSFileManager+Tar.h"
 
 @interface BlowTorch (hidden)
 - (NSData*) getUpgradeRequestBody;
 - (NSDictionary*) getClientInfo;
 - (NSDictionary*) storeClientInfo:(NSDictionary*)clientInfo;
 - (NSString*) getClientInfoFilePath;
+- (void) startVersionDownload:(NSString*)version;
+- (NSURL*) getUrl:(NSString*) path;
+- (NSString*) getFilePath:(NSString*) name;
 @end
 
 @implementation BlowTorch
@@ -21,14 +25,20 @@
 /* Upgrade API
  *************/
 - (void)requestUpgrade {
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://marcus.local:4000/upgrade"]];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[self getUrl:@"upgrade"]];
     [request setHTTPMethod:@"POST"];
     [request setHTTPBody:[self getUpgradeRequestBody]];
     [[AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, NSDictionary* upgradeResponse) {
+        NSLog(@"upgrade response %@", upgradeResponse);
         NSDictionary* clientInfo = [upgradeResponse objectForKey:@"client_info"];
         [self storeClientInfo:clientInfo];
-        NSLog(@"Response %@", clientInfo);
-    } failure:nil] start];
+        NSString* newVersion = [upgradeResponse objectForKey:@"new_version"];
+        if (newVersion) {
+            [self startVersionDownload:newVersion];
+        }
+    } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error, id JSON) {
+        NSLog(@"upgrade failure %@", error);
+    }] start];
 }
 
 /* Webview messaging
@@ -138,11 +148,43 @@
 }
 
 - (NSString *)getClientInfoFilePath {
-    NSString* fileName = @"blowtorch-client_info-1";
+    return [self getFilePath:@"blowtorch-client_info-1"];
+}
+
+- (NSString *)getFilePath:(NSString *)fileName {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths objectAtIndex:0];
     return [documentsDirectory stringByAppendingPathComponent:fileName];
 }
+
+- (void)startVersionDownload:(NSString *)version {
+    NSLog(@"Start download %@", version);
+    [[NSFileManager defaultManager] createDirectoryAtPath:[self getFilePath:@"archives"] withIntermediateDirectories:YES attributes:nil error:nil];
+    NSURL* payloadUrl = [self getUrl:[NSString stringWithFormat:@"builds/%@", version]];
+    NSString* tarFilePath = [self getFilePath:[NSString stringWithFormat:@"archives/%@.tar", version]];
+    NSString* directoryPath = [self getFilePath:@"versions"];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:payloadUrl];
+    [request setHTTPMethod:@"GET"];
+    AFHTTPRequestOperation* requestOperation = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+    requestOperation.outputStream = [NSOutputStream outputStreamToFileAtPath:tarFilePath append:NO];
+    [requestOperation setCompletionBlock:^{
+        NSLog(@"Version download completed %@", tarFilePath);
+        NSError *error;
+        [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarPath:tarFilePath error:&error];
+        if (error) {
+            NSLog(@"Error untarring version %@", error);
+        } else {
+            NSLog(@"Success downloading and untarring version %@", version);
+        }
+    }];
+    [requestOperation start];
+}
+
+-(NSURL *)getUrl:(NSString *)path {
+    return [NSURL URLWithString:[NSString stringWithFormat:@"http://marcus.local:4000/%@", path]];
+}
+
+
 
 @end
 
