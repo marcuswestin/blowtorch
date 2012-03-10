@@ -13,7 +13,6 @@
 		2CD374A8150972D1002478F2 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 2CD374A6150972D1002478F2 /* InfoPlist.strings */; };
 		2CD374AA150972D1002478F2 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CD374A9150972D1002478F2 /* main.m */; };
 		2CD374AE150972D1002478F2 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CD374AD150972D1002478F2 /* AppDelegate.m */; };
-		2CD374DE1509889D002478F2 /* BlowTorch.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CD374D71509889D002478F2 /* BlowTorch.m */; };
 		2CD374DF1509889D002478F2 /* JSONKit.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CD374DA1509889D002478F2 /* JSONKit.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		2CD374E01509889D002478F2 /* WebViewJavascriptBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CD374DD1509889D002478F2 /* WebViewJavascriptBridge.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		2CDA0064150AAD25003A4E7F /* AFHTTPClient.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA0050150AAD25003A4E7F /* AFHTTPClient.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
@@ -27,6 +26,7 @@
 		2CDA006C150AAD25003A4E7F /* AFXMLRequestOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA0061150AAD25003A4E7F /* AFXMLRequestOperation.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		2CDA006D150AAD25003A4E7F /* UIImageView+AFNetworking.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA0063150AAD25003A4E7F /* UIImageView+AFNetworking.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
 		2CDA007B150ADA96003A4E7F /* NSFileManager+Tar.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA007A150ADA96003A4E7F /* NSFileManager+Tar.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		2CDA0085150C0979003A4E7F /* BTAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 2CDA0084150C0979003A4E7F /* BTAppDelegate.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,8 +40,6 @@
 		2CD374AB150972D1002478F2 /* ios-example-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ios-example-Prefix.pch"; sourceTree = "<group>"; };
 		2CD374AC150972D1002478F2 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		2CD374AD150972D1002478F2 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
-		2CD374D61509889D002478F2 /* BlowTorch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BlowTorch.h; sourceTree = "<group>"; };
-		2CD374D71509889D002478F2 /* BlowTorch.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BlowTorch.m; sourceTree = "<group>"; };
 		2CD374D91509889D002478F2 /* JSONKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSONKit.h; sourceTree = "<group>"; };
 		2CD374DA1509889D002478F2 /* JSONKit.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = JSONKit.m; sourceTree = "<group>"; };
 		2CD374DC1509889D002478F2 /* WebViewJavascriptBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebViewJavascriptBridge.h; sourceTree = "<group>"; };
@@ -69,6 +67,8 @@
 		2CDA0063150AAD25003A4E7F /* UIImageView+AFNetworking.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImageView+AFNetworking.m"; sourceTree = "<group>"; };
 		2CDA0079150ADA96003A4E7F /* NSFileManager+Tar.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSFileManager+Tar.h"; sourceTree = "<group>"; };
 		2CDA007A150ADA96003A4E7F /* NSFileManager+Tar.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSFileManager+Tar.m"; sourceTree = "<group>"; };
+		2CDA0083150C0978003A4E7F /* BTAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BTAppDelegate.h; sourceTree = "<group>"; };
+		2CDA0084150C0979003A4E7F /* BTAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BTAppDelegate.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,8 +137,8 @@
 		2CD374D51509889D002478F2 /* blowtorch-ios-sdk */ = {
 			isa = PBXGroup;
 			children = (
-				2CD374D61509889D002478F2 /* BlowTorch.h */,
-				2CD374D71509889D002478F2 /* BlowTorch.m */,
+				2CDA0083150C0978003A4E7F /* BTAppDelegate.h */,
+				2CDA0084150C0979003A4E7F /* BTAppDelegate.m */,
 				2CDA004E150AAD25003A4E7F /* AFNetworking */,
 				2CD374D81509889D002478F2 /* JSONKit */,
 				2CDA0078150ADA96003A4E7F /* Light-Untar */,
@@ -266,7 +266,6 @@
 			files = (
 				2CD374AA150972D1002478F2 /* main.m in Sources */,
 				2CD374AE150972D1002478F2 /* AppDelegate.m in Sources */,
-				2CD374DE1509889D002478F2 /* BlowTorch.m in Sources */,
 				2CD374DF1509889D002478F2 /* JSONKit.m in Sources */,
 				2CD374E01509889D002478F2 /* WebViewJavascriptBridge.m in Sources */,
 				2CDA0064150AAD25003A4E7F /* AFHTTPClient.m in Sources */,
@@ -280,6 +279,7 @@
 				2CDA006C150AAD25003A4E7F /* AFXMLRequestOperation.m in Sources */,
 				2CDA006D150AAD25003A4E7F /* UIImageView+AFNetworking.m in Sources */,
 				2CDA007B150ADA96003A4E7F /* NSFileManager+Tar.m in Sources */,
+				2CDA0085150C0979003A4E7F /* BTAppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

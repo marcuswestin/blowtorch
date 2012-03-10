@@ -7,10 +7,8 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "BlowTorch.h"
+#import "BTAppDelegate.h"
 
-@interface AppDelegate : UIResponder <UIApplicationDelegate>
-
-@property (strong, nonatomic) UIWindow *window;
+@interface AppDelegate : BTAppDelegate
 
 @end
