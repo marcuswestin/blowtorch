@@ -3,6 +3,11 @@
 var exec = require('child_process').exec,
 	path = require('path')
 
+if (!process.argv[2]) {
+	console.error('missing file argument')
+	return process.exit(-1)
+}
+
 var buildSrc = path.join(process.cwd(), process.argv[2]),
 	buildDir = path.join(__dirname, '../builds'),
 	buildName = 'blowtorch-'+new Date().getTime(),
