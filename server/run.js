@@ -29,7 +29,6 @@ function handle404(req, res) {
 	res.end(message)
 }
 
-var currentVersion = fs.readdirSync(__dirname+'/../builds')[0].split('.')[0]
 function handleUpgradeRequest(req, res) {
 	parseJsonPostBody(req, function(err, reqObj) {
 		if (err) { return sendError(res, err) }
@@ -40,8 +39,10 @@ function handleUpgradeRequest(req, res) {
 		if (!client_info.client_id) {
 			client_info.client_id = uuid.v1()
 		}
+
 		if (!client_info.current_version) {
-			resObj.new_version = currentVersion
+			var files = fs.readdirSync(__dirname+'/../builds')
+			resObj.new_version = files[files.length-1].split('.')[0]
 		}
 		
 		console.log('upgrade response', resObj)
