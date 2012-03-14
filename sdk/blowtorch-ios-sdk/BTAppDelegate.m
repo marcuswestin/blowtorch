@@ -4,12 +4,20 @@
 
 @interface BTAppDelegate (hidden)
 - (NSData*) getUpgradeRequestBody;
-- (NSDictionary*) getClientInfo;
-- (NSDictionary*) storeClientInfo:(NSDictionary*)clientInfo;
-- (NSString*) getClientInfoFilePath;
+
+- (NSDictionary*) getClientState;
+- (id) getClientState:(NSString*)name;
+- (NSDictionary*) setClientState:(NSString*)name value:(id)value;
+- (NSString*) getClientStateFilePath;
+
 - (void) startVersionDownload:(NSString*)version;
+- (void) loadCurrentVersionApp;
 - (NSURL*) getUrl:(NSString*) path;
 - (NSString*) getFilePath:(NSString*) name;
+- (NSCachedURLResponse*) localFileResponse:(NSString*)filePath forRequest:(NSURLRequest*)request;
+
+- (NSString*) getCurrentVersion;
+- (NSString*) getCurrentVersionPath:(NSString*)resourcePath;
 
 - (void) createWindowAndWebView;
 @end
@@ -23,20 +31,13 @@
  **********************/
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-    [NSURLCache setSharedURLCache:[[BTInterceptionCache alloc] init]];
+    BTInterceptionCache* interceptionCache = [[BTInterceptionCache alloc] init];
+    interceptionCache.blowtorchInstance = self;
+    [NSURLCache setSharedURLCache:interceptionCache];
     [self createWindowAndWebView];
-    [self loadPage];
+    [self loadCurrentVersionApp];
     [self requestUpgrade];
     return YES;
-}
-
-- (void) loadPage {
-    [webView loadHTMLString:
-     @"<!doctype html>"
-     "<html><head></head><body>"
-     "<script src='http://localhost:3333/require/blowtorch/dev-tools'></script>"
-     "<script src='http://localhost:3333/require/blowtorch/bootstrap-ios'></script>"
-     "</body></html>" baseURL:nil];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
@@ -88,7 +89,7 @@
     NSDictionary *data = [message objectForKey:@"data"];
     
     if ([command isEqualToString:@"blowtorch:reload"]) {
-        [self loadPage];
+        [self loadCurrentVersionApp];
     } else if ([command isEqualToString:@"blowtorch:log"]) {
         NSLog(@"console.log %@", data);
     } else {
@@ -114,14 +115,19 @@
     [request setHTTPBody:[self getUpgradeRequestBody]];
     [[AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, NSDictionary* upgradeResponse) {
         NSLog(@"upgrade response %@", upgradeResponse);
-        NSDictionary* clientInfo = [upgradeResponse objectForKey:@"client_info"];
-        [self storeClientInfo:clientInfo];
-        NSString* newVersion = [upgradeResponse objectForKey:@"new_version"];
-        if (newVersion) {
-            [self startVersionDownload:newVersion];
+        NSDictionary* commands = [upgradeResponse objectForKey:@"commands"];
+        for (NSString* command in commands) {
+            id value = [commands valueForKey:command];
+            if ([command isEqualToString:@"set_client_id"]) {
+                [self setClientState:@"client_id" value:(NSString*)value];
+            } else if ([command isEqualToString:@"download_version"]) {
+                [self startVersionDownload:(NSString*)value];
+            } else {
+                NSLog(@"Warning: Received unknown command from server %@:%@", command, value);
+            }
         }
     } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error, id JSON) {
-        NSLog(@"upgrade failure %@", error);
+        NSLog(@"Warning: upgrade request failed %@", error);
     }] start];
 }
 
@@ -129,34 +135,52 @@
 
 @implementation BTAppDelegate (hidden)
 
+- (void) loadCurrentVersionApp {
+    [self setClientState:@"installed_version" value:[self getClientState:@"downloaded_version"]];
+    
+    // Always https?
+    NSURL* url = [NSURL URLWithString:@"http://blowtorch-payload/app.html"];
+    [webView loadRequest:[NSURLRequest requestWithURL:url]];
+}
+
 - (NSData *)getUpgradeRequestBody {
-    NSDictionary* requestObj = [NSDictionary dictionaryWithObject:[self getClientInfo] forKey:@"client_info"];
+    NSDictionary* requestObj = [NSDictionary dictionaryWithObject:[self getClientState] forKey:@"client_state"];
     NSError *error = nil;
     NSData *JSONData = AFJSONEncode(requestObj, &error);
     return error ? nil : JSONData;
 }
 
-- (NSDictionary *)getClientInfo {
-    NSString* filePath = [self getClientInfoFilePath];
-    NSDictionary* clientInfo = [NSDictionary dictionaryWithContentsOfFile:filePath];
-    if (!clientInfo) {
-        clientInfo = [NSDictionary dictionary];
+- (NSDictionary *)getClientState {
+    NSString* filePath = [self getClientStateFilePath];
+    NSDictionary* clientState = [NSDictionary dictionaryWithContentsOfFile:filePath];
+    if (!clientState) {
+        clientState = [NSDictionary dictionary];
     }
-    return clientInfo;
+    return clientState;
 }
 
-- (NSDictionary *)storeClientInfo:(NSDictionary*)newClientInfo {
-    NSString* filePath = [self getClientInfoFilePath];
-    NSMutableDictionary *currentClientInfo = [NSMutableDictionary dictionaryWithDictionary:[self getClientInfo]];
-    for (NSString* key in newClientInfo) {
-        [currentClientInfo setValue:[newClientInfo valueForKey:key] forKey:key];
-    }
-    [currentClientInfo writeToFile:filePath atomically:YES];
-    return currentClientInfo;
+- (id)getClientState:(NSString *)name {
+    return [[self getClientState] objectForKey:name];
 }
 
-- (NSString *)getClientInfoFilePath {
-    return [self getFilePath:@"blowtorch-client_info-1"];
+- (NSString *)getCurrentVersion {
+    return [[self getClientState] objectForKey:@"installed_version"];
+}
+
+- (NSString *)getCurrentVersionPath:(NSString *)resourcePath {
+    return [self getFilePath:[NSString stringWithFormat:@"versions/%@/%@", [self getCurrentVersion], resourcePath]];
+}
+
+-(NSDictionary *)setClientState:(NSString *)name value:(id)value {
+    NSString* filePath = [self getClientStateFilePath];
+    NSMutableDictionary *currentClientState = [NSMutableDictionary dictionaryWithDictionary:[self getClientState]];
+    [currentClientState setValue:value forKey:name];
+    [currentClientState writeToFile:filePath atomically:YES];
+    return currentClientState;
+}
+
+- (NSString *)getClientStateFilePath {
+    return [self getFilePath:@"blowtorch-client_state"];
 }
 
 - (NSString *)getFilePath:(NSString *)fileName {
@@ -167,6 +191,7 @@
 
 - (void)startVersionDownload:(NSString *)version {
     NSLog(@"Start download %@", version);
+    [self setClientState:@"downloading_version" value:version];
     [[NSFileManager defaultManager] createDirectoryAtPath:[self getFilePath:@"archives"] withIntermediateDirectories:YES attributes:nil error:nil];
     NSURL* payloadUrl = [self getUrl:[NSString stringWithFormat:@"builds/%@", version]];
     NSString* tarFilePath = [self getFilePath:[NSString stringWithFormat:@"archives/%@.tar", version]];
@@ -182,6 +207,7 @@
         if (error) {
             NSLog(@"Error untarring version %@", error);
         } else {
+            [self setClientState:@"downloaded_version" value:version];
             NSLog(@"Success downloading and untarring version %@", version);
         }
     }];
@@ -207,23 +233,37 @@
     webView.delegate = javascriptBridge;
 }
 
+- (NSCachedURLResponse *)localFileResponse:(NSString *)filePath forRequest:(NSURLRequest*)request {
+    NSData* data = [NSData dataWithContentsOfFile:filePath];
+    NSString* mimeType = @""; // TODO Determine mimeType based on file extension
+    NSURLResponse* response = [[NSURLResponse alloc] initWithURL:[request URL] MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
+    return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
+}
+
 @end
 
 @implementation BTInterceptionCache
 
+@synthesize blowtorchInstance;
+
 - (NSCachedURLResponse*)cachedResponseForRequest:(NSURLRequest *)request {
-    BOOL isDev = YES;
-    if (isDev) { return [super cachedResponseForRequest:request]; }
-
-    NSRange match = [[[request URL] path] rangeOfString:@"/bootstrap-ios"];
-    if (match.location == NSNotFound) { return [super cachedResponseForRequest:request]; }
-
-    NSString* filePath = [[NSBundle mainBundle] pathForResource:@"app.js" ofType:@"ios-build"];
-    NSData* jsData = [NSData dataWithContentsOfFile:filePath];
-
-    NSURLResponse* response = [[NSURLResponse alloc] initWithURL:[request URL] MIMEType:@"application/javascript" expectedContentLength:[jsData length] textEncodingName:nil];
-    NSCachedURLResponse* cachedResponse = [[NSCachedURLResponse alloc] initWithResponse:response data:jsData];
-    return cachedResponse;
+    NSURL* url = [request URL];
+    NSString* host = [url host];
+    NSString* path = [url path];
+    
+    if ([host isEqualToString:@"blowtorch-bootstrap"]) {
+        NSLog(@"TODO: intercept blowtorch-bootstrap %@", path);
+    } else if ([host isEqualToString:@"blowtorch-payload"]) {
+        NSLog(@"intercept blowtorch-payload %@", path);
+        NSString* filePath = [self.blowtorchInstance getCurrentVersionPath:path];
+        return [self.blowtorchInstance localFileResponse:filePath forRequest:request];
+    } else if ([host isEqualToString:@"blowtorch-command"]) {
+        NSString* encodedJson = [url query];
+        NSLog(@"TODO: intercept blowtorch-command %@ %@", path, encodedJson);
+        // Pass through command to command handler
+    }
+    
+    return nil;
 }
 
 @end

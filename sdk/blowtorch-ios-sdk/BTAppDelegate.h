@@ -5,9 +5,6 @@
 
 typedef void (^ResponseCallback)(NSString* errorMessage, NSDictionary* response);
 
-@interface BTInterceptionCache : NSURLCache
-@end
-
 @interface BTAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate>
 
 /* API
@@ -24,8 +21,9 @@ typedef void (^ResponseCallback)(NSString* errorMessage, NSDictionary* response)
 @property (strong, nonatomic) UIWebView *webView;
 @property (strong, nonatomic) WebViewJavascriptBridge *javascriptBridge;
 
-- (void) loadPage;
-
 @end
 
 
+@interface BTInterceptionCache : NSURLCache
+@property (strong, atomic) BTAppDelegate* blowtorchInstance;
+@end

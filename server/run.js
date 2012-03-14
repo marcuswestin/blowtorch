@@ -30,28 +30,29 @@ function handle404(req, res) {
 }
 
 function handleUpgradeRequest(req, res) {
-	parseJsonPostBody(req, function(err, reqObj) {
+	parseJsonPostBody(req, function(err, reqData) {
 		if (err) { return sendError(res, err) }
-		console.log('upgrade request', reqObj)
+		console.log('upgrade request', reqData)
 
-		var client_info = reqObj.client_info || {},
-			resObj = { client_info:client_info }
-		if (!client_info.client_id) {
-			client_info.client_id = uuid.v1()
-		}
-
-		if (!client_info.current_version) {
-			var files = fs.readdirSync(__dirname+'/../builds')
-			resObj.new_version = files[files.length-1].split('.')[0]
+		var clientState = reqData.client_state || {},
+			resData = { commands:{} }
+		if (!clientState['client_id']) {
+			resData.commands['set_client_id'] = uuid.v1()
 		}
 		
-		console.log('upgrade response', resObj)
-		send(res, JSON.stringify(resObj), 'application/json')
+		var files = fs.readdirSync(__dirname+'/../builds'),
+			currentVersion = files[files.length-1].split('.')[0]
+		if (clientState['downloaded_version'] != currentVersion) {
+			resData.commands['download_version'] = currentVersion
+		}
+		
+		console.log('upgrade response', resData)
+		send(res, JSON.stringify(resData), 'application/json')
 	})
 }
 
 function handleVersionDownloadRequest(req, res, version) {
-	console.log('download request', version, path.join(__dirname, '../builds', version+'.tar'))
+	console.log('download request', version)
 	fs.readFile(path.join(__dirname, '../builds', version+'.tar'), function(err, content) {
 		if (err) { return sendError(res, err) }
 		send(res, content, 'application/x-tar')
