@@ -27,6 +27,7 @@
 
 @synthesize window, webView, javascriptBridge;
 
+static BOOL isDev = YES;
 
 /* Native app lifecycle
  **********************/
@@ -141,8 +142,10 @@
 - (void) loadCurrentVersionApp {
     [self setClientState:@"installed_version" value:[self getClientState:@"downloaded_version"]];
     
-    // Always https?
-    NSURL* url = [NSURL URLWithString:@"http://blowtorch-payload/app.html"];
+    NSURL* url = [NSURL URLWithString: isDev
+                  ? @"http://marcus.local:9090/app.html"
+                  : @"http://blowtorch-payload/app.html"];
+    
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
 }
 
