@@ -22,3 +22,8 @@
 	- Mark WebViewJavascriptBridge file
 	- Add this compiler flag to all those files: `-fno-objc-arc`
 
+## Debugging
+
+- Download iWebInspector
+- Make sure `#define BTDEV` in BTAppDeletage.m is uncommented
+- Use Hybrid app Load button with app name (e.g. `ios-example`)

@@ -2,6 +2,17 @@
 #import "AFJSONUtilities.h"
 #import "NSFileManager+Tar.h"
 
+#define BTDEV
+
+#ifdef BTDEV
+static BOOL isDev = YES;
+@interface WebView
++ (void)_enableRemoteInspector;
+@end
+#else
+static BOOL isDev = NO;
+#endif
+
 @interface BTAppDelegate (hidden)
 - (NSData*) getUpgradeRequestBody;
 
@@ -27,8 +38,6 @@
 
 @synthesize window, webView, javascriptBridge;
 
-static BOOL isDev = YES;
-
 /* Native app lifecycle
  **********************/
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
@@ -40,6 +49,10 @@ static BOOL isDev = YES;
     [self showSplashScreen];
     [self loadCurrentVersionApp];
     [self requestUpgrade];
+    
+    #ifdef DEV
+    [NSClassFromString(@"WebView") _enableRemoteInspector];
+    #endif
     
     return YES;
 }
