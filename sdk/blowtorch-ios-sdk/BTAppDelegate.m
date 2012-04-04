@@ -31,7 +31,6 @@ static BOOL isDev = NO;
 - (NSString*) getCurrentVersionPath:(NSString*)resourcePath;
 
 - (void) createWindowAndWebView;
-- (void) showSplashScreen;
 @end
 
 @implementation BTAppDelegate
@@ -46,7 +45,6 @@ static BOOL isDev = NO;
     interceptionCache.blowtorchInstance = self;
     [NSURLCache setSharedURLCache:interceptionCache];
     [self createWindowAndWebView];
-    [self showSplashScreen];
     [self loadCurrentVersionApp];
     [self requestUpgrade];
     
@@ -250,12 +248,6 @@ static BOOL isDev = NO;
     [window addSubview:webView];
     javascriptBridge = [WebViewJavascriptBridge javascriptBridgeWithDelegate:self];
     webView.delegate = javascriptBridge;
-}
-
-- (void)showSplashScreen {
-    UITextView* textView = [[UITextView alloc] initWithFrame:CGRectMake(130, 100, 300, 100)];
-    [textView setText:@"Loading..."];
-    [window addSubview:textView];
 }
 
 - (NSCachedURLResponse *)localFileResponse:(NSString *)filePath forRequest:(NSURLRequest*)request {
