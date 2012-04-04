@@ -48,7 +48,7 @@ static BOOL isDev = NO;
     [self loadCurrentVersionApp];
     [self requestUpgrade];
     
-    #ifdef DEV
+    #ifdef BTDEV
     [NSClassFromString(@"WebView") _enableRemoteInspector];
     #endif
     
