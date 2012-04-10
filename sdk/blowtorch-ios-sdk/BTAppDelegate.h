@@ -10,6 +10,7 @@ typedef void (^ResponseCallback)(NSString* errorMessage, NSDictionary* response)
 /* API
  *****/
 - (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
+- (void) sendCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 
 /* Upgrade API
  *************/

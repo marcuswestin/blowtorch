@@ -122,6 +122,14 @@ static BOOL isDev = NO;
     [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:data:responseCallback must be overridden"];
 }
 
+- (void)sendCommand:(NSString *)command data:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
+    if (responseCallback) {
+        NSLog(@"TODO Support response callbacks");
+    }
+    NSDictionary* message = [NSDictionary dictionaryWithObjectsAndKeys:command, @"command", data, @"data", nil];
+    [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
+}
+
 /* Upgrade API
  *************/
 - (void)requestUpgrade {
