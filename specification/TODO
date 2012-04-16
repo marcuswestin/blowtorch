@@ -1,3 +1,5 @@
+Put files in the right place: http://developer.apple.com/library/mac/#documentation/FileManagement/Conceptual/FileSystemProgrammingGUide/FileSystemOverview/FileSystemOverview.html#//apple_ref/doc/uid/TP40010672-CH2-SW4
+
 - Figure out how to bundle compiled JS without explicitly adding it to the xcode project
 - Move SQL code into BT
 - Send update statements with the insert values, i.e ['(?)', val] rather than '('+val+')'
