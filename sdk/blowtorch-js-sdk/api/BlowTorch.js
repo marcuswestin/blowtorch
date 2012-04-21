@@ -15,15 +15,15 @@ var callbacks = {},
 function setMessageHandler(aMessageHandler) { messageHandler = aMessageHandler }
 
 function send(command, data, callback) {
-	var callbackID
+	var responseId
 	if (callback) {
-		callbackID = unique()
-		callbacks[callbackID] = callback
+		responseId = unique()
+		callbacks[responseId] = callback
 	}
 	var message = JSON.stringify({
 		command:command,
 		data:data,
-		callbackID:callbackID
+		responseId:responseId
 	})
 	WebViewJavascriptBridge.sendMessage(message)
 }
@@ -31,10 +31,9 @@ function send(command, data, callback) {
 function init(callback) {
 	WebViewJavascriptBridge.setMessageHandler(function(messageJSON) {
 		var message = JSON.parse(messageJSON),
-			responseID = message.responseID,
-			callback = callbacks[responseID]
-		
-		delete callbacks[responseID]
+			responseId = message.responseId,
+			callback = callbacks[responseId]
+		delete callbacks[responseId]
 		callback(message.error, message.data)
 	})
 	callback()

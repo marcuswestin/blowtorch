@@ -99,9 +99,11 @@ static BOOL isDev = NO;
  ************************/
 - (void)javascriptBridge:(WebViewJavascriptBridge *)bridge receivedMessage:(NSString *)messageString fromWebView:(UIWebView *)fromWebView {
     NSDictionary* message = [messageString objectFromJSONString];
-    NSString *callbackID = [message objectForKey:@"callbackID"];
-    NSString *command = [message objectForKey:@"command"];
     NSDictionary *data = [message objectForKey:@"data"];
+    __block NSString *responseId = [message objectForKey:@"responseId"];
+    __block NSString *command = [message objectForKey:@"command"];
+    
+    NSLog(@"Got command %@ ", message);
     
     if ([command isEqualToString:@"blowtorch:reload"]) {
         [self loadCurrentVersionApp];
@@ -109,10 +111,19 @@ static BOOL isDev = NO;
         NSLog(@"console.log %@", data);
     } else {
         [self handleCommand:command data:data responseCallback:^(NSString *errorMessage, NSDictionary *response) {
-            NSLog(@"Send response to %@", command);
-            NSDictionary* responseMessage = errorMessage
-            ? [NSDictionary dictionaryWithObjectsAndKeys:callbackID, @"responseID", errorMessage, @"error", nil]
-            : [NSDictionary dictionaryWithObjectsAndKeys:callbackID, @"responseID", response, @"data", nil];
+            NSLog(@"Send response to %@ %@ %@", command, errorMessage, response);
+            NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
+
+            if (responseId) {
+                [responseMessage setObject:responseId forKey:@"responseId"];
+            }
+            
+            if (errorMessage) {
+                [responseMessage setObject:errorMessage forKey:@"error"];
+            } else if (response) {
+                [responseMessage setObject:response forKey:@"data"];
+            }
+            
             [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
         }];
     }
