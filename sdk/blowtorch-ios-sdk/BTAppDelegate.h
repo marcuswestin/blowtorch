@@ -3,7 +3,7 @@
 #import "WebViewJavascriptBridge.h"
 #import "AFNetworking.h"
 
-typedef void (^ResponseCallback)(NSString* errorMessage, NSDictionary* response);
+typedef void (^ResponseCallback)(id error, NSDictionary* response);
 
 @interface BTAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate>
 
