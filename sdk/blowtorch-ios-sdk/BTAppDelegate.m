@@ -292,6 +292,10 @@ static BOOL isDev = NO;
     } else if ([host isEqualToString:@"blowtorch-payload"]) {
         NSLog(@"intercept blowtorch-payload %@", path);
         NSString* filePath = [self.blowtorchInstance getCurrentVersionPath:path];
+        if (![NSData dataWithContentsOfFile:filePath]) {
+            NSArray* parts = [path pathComponents];
+            filePath = [[NSBundle mainBundle] pathForResource:[parts lastObject] ofType:nil]; // [path pathExtension]];
+        }
         return [self.blowtorchInstance localFileResponse:filePath forRequest:request];
     } else if ([host isEqualToString:@"blowtorch-command"]) {
         NSString* encodedJson = [url query];
