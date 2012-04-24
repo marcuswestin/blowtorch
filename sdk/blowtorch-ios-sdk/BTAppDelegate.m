@@ -103,7 +103,7 @@ static BOOL isDev = NO;
     __block NSString *responseId = [message objectForKey:@"responseId"];
     __block NSString *command = [message objectForKey:@"command"];
     
-    NSLog(@"Got command %@ ", message);
+    NSLog(@"command %@: %@", command, data);
     
     if ([command isEqualToString:@"blowtorch:reload"]) {
         [self loadCurrentVersionApp];
@@ -111,7 +111,7 @@ static BOOL isDev = NO;
         NSLog(@"console.log %@", data);
     } else {
         [self handleCommand:command data:data responseCallback:^(NSString *errorMessage, NSDictionary *response) {
-            NSLog(@"Send response to %@ %@ %@", command, errorMessage, response);
+            NSLog(@"respond to %@ %@ %@", command, errorMessage, response);
             NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
 
             if (responseId) {
