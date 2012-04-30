@@ -167,10 +167,6 @@ static BOOL isDev = NO;
     
     NSURL* url = [self getUrl:@"app.html"];
     
-    if (!isDev) {
-        url = [[NSURL alloc] initWithScheme:url.scheme host:@"blowtorch-payload" path:url.path];
-    }
-    
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
 }
 
@@ -286,9 +282,11 @@ static BOOL isDev = NO;
     NSString* host = [url host];
     NSString* path = [url path];
     
+    BOOL interceptApp = !isDev;
+    
     if ([host isEqualToString:@"blowtorch-bootstrap"]) {
         NSLog(@"TODO: intercept blowtorch-bootstrap %@", path);
-    } else if ([host isEqualToString:@"blowtorch-payload"]) {
+    } else if ([host isEqualToString:@"blowtorch-payload"] || (interceptApp && [path isEqualToString:@"/app.html"])) {
         NSLog(@"intercept blowtorch-payload %@", path);
         NSString* filePath = [self.blowtorchInstance getCurrentVersionPath:path];
         if (![NSData dataWithContentsOfFile:filePath]) {
