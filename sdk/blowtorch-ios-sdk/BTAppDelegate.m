@@ -22,7 +22,6 @@ static BOOL isDev = NO;
 - (NSString*) getClientStateFilePath;
 
 - (void) startVersionDownload:(NSString*)version;
-- (void) loadCurrentVersionApp;
 - (NSURL*) getUrl:(NSString*) path;
 - (NSString*) getFilePath:(NSString*) name;
 - (NSCachedURLResponse*) localFileResponse:(NSString*)filePath forRequest:(NSURLRequest*)request;
@@ -35,7 +34,7 @@ static BOOL isDev = NO;
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge;
+@synthesize window, webView, javascriptBridge, serverHost;
 
 /* Native app lifecycle
  **********************/
@@ -45,8 +44,6 @@ static BOOL isDev = NO;
     interceptionCache.blowtorchInstance = self;
     [NSURLCache setSharedURLCache:interceptionCache];
     [self createWindowAndWebView];
-    [self loadCurrentVersionApp];
-    [self requestUpgrade];
     
     #ifdef BTDEV
     [NSClassFromString(@"WebView") _enableRemoteInspector];
@@ -165,19 +162,21 @@ static BOOL isDev = NO;
     }] start];
 }
 
-@end
-
-@implementation BTAppDelegate (hidden)
-
 - (void) loadCurrentVersionApp {
     [self setClientState:@"installed_version" value:[self getClientState:@"downloaded_version"]];
     
-    NSURL* url = [NSURL URLWithString: isDev
-                  ? @"http://marcus.local:9090/app.html"
-                  : @"http://blowtorch-payload/app.html"];
+    NSURL* url = [self getUrl:@"app.html"];
+    
+    if (!isDev) {
+        url = [[NSURL alloc] initWithScheme:url.scheme host:@"blowtorch-payload" path:url.path];
+    }
     
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
 }
+
+@end
+
+@implementation BTAppDelegate (hidden)
 
 - (NSData *)getUpgradeRequestBody {
     NSDictionary* requestObj = [NSDictionary dictionaryWithObject:[self getClientState] forKey:@"client_state"];
@@ -251,7 +250,7 @@ static BOOL isDev = NO;
 }
 
 -(NSURL *)getUrl:(NSString *)path {
-    return [NSURL URLWithString:[NSString stringWithFormat:@"http://marcus.local:4000/%@", path]];
+    return [NSURL URLWithString:[NSString stringWithFormat:@"%@/%@", self.serverHost, path]];
 }
 
 - (void)createWindowAndWebView {

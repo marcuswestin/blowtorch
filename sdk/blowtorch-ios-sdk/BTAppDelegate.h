@@ -7,13 +7,18 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
 
 @interface BTAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate>
 
-/* API
- *****/
+/* Properties
+ ************/
+@property (strong, atomic) NSString* serverHost;
+
+/* Webview API
+ *************/
 - (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 - (void) sendCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 
 /* Upgrade API
  *************/
+- (void) loadCurrentVersionApp;
 - (void) requestUpgrade;
 
 /* Private
