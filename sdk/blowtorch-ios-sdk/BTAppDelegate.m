@@ -2,15 +2,14 @@
 #import "AFJSONUtilities.h"
 #import "NSFileManager+Tar.h"
 
-#define BTDEV
 
-#ifdef BTDEV
-static BOOL isDev = YES;
+#ifdef DEBUG
+static BOOL BTDEV = true;
 @interface WebView
 + (void)_enableRemoteInspector;
 @end
-#else
-static BOOL isDev = NO;
+#else 
+static BOOL BTDEV = false;
 #endif
 
 @interface BTAppDelegate (hidden)
@@ -34,20 +33,22 @@ static BOOL isDev = NO;
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost;
+@synthesize window, webView, javascriptBridge, serverHost, isDev;
 
 /* Native app lifecycle
  **********************/
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    self.isDev = BTDEV;
+    
     BTInterceptionCache* interceptionCache = [[BTInterceptionCache alloc] init];
     interceptionCache.blowtorchInstance = self;
     [NSURLCache setSharedURLCache:interceptionCache];
     [self createWindowAndWebView];
     
-    #ifdef BTDEV
+#ifdef DEBUG
     [NSClassFromString(@"WebView") _enableRemoteInspector];
-    #endif
+#endif
     
     return YES;
 }
@@ -282,7 +283,7 @@ static BOOL isDev = NO;
     NSString* host = [url host];
     NSString* path = [url path];
     
-    BOOL interceptApp = !isDev;
+    BOOL interceptApp = !BTDEV;
     
     if ([host isEqualToString:@"blowtorch-bootstrap"]) {
         NSLog(@"TODO: intercept blowtorch-bootstrap %@", path);

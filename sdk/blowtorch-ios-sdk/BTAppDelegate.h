@@ -10,6 +10,7 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
 /* Properties
  ************/
 @property (strong, atomic) NSString* serverHost;
+@property (assign, atomic) BOOL isDev;
 
 /* Webview API
  *************/
