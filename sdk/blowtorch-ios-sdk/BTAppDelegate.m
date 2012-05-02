@@ -161,7 +161,8 @@ static BOOL BTDEV = false;
 }
 
 - (void)notify:(NSString *)event data:(NSDictionary *)data {
-    [self sendCommand:@"bt:handleEvent" data:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", data, @"data", nil]];
+    NSLog(@"Notify %@ %@", event, data);
+    [self sendCommand:@"handleEvent" data:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", data, @"data", nil]];
 }
 
 /* Upgrade API
@@ -204,7 +205,7 @@ static BOOL BTDEV = false;
 }     
 
 - (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
-    [self notify:@"push.registerFailed" data:[NSDictionary dictionaryWithObject:err forKey:@"error"]];
+    [self notify:@"push.registerFailed" data:nil];
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
