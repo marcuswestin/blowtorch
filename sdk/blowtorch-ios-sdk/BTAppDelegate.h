@@ -2,6 +2,7 @@
 #import "JSONKit.h"
 #import "WebViewJavascriptBridge.h"
 #import "AFNetworking.h"
+#import "BTState.h"
 
 typedef void (^ResponseCallback)(id error, NSDictionary* response);
 
@@ -10,12 +11,15 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
 /* Properties
  ************/
 @property (strong, atomic) NSString* serverHost;
-@property (assign, atomic) BOOL isDev;
+@property (strong, atomic) NSMutableDictionary* config;
+@property (atomic, strong) BTState* state;
+- (BOOL) isDev;
 
 /* Webview API
  *************/
 - (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
-- (void) sendCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
+- (void) sendCommand:(NSString*)command data:(NSDictionary*)data;
+- (void) notify:(NSString*)event data:(NSDictionary*)response;
 
 /* Upgrade API
  *************/

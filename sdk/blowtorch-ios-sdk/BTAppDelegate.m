@@ -29,18 +29,23 @@ static BOOL BTDEV = false;
 - (NSString*) getCurrentVersionPath:(NSString*)resourcePath;
 
 - (void) createWindowAndWebView;
+
+- (void) registerForPush;
 @end
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost, isDev;
+@synthesize window, webView, javascriptBridge, serverHost, config, state;
 
 /* Native app lifecycle
  **********************/
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-    self.isDev = BTDEV;
+    self.config = [NSMutableDictionary dictionary];
+    [self.config setValue:[NSNumber numberWithBool:BTDEV] forKey:@"isDev"];
     
+    state = [[BTState alloc] init];
+
     BTInterceptionCache* interceptionCache = [[BTInterceptionCache alloc] init];
     interceptionCache.blowtorchInstance = self;
     [NSURLCache setSharedURLCache:interceptionCache];
@@ -52,6 +57,8 @@ static BOOL BTDEV = false;
     
     return YES;
 }
+
+- (BOOL)isDev { return [[NSNumber numberWithBool:TRUE] isEqualToValue:[self.config valueForKey:@"isDev"]]; }
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
@@ -103,27 +110,44 @@ static BOOL BTDEV = false;
     
     NSLog(@"command %@: %@", command, data);
     
-    if ([command isEqualToString:@"blowtorch:reload"]) {
+    ResponseCallback responseCallback = ^(NSString *errorMessage, NSDictionary *response) {
+        NSLog(@"respond to %@ %@ %@", command, errorMessage, response);
+        NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
+        
+        if (responseId) {
+            [responseMessage setObject:responseId forKey:@"responseId"];
+        }
+        
+        if (errorMessage) {
+            [responseMessage setObject:errorMessage forKey:@"error"];
+        } else if (response) {
+            [responseMessage setObject:response forKey:@"data"];
+        }
+        
+        [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
+    };
+    
+    if ([command isEqualToString:@"app.reload"]) {
         [self loadCurrentVersionApp];
-    } else if ([command isEqualToString:@"blowtorch:log"]) {
-        NSLog(@"console.log %@", data);
-    } else {
-        [self handleCommand:command data:data responseCallback:^(NSString *errorMessage, NSDictionary *response) {
-            NSLog(@"respond to %@ %@ %@", command, errorMessage, response);
-            NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
 
-            if (responseId) {
-                [responseMessage setObject:responseId forKey:@"responseId"];
-            }
-            
-            if (errorMessage) {
-                [responseMessage setObject:errorMessage forKey:@"error"];
-            } else if (response) {
-                [responseMessage setObject:response forKey:@"data"];
-            }
-            
-            [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
-        }];
+    } else if ([command isEqualToString:@"console.log"]) {
+        NSLog(@"console.log %@", data);
+
+    } else if ([command isEqualToString:@"state.load"]) {
+        responseCallback(nil, [state load]);
+    
+    } else if ([command isEqualToString:@"state.set"]) {
+        [state set:[data objectForKey:@"key"] value:[data objectForKey:@"value"]];
+        responseCallback(nil, nil);
+    
+    } else if ([command isEqualToString:@"state.reset"]) {
+        [state reset];
+    
+    } else if ([command isEqualToString:@"push.register"]) {
+        [self registerForPush];
+    
+    } else {
+        [self handleCommand:command data:data responseCallback:responseCallback];
     }
 }
 
@@ -131,12 +155,13 @@ static BOOL BTDEV = false;
     [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:data:responseCallback must be overridden"];
 }
 
-- (void)sendCommand:(NSString *)command data:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
-    if (responseCallback) {
-        NSLog(@"TODO Support response callbacks");
-    }
+- (void)sendCommand:(NSString *)command data:(NSDictionary *)data {
     NSDictionary* message = [NSDictionary dictionaryWithObjectsAndKeys:command, @"command", data, @"data", nil];
     [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
+}
+
+- (void)notify:(NSString *)event data:(NSDictionary *)data {
+    [self sendCommand:@"bt:handleEvent" data:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", data, @"data", nil]];
 }
 
 /* Upgrade API
@@ -171,9 +196,32 @@ static BOOL BTDEV = false;
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
 }
 
+
+/* Push API
+ **********/
+- (void)application:(UIApplication *)app didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    [self notify:@"push.registered" data:[NSDictionary dictionaryWithObject:deviceToken forKey:@"deviceToken"]];
+}     
+
+- (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
+    [self notify:@"push.registerFailed" data:[NSDictionary dictionaryWithObject:err forKey:@"error"]];
+}
+
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
+    [self notify:@"push.notification" data:[NSDictionary dictionaryWithObject:userInfo forKey:@"data"]];
+}
+
 @end
 
+/* Private implementations
+ *************************/
+
 @implementation BTAppDelegate (hidden)
+
+- (void)registerForPush {
+    [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
+     (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
+}
 
 - (NSData *)getUpgradeRequestBody {
     NSDictionary* requestObj = [NSDictionary dictionaryWithObject:[self getClientState] forKey:@"client_state"];
