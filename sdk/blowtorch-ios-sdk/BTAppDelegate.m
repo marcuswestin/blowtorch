@@ -62,7 +62,6 @@ static BOOL BTDEV = false;
 
 -(void)startApp {
     [self loadCurrentVersionApp];
-    [self notify:@"app.start" info:self.config];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
@@ -132,7 +131,7 @@ static BOOL BTDEV = false;
         [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
     };
     
-    if ([command isEqualToString:@"app.reload"]) {
+    if ([command isEqualToString:@"app.restart"]) {
         [self loadCurrentVersionApp];
 
     } else if ([command isEqualToString:@"app.show"]) {
@@ -202,7 +201,10 @@ static BOOL BTDEV = false;
     
     NSURL* url = [self getUrl:@"app.html"];
     
+    [self.javascriptBridge resetQueue];
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
+    
+    [self notify:@"app.start" info:self.config];
 }
 
 
