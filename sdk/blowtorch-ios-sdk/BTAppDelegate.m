@@ -31,25 +31,25 @@ static BOOL BTDEV = false;
 - (void) createWindowAndWebView;
 
 - (void) registerForPush;
+
+- (void) showLoadingOverlay;
+- (void) hideLoadingOverlay;
 @end
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost, config, state;
+@synthesize window, webView, javascriptBridge, serverHost, state, overlay, config;
 
-/* Native app lifecycle
+/* App lifecycle
  **********************/
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
-{
-    self.config = [NSMutableDictionary dictionary];
-    [self.config setValue:[NSNumber numberWithBool:BTDEV] forKey:@"isDev"];
-    
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     state = [[BTState alloc] init];
-
+    config = [NSMutableDictionary dictionary];
     BTInterceptionCache* interceptionCache = [[BTInterceptionCache alloc] init];
     interceptionCache.blowtorchInstance = self;
     [NSURLCache setSharedURLCache:interceptionCache];
     [self createWindowAndWebView];
+    [self showLoadingOverlay];
     
 #ifdef DEBUG
     [NSClassFromString(@"WebView") _enableRemoteInspector];
@@ -58,7 +58,12 @@ static BOOL BTDEV = false;
     return YES;
 }
 
-- (BOOL)isDev { return [[NSNumber numberWithBool:TRUE] isEqualToValue:[self.config valueForKey:@"isDev"]]; }
+- (BOOL)isDev { return BTDEV; }
+
+-(void)startApp {
+    [self loadCurrentVersionApp];
+    [self notify:@"app.start" info:self.config];
+}
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
@@ -130,6 +135,9 @@ static BOOL BTDEV = false;
     if ([command isEqualToString:@"app.reload"]) {
         [self loadCurrentVersionApp];
 
+    } else if ([command isEqualToString:@"app.show"]) {
+        [self hideLoadingOverlay];
+        
     } else if ([command isEqualToString:@"console.log"]) {
         NSLog(@"console.log %@", data);
 
@@ -156,13 +164,13 @@ static BOOL BTDEV = false;
 }
 
 - (void)sendCommand:(NSString *)command data:(NSDictionary *)data {
-    NSDictionary* message = [NSDictionary dictionaryWithObjectsAndKeys:command, @"command", data, @"data", nil];
-    [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
 }
 
-- (void)notify:(NSString *)name info:(NSDictionary *)info {
-    NSLog(@"Notify %@ %@", name, info);
-    [self sendCommand:@"handleEvent" data:[NSDictionary dictionaryWithObjectsAndKeys:name, @"name", info, @"info", nil]];
+- (void)notify:(NSString *)event info:(NSDictionary *)info {
+    NSLog(@"Notify %@ %@", event, info);
+
+    NSDictionary* message = [NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil];
+    [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
 }
 
 /* Upgrade API
@@ -306,6 +314,7 @@ static BOOL BTDEV = false;
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
     screenBounds.origin.y += 10;
     screenBounds.size.height -= 20;
+
     window = [[UIWindow alloc] initWithFrame:screenBounds];
     window.backgroundColor = [UIColor whiteColor];
     [window makeKeyAndVisible];
@@ -322,6 +331,19 @@ static BOOL BTDEV = false;
     NSString* mimeType = @""; // TODO Determine mimeType based on file extension
     NSURLResponse* response = [[NSURLResponse alloc] initWithURL:[request URL] MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
     return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
+}
+
+- (void)showLoadingOverlay {
+    CGRect frame = [[UIScreen mainScreen] bounds];
+    frame.origin.y -= 10;
+    UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
+    splashScreen.image = [UIImage imageNamed:@"Default"];
+    self.overlay = splashScreen;
+    [window addSubview:splashScreen];
+}
+
+- (void)hideLoadingOverlay {
+    [self.overlay removeFromSuperview];
 }
 
 @end
