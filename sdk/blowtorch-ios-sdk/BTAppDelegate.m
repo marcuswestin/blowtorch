@@ -218,6 +218,7 @@ static BOOL BTDEV = false;
 }     
 
 - (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
+    NSLog(@"Push registration failure %@", err);
     [self notify:@"push.registerFailed" info:nil];
 }
 
