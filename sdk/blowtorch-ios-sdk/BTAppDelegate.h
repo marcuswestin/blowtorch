@@ -13,11 +13,11 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
 @property (strong, atomic) NSString* serverHost;
 @property (atomic, strong) BTState* state;
 @property (strong, atomic) NSMutableDictionary* config;
-- (BOOL) isDev;
+@property (atomic, assign) BOOL isDevMode;
 
 /* Lifecycle API
  ***************/
-- (void)startApp;
+- (void)startApp:(BOOL)devMode;
 
 /* Webview API
  *************/
@@ -26,7 +26,6 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
 
 /* Upgrade API
  *************/
-- (void) loadCurrentVersionApp;
 - (void) requestUpgrade;
 
 /* Private

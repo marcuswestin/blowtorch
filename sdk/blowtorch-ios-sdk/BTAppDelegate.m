@@ -4,12 +4,12 @@
 
 
 #ifdef DEBUG
-static BOOL BTDEV = true;
+static BOOL DEV_MODE = true;
 @interface WebView
 + (void)_enableRemoteInspector;
 @end
 #else 
-static BOOL BTDEV = false;
+static BOOL DEV_MODE = false;
 #endif
 
 @interface BTAppDelegate (hidden)
@@ -38,7 +38,7 @@ static BOOL BTDEV = false;
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost, state, overlay, config;
+@synthesize window, webView, javascriptBridge, serverHost, state, overlay, config, isDevMode;
 
 /* App lifecycle
  **********************/
@@ -58,10 +58,15 @@ static BOOL BTDEV = false;
     return YES;
 }
 
-- (BOOL)isDev { return BTDEV; }
+-(void)startApp:(BOOL)devMode {
+    self.isDevMode = DEV_MODE = devMode;
+    [self setClientState:@"installed_version" value:[self getClientState:@"downloaded_version"]];
 
--(void)startApp {
-    [self loadCurrentVersionApp];
+    NSURL* url = [self getUrl:@"app.html"];
+    [self.javascriptBridge resetQueue];
+    [webView loadRequest:[NSURLRequest requestWithURL:url]];
+    
+    [self notify:@"app.start" info:self.config];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
@@ -132,7 +137,7 @@ static BOOL BTDEV = false;
     };
     
     if ([command isEqualToString:@"app.restart"]) {
-        [self loadCurrentVersionApp];
+        [self startApp:isDevMode];
 
     } else if ([command isEqualToString:@"app.show"]) {
         [self hideLoadingOverlay];
@@ -195,18 +200,6 @@ static BOOL BTDEV = false;
         NSLog(@"Warning: upgrade request failed %@", error);
     }] start];
 }
-
-- (void) loadCurrentVersionApp {
-    [self setClientState:@"installed_version" value:[self getClientState:@"downloaded_version"]];
-    
-    NSURL* url = [self getUrl:@"app.html"];
-    
-    [self.javascriptBridge resetQueue];
-    [webView loadRequest:[NSURLRequest requestWithURL:url]];
-    
-    [self notify:@"app.start" info:self.config];
-}
-
 
 /* Push API
  **********/
@@ -360,11 +353,9 @@ static BOOL BTDEV = false;
     NSString* host = [url host];
     NSString* path = [url path];
     
-    BOOL interceptApp = !BTDEV;
+    BOOL interceptApp = DEV_MODE;
     
-    if ([host isEqualToString:@"blowtorch-bootstrap"]) {
-        NSLog(@"TODO: intercept blowtorch-bootstrap %@", path);
-    } else if ([host isEqualToString:@"blowtorch-payload"] || (interceptApp && [path isEqualToString:@"/app.html"])) {
+    if ([host isEqualToString:@"blowtorch-payload"] || (interceptApp && [path isEqualToString:@"/app.html"])) {
         NSLog(@"intercept blowtorch-payload %@", path);
         NSString* filePath = [self.blowtorchInstance getCurrentVersionPath:path];
         if (![NSData dataWithContentsOfFile:filePath]) {
@@ -372,10 +363,6 @@ static BOOL BTDEV = false;
             filePath = [[NSBundle mainBundle] pathForResource:[parts lastObject] ofType:nil]; // [path pathExtension]];
         }
         return [self.blowtorchInstance localFileResponse:filePath forRequest:request];
-    } else if ([host isEqualToString:@"blowtorch-command"]) {
-        NSString* encodedJson = [url query];
-        NSLog(@"TODO: intercept blowtorch-command %@ %@", path, encodedJson);
-        // Pass through command to command handler
     }
     
     return nil;
