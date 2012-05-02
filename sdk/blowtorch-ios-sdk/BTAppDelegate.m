@@ -160,9 +160,9 @@ static BOOL BTDEV = false;
     [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
 }
 
-- (void)notify:(NSString *)event data:(NSDictionary *)data {
-    NSLog(@"Notify %@ %@", event, data);
-    [self sendCommand:@"handleEvent" data:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", data, @"data", nil]];
+- (void)notify:(NSString *)name info:(NSDictionary *)info {
+    NSLog(@"Notify %@ %@", name, info);
+    [self sendCommand:@"handleEvent" data:[NSDictionary dictionaryWithObjectsAndKeys:name, @"name", info, @"info", nil]];
 }
 
 /* Upgrade API
@@ -201,15 +201,18 @@ static BOOL BTDEV = false;
 /* Push API
  **********/
 - (void)application:(UIApplication *)app didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
-    [self notify:@"push.registered" data:[NSDictionary dictionaryWithObject:deviceToken forKey:@"deviceToken"]];
+    NSString * tokenAsString = [[[deviceToken description]
+                                 stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]] 
+                                stringByReplacingOccurrencesOfString:@" " withString:@""];
+    [self notify:@"push.registered" info:[NSDictionary dictionaryWithObject:tokenAsString forKey:@"deviceToken"]];
 }     
 
 - (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
-    [self notify:@"push.registerFailed" data:nil];
+    [self notify:@"push.registerFailed" info:nil];
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
-    [self notify:@"push.notification" data:[NSDictionary dictionaryWithObject:userInfo forKey:@"data"]];
+    [self notify:@"push.notification" info:[NSDictionary dictionaryWithObject:userInfo forKey:@"data"]];
 }
 
 @end

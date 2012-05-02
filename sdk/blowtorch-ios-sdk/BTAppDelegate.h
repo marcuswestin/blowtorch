@@ -19,7 +19,7 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
  *************/
 - (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 - (void) sendCommand:(NSString*)command data:(NSDictionary*)data;
-- (void) notify:(NSString*)event data:(NSDictionary*)response;
+- (void) notify:(NSString*)name info:(NSDictionary*)response;
 
 /* Upgrade API
  *************/
