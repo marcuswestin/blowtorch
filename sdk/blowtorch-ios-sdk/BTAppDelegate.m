@@ -354,7 +354,10 @@ static BOOL DEV_MODE = false;
     NSString* path = [url path];
     
     BOOL interceptRequest = [host isEqualToString:@"blowtorch-payload"] ||
-        (!DEV_MODE && ([path isEqualToString:@"/app.html"] /* || path is foo */));
+        (!DEV_MODE && (
+                       [path isEqualToString:@"/app.html"] ||
+                       [path isEqualToString:@"/appJs.html"] || 
+                       [path isEqualToString:@"/appCss.css"]));
 
     if (interceptRequest) {
         NSLog(@"intercept blowtorch-payload %@", path);
