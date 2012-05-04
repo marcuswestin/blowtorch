@@ -353,9 +353,10 @@ static BOOL DEV_MODE = false;
     NSString* host = [url host];
     NSString* path = [url path];
     
-    BOOL interceptApp = !DEV_MODE;
-    
-    if ([host isEqualToString:@"blowtorch-payload"] || (interceptApp && [path isEqualToString:@"/app.html"])) {
+    BOOL interceptRequest = [host isEqualToString:@"blowtorch-payload"] ||
+        (!DEV_MODE && ([path isEqualToString:@"/app.html"] /* || path is foo */));
+
+    if (interceptRequest) {
         NSLog(@"intercept blowtorch-payload %@", path);
         NSString* filePath = [self.blowtorchInstance getCurrentVersionPath:path];
         if (![NSData dataWithContentsOfFile:filePath]) {
