@@ -2,7 +2,6 @@
 #import "AFJSONUtilities.h"
 #import "NSFileManager+Tar.h"
 
-
 #ifdef DEBUG
 static BOOL DEV_MODE = true;
 @interface WebView
@@ -158,6 +157,9 @@ static BOOL DEV_MODE = false;
     } else if ([command isEqualToString:@"push.register"]) {
         [self registerForPush];
     
+    } else if ([command isEqualToString:@"device.vibrate"]) {
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+        
     } else {
         [self handleCommand:command data:data responseCallback:responseCallback];
     }
