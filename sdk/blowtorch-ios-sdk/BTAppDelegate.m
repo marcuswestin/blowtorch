@@ -1,5 +1,4 @@
 #import "BTAppDelegate.h"
-#import "AFJSONUtilities.h"
 #import "NSFileManager+Tar.h"
 
 #ifdef DEBUG
@@ -39,12 +38,14 @@ static BOOL DEV_MODE = false;
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost, state, overlay, config, isDevMode;
+@synthesize window, webView, javascriptBridge, serverHost, state, net, overlay, config, isDevMode;
 
 /* App lifecycle
  **********************/
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     state = [[BTState alloc] init];
+    net = [[BTNet alloc] init];
+    
     config = [NSMutableDictionary dictionary];
     BTInterceptionCache* interceptionCache = [[BTInterceptionCache alloc] init];
     interceptionCache.blowtorchInstance = self;
@@ -160,6 +161,9 @@ static BOOL DEV_MODE = false;
     
     } else if ([command isEqualToString:@"push.register"]) {
         [self registerForPush];
+        
+    } else if ([command isEqualToString:@"net.cache"]) {
+        [self.net cache:[data objectForKey:@"url"] override:!![data objectForKey:@"override"] responseCallback:responseCallback];
     
     } else if ([command isEqualToString:@"device.vibrate"]) {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
@@ -201,6 +205,11 @@ static BOOL DEV_MODE = false;
                 return [self localFileResponse:bootstrapPath forUrl:url];
             }
         }
+        
+        NSString* cachePath = [BTNet pathForUrl:[url absoluteString]];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:cachePath]) {
+            return [self localFileResponse:cachePath forUrl:url];
+        }
     }
     
     return nil;
@@ -220,22 +229,22 @@ static BOOL DEV_MODE = false;
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[self getUrl:@"upgrade"]];
     [request setHTTPMethod:@"POST"];
     [request setHTTPBody:[self getUpgradeRequestBody]];
-    [[AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, NSDictionary* upgradeResponse) {
-        NSLog(@"upgrade response %@", upgradeResponse);
-        NSDictionary* commands = [upgradeResponse objectForKey:@"commands"];
-        for (NSString* command in commands) {
-            id value = [commands valueForKey:command];
-            if ([command isEqualToString:@"set_client_id"]) {
-                [self setClientState:@"client_id" value:(NSString*)value];
-            } else if ([command isEqualToString:@"download_version"]) {
-                [self startVersionDownload:(NSString*)value];
-            } else {
-                NSLog(@"Warning: Received unknown command from server %@:%@", command, value);
-            }
-        }
-    } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error, id JSON) {
-        NSLog(@"Warning: upgrade request failed %@", error);
-    }] start];
+//    [[AFJSONRequestOperation JSONRequestOperationWithRequest:request success:^(NSURLRequest *request, NSHTTPURLResponse *response, NSDictionary* upgradeResponse) {
+//        NSLog(@"upgrade response %@", upgradeResponse);
+//        NSDictionary* commands = [upgradeResponse objectForKey:@"commands"];
+//        for (NSString* command in commands) {
+//            id value = [commands valueForKey:command];
+//            if ([command isEqualToString:@"set_client_id"]) {
+//                [self setClientState:@"client_id" value:(NSString*)value];
+//            } else if ([command isEqualToString:@"download_version"]) {
+//                [self startVersionDownload:(NSString*)value];
+//            } else {
+//                NSLog(@"Warning: Received unknown command from server %@:%@", command, value);
+//            }
+//        }
+//    } failure:^(NSURLRequest *request, NSHTTPURLResponse *response, NSError *error, id JSON) {
+//        NSLog(@"Warning: upgrade request failed %@", error);
+//    }] start];
 }
 
 /* Push API
@@ -269,10 +278,11 @@ static BOOL DEV_MODE = false;
 }
 
 - (NSData *)getUpgradeRequestBody {
-    NSDictionary* requestObj = [NSDictionary dictionaryWithObject:[self getClientState] forKey:@"client_state"];
-    NSError *error = nil;
-    NSData *JSONData = AFJSONEncode(requestObj, &error);
-    return error ? nil : JSONData;
+//    NSDictionary* requestObj = [NSDictionary dictionaryWithObject:[self getClientState] forKey:@"client_state"];
+//    NSError *error = nil;
+//    NSData *JSONData = AFJSONEncode(requestObj, &error);
+//    return error ? nil : JSONData;
+    return nil;
 }
 
 - (NSDictionary *)getClientState {
@@ -316,27 +326,27 @@ static BOOL DEV_MODE = false;
 
 - (void)startVersionDownload:(NSString *)version {
     NSLog(@"Start download %@", version);
-    [self setClientState:@"downloading_version" value:version];
-    [[NSFileManager defaultManager] createDirectoryAtPath:[self getFilePath:@"archives"] withIntermediateDirectories:YES attributes:nil error:nil];
-    NSURL* payloadUrl = [self getUrl:[NSString stringWithFormat:@"builds/%@", version]];
-    NSString* tarFilePath = [self getFilePath:[NSString stringWithFormat:@"archives/%@.tar", version]];
-    NSString* directoryPath = [self getFilePath:@"versions"];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:payloadUrl];
-    [request setHTTPMethod:@"GET"];
-    AFHTTPRequestOperation* requestOperation = [[AFHTTPRequestOperation alloc] initWithRequest:request];
-    requestOperation.outputStream = [NSOutputStream outputStreamToFileAtPath:tarFilePath append:NO];
-    [requestOperation setCompletionBlock:^{
-        NSLog(@"Version download completed %@", tarFilePath);
-        NSError *error;
-        [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarPath:tarFilePath error:&error];
-        if (error) {
-            NSLog(@"Error untarring version %@", error);
-        } else {
-            [self setClientState:@"downloaded_version" value:version];
-            NSLog(@"Success downloading and untarring version %@", version);
-        }
-    }];
-    [requestOperation start];
+//    [self setClientState:@"downloading_version" value:version];
+//    [[NSFileManager defaultManager] createDirectoryAtPath:[self getFilePath:@"archives"] withIntermediateDirectories:YES attributes:nil error:nil];
+//    NSURL* payloadUrl = [self getUrl:[NSString stringWithFormat:@"builds/%@", version]];
+//    NSString* tarFilePath = [self getFilePath:[NSString stringWithFormat:@"archives/%@.tar", version]];
+//    NSString* directoryPath = [self getFilePath:@"versions"];
+//    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:payloadUrl];
+//    [request setHTTPMethod:@"GET"];
+//    AFHTTPRequestOperation* requestOperation = [[AFHTTPRequestOperation alloc] initWithRequest:request];
+//    requestOperation.outputStream = [NSOutputStream outputStreamToFileAtPath:tarFilePath append:NO];
+//    [requestOperation setCompletionBlock:^{
+//        NSLog(@"Version download completed %@", tarFilePath);
+//        NSError *error;
+//        [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarPath:tarFilePath error:&error];
+//        if (error) {
+//            NSLog(@"Error untarring version %@", error);
+//        } else {
+//            [self setClientState:@"downloaded_version" value:version];
+//            NSLog(@"Success downloading and untarring version %@", version);
+//        }
+//    }];
+//    [requestOperation start];
 }
 
 -(NSURL *)getUrl:(NSString *)path {

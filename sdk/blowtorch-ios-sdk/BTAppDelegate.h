@@ -1,11 +1,10 @@
 #import <UIKit/UIKit.h>
 #import "JSONKit.h"
 #import "WebViewJavascriptBridge.h"
-#import "AFNetworking.h"
+#import "BTNet.h"
+#import "BTTypes.h"
 #import "BTState.h"
 #import <AudioToolbox/AudioServices.h>
-
-typedef void (^ResponseCallback)(id error, NSDictionary* response);
 
 @interface BTAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate>
 
@@ -13,6 +12,7 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
  ************/
 @property (strong, atomic) NSString* serverHost;
 @property (atomic, strong) BTState* state;
+@property (atomic, strong) BTNet* net;
 @property (strong, atomic) NSMutableDictionary* config;
 @property (atomic, assign) BOOL isDevMode;
 
@@ -27,8 +27,8 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
 
 /* Net API
  *********/
-- (NSCachedURLResponse *)cachedResponseForRequest:(NSURLRequest *)request url:(NSURL*)url host:(NSString*)host path:(NSString*)path;
-- (NSCachedURLResponse*) localFileResponse:(NSString*)filePath forUrl:(NSURL*)url;
+- (NSCachedURLResponse *) cachedResponseForRequest:(NSURLRequest *)request url:(NSURL*)url host:(NSString*)host path:(NSString*)path;
+- (NSCachedURLResponse *) localFileResponse:(NSString*)filePath forUrl:(NSURL*)url;
 
 /* Upgrade API
  *************/

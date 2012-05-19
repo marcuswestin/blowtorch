@@ -4,12 +4,12 @@
 [submodule "dependencies/JSONKit"]
 	path = dependencies/JSONKit
 	url = https://github.com/johnezang/JSONKit.git
-[submodule "dependencies/AFNetworking"]
-	path = dependencies/AFNetworking
-	url = https://github.com/AFNetworking/AFNetworking.git
 [submodule "dependencies/node-uuid"]
 	path = dependencies/node-uuid
 	url = https://github.com/broofa/node-uuid.git
 [submodule "dependencies/Light-Untar-for-iOS"]
 	path = dependencies/Light-Untar-for-iOS
 	url = https://github.com/mhausherr/Light-Untar-for-iOS.git
+[submodule "dependencies/MKNetworkKit"]
+	path = dependencies/MKNetworkKit
+	url = git@github.com:marcuswestin/MKNetworkKit.git
