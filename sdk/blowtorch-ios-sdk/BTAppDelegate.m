@@ -25,7 +25,6 @@ static BOOL DEV_MODE = false;
 - (void) startVersionDownload:(NSString*)version;
 - (NSURL*) getUrl:(NSString*) path;
 - (NSString*) getFilePath:(NSString*) name;
-- (NSCachedURLResponse*) localFileResponse:(NSString*)filePath forRequest:(NSURLRequest*)request;
 
 - (NSString*) getCurrentVersion;
 - (NSString*) getCurrentVersionPath:(NSString*)resourcePath;
@@ -184,6 +183,37 @@ static BOOL DEV_MODE = false;
     [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
 }
 
+/* Net API
+ *********/
+- (NSCachedURLResponse *)cachedResponseForRequest:(NSURLRequest *)request url:(NSURL *)url host:(NSString *)host path:(NSString *)path {
+    if (!DEV_MODE) {
+        // Check currently downloaded version first
+        NSString* currentVersionPath = [self getCurrentVersionPath:path];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:currentVersionPath]) {
+            return [self localFileResponse:currentVersionPath forUrl:url];
+        } else {
+            // Else check bootstrap files
+            if ([path isEqualToString:@"/app.html"] ||
+                [path isEqualToString:@"/appJs.html"] ||
+                [path isEqualToString:@"/appCss.css"]) {
+                
+                NSString* bootstrapPath = [[NSBundle mainBundle] pathForResource:path ofType:nil];
+                return [self localFileResponse:bootstrapPath forUrl:url];
+            }
+        }
+    }
+    
+    return nil;
+}
+
+- (NSCachedURLResponse *)localFileResponse:(NSString *)filePath forUrl:(NSURL*)url {
+    NSData* data = [NSData dataWithContentsOfFile:filePath];
+    NSString* mimeType = @""; // TODO Determine mimeType based on file extension
+    NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
+    return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
+}
+
+
 /* Upgrade API
  *************/
 - (void)requestUpgrade {
@@ -333,13 +363,6 @@ static BOOL DEV_MODE = false;
     webView.delegate = javascriptBridge;
 }
 
-- (NSCachedURLResponse *)localFileResponse:(NSString *)filePath forRequest:(NSURLRequest*)request {
-    NSData* data = [NSData dataWithContentsOfFile:filePath];
-    NSString* mimeType = @""; // TODO Determine mimeType based on file extension
-    NSURLResponse* response = [[NSURLResponse alloc] initWithURL:[request URL] MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
-    return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
-}
-
 - (void)showLoadingOverlay {
     CGRect frame = [[UIScreen mainScreen] bounds];
     frame.origin.y -= 10;
@@ -356,31 +379,11 @@ static BOOL DEV_MODE = false;
 @end
 
 @implementation BTInterceptionCache
-
 @synthesize blowtorchInstance;
-
 - (NSCachedURLResponse*)cachedResponseForRequest:(NSURLRequest *)request {
     NSURL* url = [request URL];
     NSString* host = [url host];
     NSString* path = [url path];
-    
-    BOOL interceptRequest = [host isEqualToString:@"blowtorch-payload"] ||
-        (!DEV_MODE && (
-                       [path isEqualToString:@"/app.html"] ||
-                       [path isEqualToString:@"/appJs.html"] || 
-                       [path isEqualToString:@"/appCss.css"]));
-
-    if (interceptRequest) {
-        NSLog(@"intercept blowtorch-payload %@", path);
-        NSString* filePath = [self.blowtorchInstance getCurrentVersionPath:path];
-        if (![NSData dataWithContentsOfFile:filePath]) {
-            NSArray* parts = [path pathComponents];
-            filePath = [[NSBundle mainBundle] pathForResource:[parts lastObject] ofType:nil]; // [path pathExtension]];
-        }
-        return [self.blowtorchInstance localFileResponse:filePath forRequest:request];
-    }
-    
-    return nil;
+    return [self.blowtorchInstance cachedResponseForRequest:(NSURLRequest *)request url:url host:host path:path];
 }
-
 @end

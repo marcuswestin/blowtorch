@@ -25,6 +25,11 @@ typedef void (^ResponseCallback)(id error, NSDictionary* response);
 - (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 - (void) notify:(NSString*)name info:(NSDictionary*)response;
 
+/* Net API
+ *********/
+- (NSCachedURLResponse *)cachedResponseForRequest:(NSURLRequest *)request url:(NSURL*)url host:(NSString*)host path:(NSString*)path;
+- (NSCachedURLResponse*) localFileResponse:(NSString*)filePath forUrl:(NSURL*)url;
+
 /* Upgrade API
  *************/
 - (void) requestUpgrade;
