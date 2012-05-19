@@ -122,7 +122,7 @@ static BOOL DEV_MODE = false;
     NSLog(@"command %@", command);
     
     ResponseCallback responseCallback = ^(NSString *errorMessage, NSDictionary *response) {
-        NSLog(@"respond to %@ %@", command, errorMessage);
+        NSLog(@"respond %@ %@", command, errorMessage);
         NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
         
         if (responseId) {
