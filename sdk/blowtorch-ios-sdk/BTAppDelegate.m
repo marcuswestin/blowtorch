@@ -7,6 +7,9 @@ static BOOL DEV_MODE = true;
 @interface WebView
 + (void)_enableRemoteInspector;
 @end
+
+#import "DebugUIWebView.h"
+
 #else 
 static BOOL DEV_MODE = false;
 #endif
@@ -116,10 +119,10 @@ static BOOL DEV_MODE = false;
     __block NSString *responseId = [message objectForKey:@"responseId"];
     __block NSString *command = [message objectForKey:@"command"];
     
-    NSLog(@"command %@: %@", command, data);
+    NSLog(@"command %@", command);
     
     ResponseCallback responseCallback = ^(NSString *errorMessage, NSDictionary *response) {
-        NSLog(@"respond to %@ %@ %@", command, errorMessage, response);
+        NSLog(@"respond to %@ %@", command, errorMessage);
         NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
         
         if (responseId) {
@@ -134,6 +137,8 @@ static BOOL DEV_MODE = false;
         
         [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
     };
+    
+
     
     if ([command isEqualToString:@"app.restart"]) {
         [self startApp:isDevMode];
@@ -151,7 +156,7 @@ static BOOL DEV_MODE = false;
         [state set:[data objectForKey:@"key"] value:[data objectForKey:@"value"]];
         responseCallback(nil, nil);
     
-    } else if ([command isEqualToString:@"state.reset"]) {
+    } else if ([command isEqualToString:@"state.clear"]) {
         [state reset];
     
     } else if ([command isEqualToString:@"push.register"]) {
@@ -318,7 +323,11 @@ static BOOL DEV_MODE = false;
     [window makeKeyAndVisible];
     [window setRootViewController:[[UIViewController alloc] init]]; // every app should have a root view controller
     // create webview
+#ifdef DEBUG
+    webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
+#else
     webView = [[UIWebView alloc] initWithFrame:screenBounds];
+#endif
     [window addSubview:webView];
     javascriptBridge = [WebViewJavascriptBridge javascriptBridgeWithDelegate:self];
     webView.delegate = javascriptBridge;
