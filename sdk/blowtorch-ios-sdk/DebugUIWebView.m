@@ -134,8 +134,7 @@ exceptionWasRaised:(WebScriptCallFrame *)frame
     NSMutableString *message = [NSMutableString stringWithCapacity:100];
     
     WebScriptObject* exception = [frame exception];
-    [message appendFormat:@"Exception - name: %@, sourceID: %d", 
-     [exception valueForKey:@"name"], sourceID];
+    [message appendFormat:@"Exception\n\nERROR Name: %@", [exception valueForKey:@"name"]];
     
     if (filename) {
         [message appendFormat:@", filename: %@", filename];
@@ -148,14 +147,20 @@ exceptionWasRaised:(WebScriptCallFrame *)frame
         [message appendString:[[self class] formatSource:source]];
     }
     
-    [message appendString:@"Offending line:\n"];
     NSArray* sourceLines = [source componentsSeparatedByString:@"\n"];
     NSString* sourceLine = [sourceLines objectAtIndex:(lineNumber - 1)];
     if ([sourceLine length] > 200) {
         sourceLine = [sourceLine substringToIndex:200];
         sourceLine = [NSString stringWithFormat:@"%@...", sourceLine];
     }
+    
+    
+    NSString* firstLine = [sourceLines objectAtIndex:0];
+    firstLine = [firstLine stringByReplacingOccurrencesOfString:@";(function() {var module = {exports:{}}; var exports = module.exports;var conversation = __require__[" withString:@""];
+
+    [message appendString:@"Offending function:\n"];
     [message appendFormat:@"  %d: %@\n", lineNumber, sourceLine];
+    [message appendFormat:@"file: %@\n", firstLine];
     
     // Build the call stack.
     [message appendString:@"\nCall stack:\n"];
