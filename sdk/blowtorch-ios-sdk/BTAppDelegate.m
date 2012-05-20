@@ -107,7 +107,10 @@ static BOOL DEV_MODE = false;
  ************************/
 - (void)javascriptBridge:(WebViewJavascriptBridge *)bridge receivedMessage:(NSString *)messageString fromWebView:(UIWebView *)fromWebView {
     NSDictionary* message = [messageString objectFromJSONString];
-    NSDictionary *data = [message objectForKey:@"data"];
+    NSDictionary* data = [message objectForKey:@"data"];
+
+    if (!data) { data = [NSDictionary dictionary]; }
+    
     __block NSString *responseId = [message objectForKey:@"responseId"];
     __block NSString *command = [message objectForKey:@"command"];
     
@@ -169,12 +172,10 @@ static BOOL DEV_MODE = false;
     [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:data:responseCallback must be overridden"];
 }
 
-- (void)sendCommand:(NSString *)command data:(NSDictionary *)data {
-}
-
+- (void)notify:(NSString *)event { [self notify:event info:nil]; }
 - (void)notify:(NSString *)event info:(NSDictionary *)info {
     NSLog(@"Notify %@ %@", event, info);
-
+    if (!info) { info = [NSDictionary dictionary]; }
     NSDictionary* message = [NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil];
     [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
 }

@@ -24,6 +24,7 @@
  *************/
 - (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 - (void) notify:(NSString*)name info:(NSDictionary*)response;
+- (void) notify:(NSString*)name;
 
 /* Net API
  *********/
