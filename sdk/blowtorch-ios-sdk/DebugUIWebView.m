@@ -156,7 +156,7 @@ exceptionWasRaised:(WebScriptCallFrame *)frame
     
     
     NSString* firstLine = [sourceLines objectAtIndex:0];
-    firstLine = [firstLine stringByReplacingOccurrencesOfString:@";(function() {var module = {exports:{}}; var exports = module.exports;var conversation = __require__[" withString:@""];
+    firstLine = [firstLine stringByReplacingOccurrencesOfString:@";(function() {var module = {exports:{}}; var exports = module.exports;var " withString:@""];
 
     [message appendString:@"Offending function:\n"];
     [message appendFormat:@"  %d: %@\n", lineNumber, sourceLine];
