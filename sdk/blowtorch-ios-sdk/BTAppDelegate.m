@@ -87,16 +87,11 @@ static BOOL DEV_MODE = false;
      */
 }
 
-- (void)applicationWillEnterForeground:(UIApplication *)application
-{
-    /*
-     Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
-     */
+- (void)applicationWillEnterForeground:(UIApplication *)application {
+    [self notify:@"app.willEnterForeground" info:nil];
 }
 
-- (void)applicationDidBecomeActive:(UIApplication *)application {
-    [self notify:@"app.didBecomeActive" info:nil];
-}
+- (void)applicationDidBecomeActive:(UIApplication *)application {}
 
 - (void)applicationWillTerminate:(UIApplication *)application
 {
