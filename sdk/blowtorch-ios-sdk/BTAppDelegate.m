@@ -348,14 +348,13 @@ static BOOL DEV_MODE = false;
 
 - (void)createWindowAndWebView {
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
-    screenBounds.origin.y += 10;
-    screenBounds.size.height -= 20;
-
     window = [[UIWindow alloc] initWithFrame:screenBounds];
     window.backgroundColor = [UIColor whiteColor];
     [window makeKeyAndVisible];
     [window setRootViewController:[[UIViewController alloc] init]]; // every app should have a root view controller
-    // create webview
+
+    screenBounds.origin.y += 20;
+    screenBounds.size.height -= 20;
 #ifdef DEBUG
     webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
 #else
@@ -368,7 +367,6 @@ static BOOL DEV_MODE = false;
 
 - (void)showLoadingOverlay {
     CGRect frame = [[UIScreen mainScreen] bounds];
-    frame.origin.y -= 10;
     UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
     splashScreen.image = [UIImage imageNamed:@"Default"];
     self.overlay = splashScreen;
