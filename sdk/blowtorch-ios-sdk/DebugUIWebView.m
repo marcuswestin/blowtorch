@@ -99,8 +99,7 @@ failedToParseSource:(NSString *)source
     forWebFrame:(WebFrame *)webFrame
 {
     NSDictionary* userInfo = [error userInfo];
-    NSNumber* fileLineNumber =
-    [userInfo objectForKey:@"WebScriptErrorLineNumber"];
+    NSNumber* fileLineNumber = [userInfo objectForKey:@"WebScriptErrorLineNumber"];
     
     NSString* filename = @"";
     NSMutableString* sourceLog = [NSMutableString stringWithCapacity:100];
