@@ -172,7 +172,7 @@ static BOOL DEV_MODE = false;
     [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:data:responseCallback must be overridden"];
 }
 
-- (void)notify:(NSString *)event { [self notify:event info:nil]; }
+- (void)notify:(NSString *)event { [self notify:event info:NULL]; }
 - (void)notify:(NSString *)event info:(NSDictionary *)info {
     NSLog(@"Notify %@ %@", event, info);
     if (!info) { info = [NSDictionary dictionary]; }
