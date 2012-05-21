@@ -141,6 +141,14 @@ static BOOL DEV_MODE = false;
     } else if ([command isEqualToString:@"app.show"]) {
         [self hideLoadingOverlay];
         
+    } else if ([command isEqualToString:@"app.setIconBadgeNumber"]) {
+        NSNumber* number = [data objectForKey:@"number"];
+        [[UIApplication sharedApplication] setApplicationIconBadgeNumber:[number intValue]];
+    
+    } else if ([command isEqualToString:@"app.getIconBadgeNumber"]) {
+        NSNumber* number = [NSNumber numberWithInt:[[UIApplication sharedApplication] applicationIconBadgeNumber]];
+        responseCallback(nil, [NSDictionary dictionaryWithObject:number forKey:@"number"]);
+        
     } else if ([command isEqualToString:@"console.log"]) {
         NSLog(@"console.log %@", data);
 
