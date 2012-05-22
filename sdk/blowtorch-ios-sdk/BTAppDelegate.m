@@ -68,7 +68,11 @@ static BOOL DEV_MODE = false;
     [self.javascriptBridge resetQueue];
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
     
-    [self notify:@"app.start" info:self.config];
+    NSDictionary* appInfo = [NSDictionary dictionaryWithObjectsAndKeys:
+                               config, @"config",
+                               [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"], @"bundleVersion",
+                               nil];
+    [self notify:@"app.start" info:appInfo];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
