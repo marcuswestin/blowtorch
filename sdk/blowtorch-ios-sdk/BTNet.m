@@ -19,19 +19,21 @@
     return self;
 }
 
-- (void) cache:(NSString*)url override:(BOOL)override responseCallback:(ResponseCallback)responseCallback {
-    NSLog(@"Cache request %@", url);
+- (void) cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(ResponseCallback)responseCallback {
+    if (!asUrl) { asUrl = url; }
     
-    NSString *filePath = [BTNet pathForUrl:url];
+    NSLog(@"Cache request %@ as %@", url, asUrl);
+    
+    NSString *filePath = [BTNet pathForUrl:asUrl];
     
     if (!override && [[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
-        NSLog(@"FOUND URL IN CACHE %@ %@", url, filePath);
+        NSLog(@"FOUND URL IN CACHE %@ %@", asUrl, filePath);
         responseCallback(nil, nil);
     } else {
         MKNetworkOperation* operation = [engine operationWithURLString:url];
         [operation onCompletion:^(MKNetworkOperation *completedOperation) {
             [completedOperation.responseData writeToFile:filePath atomically:YES];
-            NSLog(@"CACHED %@", url);
+            NSLog(@"CACHED %@ as %@", url, asUrl);
             responseCallback(nil, nil);
         }
                         onError:^(NSError *error) {

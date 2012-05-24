@@ -13,7 +13,7 @@
 
 @property (nonatomic,strong) MKNetworkEngine* engine;
 
-- (void)cache:(NSString*)url override:(BOOL)override responseCallback:(ResponseCallback)responseCallback;
+- (void)cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(ResponseCallback)responseCallback;
 
 + (NSString *)urlEncodeValue:(NSString *)str;
 

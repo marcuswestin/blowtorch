@@ -172,7 +172,8 @@ static BOOL DEV_MODE = false;
         [self registerForPush];
         
     } else if ([command isEqualToString:@"net.cache"]) {
-        [self.net cache:[data objectForKey:@"url"] override:!![data objectForKey:@"override"] responseCallback:responseCallback];
+        [self.net cache:[data objectForKey:@"url"] override:!![data objectForKey:@"override"]
+                  asUrl:[data objectForKey:@"asUrl"] responseCallback:responseCallback];
     
     } else if ([command isEqualToString:@"device.vibrate"]) {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
@@ -212,13 +213,14 @@ static BOOL DEV_MODE = false;
                 return [self localFileResponse:bootstrapPath forUrl:url];
             }
         }
-        
-        NSString* cachePath = [BTNet pathForUrl:[url absoluteString]];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:cachePath]) {
-            return [self localFileResponse:cachePath forUrl:url];
-        }
     }
-    
+
+    NSString* cachePath = [BTNet pathForUrl:[url absoluteString]];
+//    NSLog(@"CHECK FILE %@ %d", cachePath, [[NSFileManager defaultManager] fileExistsAtPath:cachePath]);
+    if ([[NSFileManager defaultManager] fileExistsAtPath:cachePath]) {
+        return [self localFileResponse:cachePath forUrl:url];
+    }
+
     return nil;
 }
 
