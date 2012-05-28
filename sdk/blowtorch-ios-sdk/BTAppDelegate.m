@@ -1,5 +1,6 @@
 #import "BTAppDelegate.h"
 #import "NSFileManager+Tar.h"
+#import "BTViewController.h"
 
 #ifdef DEBUG
 static BOOL DEV_MODE = true;
@@ -57,7 +58,24 @@ static BOOL DEV_MODE = false;
     [NSClassFromString(@"WebView") _enableRemoteInspector];
 #endif
     
+    [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didRotate:) name:@"UIDeviceOrientationDidChangeNotification" object:nil];
+
     return YES;
+}
+
+-(void) didRotate:(NSNotification*)notification {
+    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
+    NSInteger deg = 0;
+    if (orientation == UIDeviceOrientationPortraitUpsideDown) {
+        deg = 180;
+    } else if (orientation == UIDeviceOrientationLandscapeLeft) {
+        deg = 90;
+    } else if (orientation == UIDeviceOrientationLandscapeRight) {
+        deg = -90;
+    }
+    NSNumber* degNum = [NSNumber numberWithInt:deg];
+    [self notify:@"device.rotated" info:[NSDictionary dictionaryWithObject:degNum forKey:@"deg"]];
 }
 
 -(void)startApp:(BOOL)devMode {
@@ -367,26 +385,26 @@ static BOOL DEV_MODE = false;
     window = [[UIWindow alloc] initWithFrame:screenBounds];
     window.backgroundColor = [UIColor whiteColor];
     [window makeKeyAndVisible];
-    [window setRootViewController:[[UIViewController alloc] init]]; // every app should have a root view controller
+    window.rootViewController = [[BTViewController alloc] init];
 
-    screenBounds.origin.y += 20;
     screenBounds.size.height -= 20;
 #ifdef DEBUG
     webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
 #else
     webView = [[UIWebView alloc] initWithFrame:screenBounds];
 #endif
-    [window addSubview:webView];
+    [window.rootViewController.view addSubview:webView];
     javascriptBridge = [WebViewJavascriptBridge javascriptBridgeWithDelegate:self];
     webView.delegate = javascriptBridge;
 }
 
 - (void)showLoadingOverlay {
     CGRect frame = [[UIScreen mainScreen] bounds];
+    frame.origin.y -= 20;
     UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
     splashScreen.image = [UIImage imageNamed:@"Default"];
     self.overlay = splashScreen;
-    [window addSubview:splashScreen];
+    [window.rootViewController.view addSubview:splashScreen];
 }
 
 - (void)hideLoadingOverlay {
