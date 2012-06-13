@@ -1,6 +1,7 @@
 #import "BTAppDelegate.h"
 #import "NSFileManager+Tar.h"
 #import "BTViewController.h"
+#import "BTIndex.h"
 
 #ifdef DEBUG
 static BOOL DEV_MODE = true;
@@ -158,7 +159,6 @@ static BOOL DEV_MODE = false;
     };
     
 
-    
     if ([command isEqualToString:@"app.restart"]) {
         [self startApp:isDevMode];
 
@@ -195,6 +195,13 @@ static BOOL DEV_MODE = false;
     
     } else if ([command isEqualToString:@"device.vibrate"]) {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+        
+    } else if ([command isEqualToString:@"index.build"]) {
+        [BTIndex buildIndex:[data objectForKey:@"name"] payloadToStrings:[data objectForKey:@"payloadToStrings"]];
+    
+    } else if ([command isEqualToString:@"index.lookup"]) {
+        BTIndex* index = [BTIndex indexByName:[data objectForKey:@"name"]];
+        [index lookup:[data objectForKey:@"searchString"] responseCallback:responseCallback];
         
     } else {
         [self handleCommand:command data:data responseCallback:responseCallback];
@@ -290,6 +297,13 @@ static BOOL DEV_MODE = false;
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
     [self notify:@"push.notification" info:[NSDictionary dictionaryWithObject:userInfo forKey:@"data"]];
+}
+
+/* Misc API
+ **********/
+
+- (BOOL)isRetina {
+    return ([[UIScreen mainScreen] respondsToSelector:@selector(scale)] && [[UIScreen mainScreen] scale] == 2.0);
 }
 
 @end

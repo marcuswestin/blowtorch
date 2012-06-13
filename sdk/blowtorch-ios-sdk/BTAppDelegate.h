@@ -35,6 +35,10 @@
  *************/
 - (void) requestUpgrade;
 
+/* Misc
+ ******/
+- (BOOL) isRetina;
+
 /* Private
  *********/
 @property (strong, nonatomic) UIWindow *window;
