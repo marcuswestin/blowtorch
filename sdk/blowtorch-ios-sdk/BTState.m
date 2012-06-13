@@ -1,11 +1,3 @@
-//
-//  BTState.m
-//  dogo
-//
-//  Created by Marcus Westin on 5/1/12.
-//  Copyright (c) 2012 Meebo. All rights reserved.
-//
-
 #import "BTState.h"
 
 @implementation BTState

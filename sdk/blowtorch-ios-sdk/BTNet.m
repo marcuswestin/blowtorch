@@ -1,11 +1,3 @@
-//
-//  BTNet.m
-//  dogo
-//
-//  Created by Marcus Westin on 5/19/12.
-//  Copyright (c) 2012 Meebo. All rights reserved.
-//
-
 #import "BTNet.h"
 
 @implementation BTNet

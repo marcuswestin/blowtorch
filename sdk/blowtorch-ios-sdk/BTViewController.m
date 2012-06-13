@@ -1,11 +1,3 @@
-//
-//  BTViewController.m
-//  dogo
-//
-//  Created by Marcus Westin on 5/27/12.
-//  Copyright (c) 2012 Meebo. All rights reserved.
-//
-
 #import "BTViewController.h"
 
 @interface BTViewController ()
