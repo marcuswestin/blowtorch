@@ -61,22 +61,11 @@ static BOOL DEV_MODE = false;
     
     [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didRotate:) name:@"UIDeviceOrientationDidChangeNotification" object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+
 
     return YES;
-}
-
--(void) didRotate:(NSNotification*)notification {
-    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
-    NSInteger deg = 0;
-    if (orientation == UIDeviceOrientationPortraitUpsideDown) {
-        deg = 180;
-    } else if (orientation == UIDeviceOrientationLandscapeLeft) {
-        deg = 90;
-    } else if (orientation == UIDeviceOrientationLandscapeRight) {
-        deg = -90;
-    }
-    NSNumber* degNum = [NSNumber numberWithInt:deg];
-    [self notify:@"device.rotated" info:[NSDictionary dictionaryWithObject:degNum forKey:@"deg"]];
 }
 
 -(void)startApp:(BOOL)devMode {
@@ -127,6 +116,37 @@ static BOOL DEV_MODE = false;
      */
 }
 
+
+/* Native events notifications
+ *****************************/
+
+-(void) didRotate:(NSNotification*)notification {
+    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
+    NSInteger deg = 0;
+    if (orientation == UIDeviceOrientationPortraitUpsideDown) {
+        deg = 180;
+    } else if (orientation == UIDeviceOrientationLandscapeLeft) {
+        deg = 90;
+    } else if (orientation == UIDeviceOrientationLandscapeRight) {
+        deg = -90;
+    }
+    NSNumber* degNum = [NSNumber numberWithInt:deg];
+    [self notify:@"device.rotated" info:[NSDictionary dictionaryWithObject:degNum forKey:@"deg"]];
+}
+
+- (void)keyboardWillShow:(NSNotification *)notification {
+    NSDictionary *userInfo = [notification userInfo];
+    NSValue *keyboardAnimationDurationValue = [userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
+    NSTimeInterval keyboardAnimationDurationInterval;
+    [keyboardAnimationDurationValue getValue:&keyboardAnimationDurationInterval];
+    NSNumber* keyboardAnimationDuration = [NSNumber numberWithDouble:keyboardAnimationDurationInterval];
+    
+    [self notify:@"keyboard.willShow" info:[NSDictionary dictionaryWithObjectsAndKeys:keyboardAnimationDuration, @"keyboardAnimationDuration", nil]];
+}
+
+- (void)keyboardWillHide:(NSNotification *)notification {
+    [self notify:@"keyboard.willHide"];
+}
 
 /* WebView <-> Native API
  ************************/
