@@ -135,17 +135,20 @@ static BOOL DEV_MODE = false;
 }
 
 - (void)keyboardWillShow:(NSNotification *)notification {
+    [self notify:@"keyboard.willShow" info:[self keyboardEventInfo:notification]];
+}
+
+- (void)keyboardWillHide:(NSNotification *)notification {
+    [self notify:@"keyboard.willHide" info:[self keyboardEventInfo:notification]];
+}
+
+- (NSDictionary *)keyboardEventInfo:(NSNotification *)notification {
     NSDictionary *userInfo = [notification userInfo];
     NSValue *keyboardAnimationDurationValue = [userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
     NSTimeInterval keyboardAnimationDurationInterval;
     [keyboardAnimationDurationValue getValue:&keyboardAnimationDurationInterval];
     NSNumber* keyboardAnimationDuration = [NSNumber numberWithDouble:keyboardAnimationDurationInterval];
-    
-    [self notify:@"keyboard.willShow" info:[NSDictionary dictionaryWithObjectsAndKeys:keyboardAnimationDuration, @"keyboardAnimationDuration", nil]];
-}
-
-- (void)keyboardWillHide:(NSNotification *)notification {
-    [self notify:@"keyboard.willHide"];
+    return [NSDictionary dictionaryWithObject:keyboardAnimationDuration forKey:@"keyboardAnimationDuration"];
 }
 
 /* WebView <-> Native API

@@ -41,6 +41,7 @@
 
 /* Private
  *********/
+- (NSDictionary*) keyboardEventInfo:(NSNotification*) notification;
 @property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) UIWebView *webView;
 @property (strong, nonatomic) WebViewJavascriptBridge *javascriptBridge;
