@@ -35,14 +35,16 @@ static NSMutableDictionary* indices;
 }
 
 - (void)lookup:(NSString *)searchString responseCallback:(ResponseCallback)responseCallback {
+    NSMutableSet* matches = [NSMutableSet set];
     if (!listsByFirstCharacter || !searchString || [searchString isEqualToString:@""]) {
-        return responseCallback(nil, [NSArray array]);
+        return [self respond:matches responseCallback:responseCallback];
     }
     NSString* indexFirstChar = [[searchString substringToIndex:1] lowercaseString];
     NSArray* possibleMatches = [listsByFirstCharacter objectForKey:indexFirstChar];
-    if (!possibleMatches) { return responseCallback(nil, [NSArray array]); }
+    if (!possibleMatches) {
+        return [self respond:matches responseCallback:responseCallback];
+    }
     NSPredicate* beginsWithsearchString = [NSPredicate predicateWithFormat:@"SELF BEGINSWITH[cd] %@", searchString];
-    NSMutableSet* matches = [NSMutableSet set];
     for (BTIndexByStrings* indexByStrings in possibleMatches) {
         for (NSString* string in indexByStrings.strings) {
             if ([beginsWithsearchString evaluateWithObject:string]) {
@@ -51,6 +53,10 @@ static NSMutableDictionary* indices;
             }
         }
     }
+    [self respond:matches responseCallback:responseCallback];
+}
+
+- (void)respond:(NSSet *)matches responseCallback:(ResponseCallback)responseCallback {
     responseCallback(nil, [NSDictionary dictionaryWithObject:[matches allObjects] forKey:@"matches"]);
 }
 
