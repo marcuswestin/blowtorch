@@ -240,18 +240,31 @@ static BOOL DEV_MODE = false;
         }
     }
 
+    if ([[url host] isEqualToString:@"blowtorch"]) {
+        NSArray* parts = [[[url path] substringFromIndex:1] componentsSeparatedByString:@"."];
+        NSString* type = [parts objectAtIndex:1];
+        NSString* path = [parts objectAtIndex:0];
+        NSString* path2x = [path stringByAppendingString:@"@2x"];
+        if ([self isRetina] && [[NSBundle mainBundle] pathForResource:path2x ofType:type]) {
+            path = path2x;
+        }
+        return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
+    }
+    
     NSString* cachePath = [BTNet pathForUrl:[url absoluteString]];
-//    NSLog(@"CHECK FILE %@ %d", cachePath, [[NSFileManager defaultManager] fileExistsAtPath:cachePath]);
     if ([[NSFileManager defaultManager] fileExistsAtPath:cachePath]) {
         return [self localFileResponse:cachePath forUrl:url];
     }
-
+    
     return nil;
 }
 
 - (NSCachedURLResponse *)localFileResponse:(NSString *)filePath forUrl:(NSURL*)url {
     NSData* data = [NSData dataWithContentsOfFile:filePath];
-    NSString* mimeType = @""; // TODO Determine mimeType based on file extension
+    NSString* mimeType = @"";
+    if ([[url pathExtension] isEqualToString:@"png"]) {
+        mimeType = @"image/png";
+    }
     NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
     return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
 }
