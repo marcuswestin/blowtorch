@@ -265,25 +265,27 @@ static BOOL DEV_MODE = false;
             }
         }
     }
-
-    if ([[url host] isEqualToString:@"blowtorch"]) {
-        NSArray* parts = [[[url path] substringFromIndex:1] componentsSeparatedByString:@"."];
-        NSString* type = [parts objectAtIndex:1];
-        NSString* path = [parts objectAtIndex:0];
-        NSString* path2x = [path stringByAppendingString:@"@2x"];
-        if ([self isRetina] && [[NSBundle mainBundle] pathForResource:path2x ofType:type]) {
-            path = path2x;
+    NSString* prefix = @"/blowtorch";
+    if ([[url path] hasPrefix:prefix]) {
+        NSString* path = [[url path] substringFromIndex:prefix.length];
+        NSArray* parts = [[path substringFromIndex:1] componentsSeparatedByString:@"/"];
+        if ([[parts objectAtIndex:0] isEqualToString:@"img"]) {
+            NSArray* file = [path componentsSeparatedByString:@"."];
+            NSString* type = [file objectAtIndex:1];
+            NSString* path = [file objectAtIndex:0];
+            NSString* path2x = [path stringByAppendingString:@"@2x"];
+            if ([self isRetina] && [[NSBundle mainBundle] pathForResource:path2x ofType:type]) {
+                path = path2x;
+            }
+            return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
+        } else if ([[parts objectAtIndex:0] isEqualToString:@"mediapng"]) {
+            NSString* mediaId = parts.lastObject;
+            NSLog(@"Media request %@", mediaId);
+            UIImage* image = [mediaCache objectForKey:mediaId];
+            NSData* data = UIImagePNGRepresentation(image);
+            NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:@"image/png" expectedContentLength:[data length] textEncodingName:nil];
+            return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
         }
-        return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
-    }
-    
-    if ([[url host] isEqualToString:@"blowtorchmediapng"]) {
-        NSString* mediaId = [[url path] lastPathComponent];
-        NSLog(@"Media request %@", mediaId);
-        UIImage* image = [mediaCache objectForKey:mediaId];
-        NSData* data = UIImagePNGRepresentation(image);
-        NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:@"image/png" expectedContentLength:[data length] textEncodingName:nil];
-        return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
     }
     
     NSString* cachePath = [BTNet pathForUrl:[url absoluteString]];
