@@ -212,6 +212,9 @@ static BOOL DEV_MODE = false;
     } else if ([command isEqualToString:@"push.register"]) {
         [self registerForPush];
         
+    } else if ([command isEqualToString:@"media.pick"]) {
+        [self pickMedia:responseCallback];
+        
     } else if ([command isEqualToString:@"net.cache"]) {
         [self.net cache:[data objectForKey:@"url"] override:!![data objectForKey:@"override"]
                   asUrl:[data objectForKey:@"asUrl"] responseCallback:responseCallback];
@@ -272,6 +275,15 @@ static BOOL DEV_MODE = false;
             path = path2x;
         }
         return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
+    }
+    
+    if ([[url host] isEqualToString:@"blowtorchmediapng"]) {
+        NSString* mediaId = [[url path] lastPathComponent];
+        NSLog(@"Media request %@", mediaId);
+        UIImage* image = [mediaCache objectForKey:mediaId];
+        NSData* data = UIImagePNGRepresentation(image);
+        NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:@"image/png" expectedContentLength:[data length] textEncodingName:nil];
+        return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
     }
     
     NSString* cachePath = [BTNet pathForUrl:[url absoluteString]];
@@ -338,8 +350,57 @@ static BOOL DEV_MODE = false;
 /* Misc API
  **********/
 
+static int uniqueId = 1;
+- (NSString *)unique {
+    int thisId = ++uniqueId;
+    return [NSString stringWithFormat:@"%d", thisId];
+}
+
 - (BOOL)isRetina {
     return ([[UIScreen mainScreen] respondsToSelector:@selector(scale)] && [[UIScreen mainScreen] scale] == 2.0);
+}
+
+@synthesize mediaResponseCallback, mediaCache;
+- (void)pickMedia:(ResponseCallback)responseCallback {
+    if (!mediaCache) { mediaCache = [NSMutableDictionary dictionary]; }
+    
+    UIImagePickerController *mediaUI = [[UIImagePickerController alloc] init];
+    mediaUI.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
+    
+    // Displays saved pictures and movies, if both are available, from the
+    // Camera Roll album.
+    mediaUI.mediaTypes = 
+    [UIImagePickerController availableMediaTypesForSourceType:
+     UIImagePickerControllerSourceTypeSavedPhotosAlbum];
+    
+    // Hides the controls for moving & scaling pictures, or for
+    // trimming movies. To instead show the controls, use YES.
+    mediaUI.allowsEditing = NO;
+    
+    mediaUI.delegate = self;
+    
+    mediaResponseCallback = responseCallback;
+    [self.window.rootViewController presentModalViewController: mediaUI animated: YES];
+}
+
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingImage:(UIImage *)image editingInfo:(NSDictionary *)editingInfo {
+    [self.window.rootViewController dismissModalViewControllerAnimated: YES];
+    NSString* mediaId = [self unique];
+    [mediaCache setObject:image forKey:mediaId];
+    NSDictionary* info = [NSDictionary dictionaryWithObjectsAndKeys:
+                            mediaId, @"mediaId",
+                            [NSNumber numberWithFloat:image.size.width], @"width",
+                            [NSNumber numberWithFloat:image.size.height], @"height",
+                            nil];
+    mediaResponseCallback(nil, info);
+}
+
+- (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
+    NSLog(@"DidCancel");
+    [self.window.rootViewController dismissModalViewControllerAnimated: YES];
+    NSLog(@"before response");
+    mediaResponseCallback(nil, [NSDictionary dictionary]);
+    NSLog(@"after response");
 }
 
 @end
