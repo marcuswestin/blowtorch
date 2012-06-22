@@ -213,7 +213,10 @@ static BOOL DEV_MODE = false;
         [self registerForPush];
         
     } else if ([command isEqualToString:@"media.pick"]) {
-        [self pickMedia:responseCallback];
+        [self pickMedia:data responseCallback:responseCallback];
+
+    } else if ([command isEqualToString:@"menu.show"]) {
+        [self showMenu:data responseCallback:responseCallback];
         
     } else if ([command isEqualToString:@"net.cache"]) {
         [self.net cache:[data objectForKey:@"url"] override:!![data objectForKey:@"override"]
@@ -363,21 +366,30 @@ static int uniqueId = 1;
 }
 
 @synthesize mediaResponseCallback, mediaCache;
-- (void)pickMedia:(ResponseCallback)responseCallback {
+- (void)pickMedia:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback {
     if (!mediaCache) { mediaCache = [NSMutableDictionary dictionary]; }
     
     UIImagePickerController *mediaUI = [[UIImagePickerController alloc] init];
-    mediaUI.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
+    NSString* source = [data objectForKey:@"source"];
+    if (!source) {
+        source = @"libraryPhotos";
+    }
     
-    // Displays saved pictures and movies, if both are available, from the
-    // Camera Roll album.
-    mediaUI.mediaTypes = 
-    [UIImagePickerController availableMediaTypesForSourceType:
-     UIImagePickerControllerSourceTypeSavedPhotosAlbum];
+    if ([source isEqualToString:@"libraryPhotos"]) {
+        mediaUI.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+    } else if ([source isEqualToString:@"librarySavedPhotos"]) {
+        mediaUI.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
+    } else if ([source isEqualToString:@"camera"]) {
+        mediaUI.sourceType = UIImagePickerControllerSourceTypeCamera;
+    } else {
+        return responseCallback(@"Unknown source", nil);
+    }
     
-    // Hides the controls for moving & scaling pictures, or for
-    // trimming movies. To instead show the controls, use YES.
-    mediaUI.allowsEditing = NO;
+    if ([data objectForKey:@"allowEditing"]) {
+        mediaUI.allowsEditing = YES;
+    } else {
+        mediaUI.allowsEditing = NO;
+    }
     
     mediaUI.delegate = self;
     
@@ -403,6 +415,25 @@ static int uniqueId = 1;
     NSLog(@"before response");
     mediaResponseCallback(nil, [NSDictionary dictionary]);
     NSLog(@"after response");
+}
+
+- (void)showMenu:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
+    menuResponseCallback = responseCallback;
+    UIActionSheet* sheet = [[UIActionSheet alloc] init];
+    sheet.delegate = self;
+    for (NSString* title in [data objectForKey:@"titles"]) {
+        [sheet addButtonWithTitle:title];
+    }
+    [sheet showInView:self.webView];
+}
+
+@synthesize menuResponseCallback;
+- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex {
+    menuResponseCallback(nil, [NSDictionary dictionaryWithObject:[NSNumber numberWithInt:buttonIndex] forKey:@"index"]);
+}
+
+- (void)actionSheetCancel:(UIActionSheet *)actionSheet {
+    menuResponseCallback(nil, nil);
 }
 
 @end
