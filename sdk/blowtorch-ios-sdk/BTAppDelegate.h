@@ -6,7 +6,7 @@
 #import "BTState.h"
 #import <AudioToolbox/AudioServices.h>
 
-@interface BTAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate>
+@interface BTAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIActionSheetDelegate>
 
 /* Properties
  ************/
@@ -39,9 +39,11 @@
  ******/
 - (NSString*) unique;
 - (BOOL) isRetina;
-- (void) pickMedia:(ResponseCallback)responseCallback;
+- (void) pickMedia:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 @property (atomic,strong) NSMutableDictionary* mediaCache;
 @property (atomic,strong) ResponseCallback mediaResponseCallback;
+- (void) showMenu:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
+@property (atomic,strong) ResponseCallback menuResponseCallback;
 
 /* Private
  *********/
