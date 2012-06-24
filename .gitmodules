@@ -12,4 +12,4 @@
 	url = https://github.com/mhausherr/Light-Untar-for-iOS.git
 [submodule "dependencies/MKNetworkKit"]
 	path = dependencies/MKNetworkKit
-	url = git@github.com:marcuswestin/MKNetworkKit.git
+	url = git://github.com/MugunthKumar/MKNetworkKit.git
