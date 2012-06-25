@@ -33,7 +33,7 @@
 
 /* Upgrade API
  *************/
-- (void) requestUpgrade;
+- (void) downloadAppVersion:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 
 /* Misc
  ******/

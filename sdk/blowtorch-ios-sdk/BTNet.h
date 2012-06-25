@@ -11,4 +11,6 @@
 
 + (NSString*)pathForUrl:(NSString*)url;
 
++ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary*)headers params:(NSDictionary*)params responseCallback:(ResponseCallback)responseCallback;
+
 @end

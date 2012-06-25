@@ -6,7 +6,7 @@
 
 - (id)init {
     if (self = [super init]) {
-        self.engine = [[MKNetworkEngine alloc] initWithHostName:@"graph.facebook.com" customHeaderFields:nil];
+        self.engine = [[MKNetworkEngine alloc] initWithHostName:nil customHeaderFields:nil];
     }
     return self;
 }
@@ -59,6 +59,17 @@
         [[NSFileManager defaultManager] createDirectoryAtPath:cachePath withIntermediateDirectories:NO attributes:nil error:&error];
     }
     return [cachePath stringByAppendingPathComponent:fileName];
+}
+
++ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary *)headers  params:(NSDictionary*)params responseCallback:(ResponseCallback)responseCallback {
+    MKNetworkEngine* netEngine = [[MKNetworkEngine alloc] initWithHostName:nil customHeaderFields:headers];
+    MKNetworkOperation* op = [netEngine operationWithURLString:url];
+    [op onCompletion:^(MKNetworkOperation* completedOperation) {
+        responseCallback(nil, [NSDictionary dictionaryWithObject:[completedOperation responseData] forKey:@"responseData"]);
+    } onError:^(NSError* error) {
+        responseCallback(error, nil);
+    }];
+    [netEngine enqueueOperation:op];
 }
 
 @end
