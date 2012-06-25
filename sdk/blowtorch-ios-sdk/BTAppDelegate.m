@@ -298,6 +298,7 @@ static BOOL DEV_MODE = false;
     
     NSString* cachePath = [BTNet pathForUrl:[url absoluteString]];
     if ([[NSFileManager defaultManager] fileExistsAtPath:cachePath]) {
+        NSLog(@"Found file in cache! %@", url);
         return [self localFileResponse:cachePath forUrl:url];
     }
     

@@ -25,13 +25,12 @@
         MKNetworkOperation* operation = [engine operationWithURLString:url];
         [operation onCompletion:^(MKNetworkOperation *completedOperation) {
             [completedOperation.responseData writeToFile:filePath atomically:YES];
-            NSLog(@"CACHED %@ as %@", url, asUrl);
+            NSLog(@"Cached %@ as %@", url, asUrl);
             responseCallback(nil, nil);
-        }
-                        onError:^(NSError *error) {
-                            NSLog(@"ERROR GETTING URL %@ %@", url, error);
-                            responseCallback(@"Error getting url", nil);
-                        }];
+        } onError:^(NSError *error) {
+            NSLog(@"ERROR GETTING URL %@ %@", url, error);
+            responseCallback(@"Error getting url", nil);
+        }];
         [engine enqueueOperation:operation];
     }
     
