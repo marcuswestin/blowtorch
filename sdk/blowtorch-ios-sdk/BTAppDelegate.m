@@ -275,12 +275,23 @@ static BOOL DEV_MODE = false;
                 path = path2x;
             }
             return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
-        } else if ([[parts objectAtIndex:0] isEqualToString:@"mediapng"]) {
+        } else if ([[parts objectAtIndex:0] isEqualToString:@"media"]) {
+            NSString* format = [[url path] pathExtension];
             NSString* mediaId = parts.lastObject;
-            NSLog(@"Media request %@", mediaId);
             UIImage* image = [mediaCache objectForKey:mediaId];
-            NSData* data = UIImagePNGRepresentation(image);
-            NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:@"image/png" expectedContentLength:[data length] textEncodingName:nil];
+            NSData* data;
+            NSString* mimeType;
+            if ([format isEqualToString:@"png"]) {
+                data = UIImagePNGRepresentation(image);
+                mimeType = @"image/png";
+            } else if ([format isEqualToString:@"jpg"]) {
+                data = UIImageJPEGRepresentation(image, .8);
+                mimeType = @"image/jpg";
+            } else {
+                return nil;
+            }
+            
+            NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
             return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
         }
     }
