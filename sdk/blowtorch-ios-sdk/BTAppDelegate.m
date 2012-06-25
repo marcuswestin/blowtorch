@@ -19,7 +19,6 @@ static BOOL DEV_MODE = false;
 - (NSURL*) getUrl:(NSString*) path;
 - (NSString*) getFilePath:(NSString*) name;
 
-- (NSString*) getCurrentVersion;
 - (NSString*) getCurrentVersionPath:(NSString*)resourcePath;
 
 - (void) createWindowAndWebView;
@@ -32,7 +31,7 @@ static BOOL DEV_MODE = false;
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost, state, net, overlay, config, isDevMode;
+@synthesize window, webView, javascriptBridge, serverHost, state, net, overlay, config;
 
 /* App lifecycle
  **********************/
@@ -61,7 +60,7 @@ static BOOL DEV_MODE = false;
 }
 
 -(void)startApp:(BOOL)devMode {
-    self.isDevMode = DEV_MODE = devMode;
+    DEV_MODE = devMode;
     [self.state set:@"installedVersion" value:[self.state get:@"downloadedVersion"]];
     NSLog(@"Starting app with version %@", [self.state get:@"installedVersion"]);
     
@@ -176,7 +175,7 @@ static BOOL DEV_MODE = false;
     
 
     if ([command isEqualToString:@"app.restart"]) {
-        [self startApp:isDevMode];
+        [self startApp:DEV_MODE];
 
     } else if ([command isEqualToString:@"app.show"]) {
         [self hideLoadingOverlay];
@@ -311,23 +310,19 @@ static BOOL DEV_MODE = false;
     NSString* url = [data objectForKey:@"url"];
     NSDictionary* headers = [data objectForKey:@"headers"];
     NSString* version = [url urlEncodedString];
-    [[NSFileManager defaultManager] createDirectoryAtPath:[self getFilePath:@"archives"] withIntermediateDirectories:YES attributes:nil error:nil];
-    NSString* tarFilePath = [self getFilePath:[NSString stringWithFormat:@"archives/%@.tar", version]];
-    NSString* directoryPath = [self getFilePath:@"versions"];
+    NSString* directoryPath = [self getFilePath:[@"versions/" stringByAppendingString:version]];
     [BTNet request:url method:@"GET" headers:headers params:nil responseCallback:^(id error, NSDictionary *response) {
-        NSLog(@"request done %@ %@ %@", url, error, response);
         if (error) {
             responseCallback(error, nil);
             return;
         }
         NSData* tarData = [response objectForKey:@"responseData"];
-        if (tarData) {
+        if (!tarData || tarData.length == 0) {
             NSLog(@"Received download response with no data");
             return;
         }
-        [tarData writeToFile:tarFilePath atomically:YES];
         NSError *tarError;
-        [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarPath:tarFilePath error:&tarError];
+        [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarData:tarData error:&tarError];
         if (tarError) {
             NSLog(@"Error untarring version %@", error);
             responseCallback(@"Error untarring version", nil);
@@ -337,6 +332,10 @@ static BOOL DEV_MODE = false;
             responseCallback(nil, nil);
         }
     }];
+}
+
+- (NSString *)getCurrentVersion {
+    return [self.state get:@"installedVersion"];
 }
 
 /* Push API
@@ -451,10 +450,6 @@ static int uniqueId = 1;
 - (void)registerForPush {
     [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
      (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
-}
-
-- (NSString *)getCurrentVersion {
-    return [self.state get:@"installedVersion"];
 }
 
 - (NSString *)getCurrentVersionPath:(NSString *)resourcePath {

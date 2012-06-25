@@ -14,7 +14,6 @@
 @property (atomic, strong) BTState* state;
 @property (atomic, strong) BTNet* net;
 @property (strong, atomic) NSMutableDictionary* config;
-@property (atomic, assign) BOOL isDevMode;
 
 /* Lifecycle API
  ***************/
@@ -34,6 +33,7 @@
 /* Upgrade API
  *************/
 - (void) downloadAppVersion:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
+- (NSString*) getCurrentVersion;
 
 /* Misc
  ******/
