@@ -425,11 +425,8 @@ static int uniqueId = 1;
 }
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
-    NSLog(@"DidCancel");
     [self.window.rootViewController dismissModalViewControllerAnimated: YES];
-    NSLog(@"before response");
     mediaResponseCallback(nil, [NSDictionary dictionary]);
-    NSLog(@"after response");
 }
 
 - (void)showMenu:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
