@@ -277,7 +277,7 @@ static BOOL DEV_MODE = false;
             return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
         } else if ([[parts objectAtIndex:0] isEqualToString:@"media"]) {
             NSString* format = [[url path] pathExtension];
-            NSString* mediaId = parts.lastObject;
+            NSString* mediaId = [parts.lastObject stringByDeletingPathExtension];
             UIImage* image = [mediaCache objectForKey:mediaId];
             NSData* data;
             NSString* mimeType;
