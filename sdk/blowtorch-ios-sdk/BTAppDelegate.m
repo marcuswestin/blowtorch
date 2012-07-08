@@ -262,10 +262,10 @@ static BOOL DEV_MODE = false;
         }
     }
     
-    NSString* prefix = @"/blowtorch";
+    NSString* prefix = @"/blowtorch/";
     if ([[url path] hasPrefix:prefix]) {
         NSString* path = [[url path] substringFromIndex:prefix.length];
-        NSArray* parts = [[path substringFromIndex:1] componentsSeparatedByString:@"/"];
+        NSArray* parts = [path componentsSeparatedByString:@"/"];
         if ([[parts objectAtIndex:0] isEqualToString:@"img"]) {
             NSArray* file = [path componentsSeparatedByString:@"."];
             NSString* type = [file objectAtIndex:1];
@@ -293,6 +293,9 @@ static BOOL DEV_MODE = false;
             
             NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
             return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
+        } else if ([[parts objectAtIndex:0] isEqualToString:@"fonts"]) {
+            NSString* filePath = [[NSBundle mainBundle] pathForResource:path ofType:nil];
+            return [self localFileResponse:filePath forUrl:url];
         }
     }
     
@@ -310,6 +313,8 @@ static BOOL DEV_MODE = false;
     NSString* mimeType = @"";
     if ([[url pathExtension] isEqualToString:@"png"]) {
         mimeType = @"image/png";
+    } else if ([[url pathExtension] isEqualToString:@"woff"]) {
+        mimeType = @"font/woff";
     }
     NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
     return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
