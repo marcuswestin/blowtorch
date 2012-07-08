@@ -495,6 +495,7 @@ static int uniqueId = 1;
 #else
     webView = [[UIWebView alloc] initWithFrame:screenBounds];
 #endif
+    webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal;
     [window.rootViewController.view addSubview:webView];
     javascriptBridge = [WebViewJavascriptBridge javascriptBridgeWithDelegate:self];
     webView.delegate = javascriptBridge;
