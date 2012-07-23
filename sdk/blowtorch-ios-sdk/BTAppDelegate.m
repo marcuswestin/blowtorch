@@ -315,6 +315,8 @@ static BOOL DEV_MODE = false;
         mimeType = @"image/png";
     } else if ([[url pathExtension] isEqualToString:@"woff"]) {
         mimeType = @"font/woff";
+    } else if ([[url pathExtension] isEqualToString:@"ttf"]) {
+        mimeType = @"font/opentype";
     }
     NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
     return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
