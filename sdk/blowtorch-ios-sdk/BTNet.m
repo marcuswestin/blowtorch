@@ -62,7 +62,7 @@
 
 + (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary *)headers  params:(NSDictionary*)params responseCallback:(ResponseCallback)responseCallback {
     MKNetworkEngine* netEngine = [[MKNetworkEngine alloc] initWithHostName:nil customHeaderFields:headers];
-    MKNetworkOperation* op = [netEngine operationWithURLString:url];
+    MKNetworkOperation* op = [netEngine operationWithURLString:url params:[NSMutableDictionary dictionaryWithDictionary:params] httpMethod:method];
     [op onCompletion:^(MKNetworkOperation* completedOperation) {
         responseCallback(nil, [NSDictionary dictionaryWithObject:[completedOperation responseData] forKey:@"responseData"]);
     } onError:^(NSError* error) {
