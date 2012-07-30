@@ -68,9 +68,11 @@ static BOOL DEV_MODE = false;
     [self.javascriptBridge resetQueue];
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
     
+    NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
+    NSString* client = [bundleVersion stringByAppendingString:@"-ios"];
     NSDictionary* appInfo = [NSDictionary dictionaryWithObjectsAndKeys:
                                config, @"config",
-                               [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"], @"bundleVersion",
+                               client, @"client",
                                nil];
     [self notify:@"app.start" info:appInfo];
 }
