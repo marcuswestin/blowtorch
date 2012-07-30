@@ -286,7 +286,7 @@ static BOOL DEV_MODE = false;
             if ([format isEqualToString:@"png"]) {
                 data = UIImagePNGRepresentation(image);
                 mimeType = @"image/png";
-            } else if ([format isEqualToString:@"jpg"]) {
+            } else if ([format isEqualToString:@"jpg"] || [format isEqualToString:@"jpeg"]) {
                 data = UIImageJPEGRepresentation(image, .8);
                 mimeType = @"image/jpg";
             } else {
@@ -313,11 +313,14 @@ static BOOL DEV_MODE = false;
 - (NSCachedURLResponse *)localFileResponse:(NSString *)filePath forUrl:(NSURL*)url {
     NSData* data = [NSData dataWithContentsOfFile:filePath];
     NSString* mimeType = @"";
-    if ([[url pathExtension] isEqualToString:@"png"]) {
+    NSString* extension = [url pathExtension];
+    if ([extension isEqualToString:@"png"]) {
         mimeType = @"image/png";
-    } else if ([[url pathExtension] isEqualToString:@"woff"]) {
+    } else if ([extension isEqualToString:@"jpg"] || [extension isEqualToString:@"jpeg"]) {
+        mimeType = @"image/jpg";
+    } else if ([extension isEqualToString:@"woff"]) {
         mimeType = @"font/woff";
-    } else if ([[url pathExtension] isEqualToString:@"ttf"]) {
+    } else if ([extension isEqualToString:@"ttf"]) {
         mimeType = @"font/opentype";
     }
     NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
