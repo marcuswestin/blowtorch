@@ -250,10 +250,12 @@ static BOOL DEV_MODE = false;
  *********/
 - (NSCachedURLResponse *)cachedResponseForRequest:(NSURLRequest *)request url:(NSURL *)url host:(NSString *)host path:(NSString *)path {
     // Check currently downloaded version first
-    NSString* currentVersionPath = [self getCurrentVersionPath:path];
-    if (currentVersionPath && [[NSFileManager defaultManager] fileExistsAtPath:currentVersionPath]) {
-        return [self localFileResponse:currentVersionPath forUrl:url];
-    } else if (!DEV_MODE) {
+    // This hits disc TWICE PER REQUEST. FOR ALL REQUESTS. FIX that.
+//    NSString* currentVersionPath = [self getCurrentVersionPath:path];
+//    if (false && currentVersionPath && [[NSFileManager defaultManager] fileExistsAtPath:currentVersionPath]) {
+//        return [self localFileResponse:currentVersionPath forUrl:url];
+//    } else
+        if (!DEV_MODE) {
         // Else check bootstrap files
         if ([path isEqualToString:@"/app.html"] ||
             [path isEqualToString:@"/appJs.html"] ||
