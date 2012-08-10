@@ -35,6 +35,11 @@
 - (void) downloadAppVersion:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 - (NSString*) getCurrentVersion;
 
+/* Keyboard
+ **********/
+- (void)keyboardWillShow:(NSNotification *)notification;
+- (void)keyboardWillHide:(NSNotification *)notification;
+
 /* Misc
  ******/
 - (NSString*) unique;
