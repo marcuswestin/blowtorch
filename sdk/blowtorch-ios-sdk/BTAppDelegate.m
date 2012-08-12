@@ -31,7 +31,7 @@ static BOOL DEV_MODE = false;
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost, state, net, overlay, config;
+@synthesize window, webView, javascriptBridge, serverHost, state, net, overlay, config, launchNotification;
 
 /* App lifecycle
  **********************/
@@ -55,7 +55,8 @@ static BOOL DEV_MODE = false;
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
 
-
+    launchNotification = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+    
     return YES;
 }
 
@@ -181,7 +182,10 @@ static BOOL DEV_MODE = false;
 
     } else if ([command isEqualToString:@"app.show"]) {
         [self hideLoadingOverlay];
-        
+        if (launchNotification) {
+            [self handlePushNotification:launchNotification didBringAppToForeground:YES];
+            launchNotification = nil;
+        }
     } else if ([command isEqualToString:@"app.setIconBadgeNumber"]) {
         NSNumber* number = [data objectForKey:@"number"];
         [[UIApplication sharedApplication] setApplicationIconBadgeNumber:[number intValue]];
@@ -380,11 +384,15 @@ static BOOL DEV_MODE = false;
     [self notify:@"push.registerFailed" info:nil];
 }
 
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
-    NSNumber* didBringAppIntoForeground = [NSNumber numberWithBool:(application.applicationState != UIApplicationStateActive)];
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)notification {
+    [self handlePushNotification:notification didBringAppToForeground:(application.applicationState != UIApplicationStateActive)];
+}
+
+- (void)handlePushNotification:(NSDictionary *)notification didBringAppToForeground:(BOOL)didBringAppToForeground {
+    NSNumber* didBringAppIntoForegroundObj = [NSNumber numberWithBool:(didBringAppToForeground)];
     [self notify:@"push.notification" info:[NSDictionary dictionaryWithObjectsAndKeys:
-                                            userInfo, @"data",
-                                            didBringAppIntoForeground, @"didBringAppIntoForeground",
+                                            notification, @"data",
+                                            didBringAppIntoForegroundObj, @"didBringAppIntoForeground",
                                             nil]];
 }
 

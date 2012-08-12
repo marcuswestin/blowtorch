@@ -50,6 +50,11 @@
 - (void) showMenu:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 @property (atomic,strong) ResponseCallback menuResponseCallback;
 
+/* Notifications
+ ***************/
+@property (strong, nonatomic) NSDictionary* launchNotification;
+- (void) handlePushNotification:(NSDictionary*)notification didBringAppToForeground:(BOOL)didBringAppToForeground;
+
 /* Private
  *********/
 - (NSDictionary*) keyboardEventInfo:(NSNotification*) notification;
