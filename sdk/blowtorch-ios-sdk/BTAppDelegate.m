@@ -381,7 +381,11 @@ static BOOL DEV_MODE = false;
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
-    [self notify:@"push.notification" info:[NSDictionary dictionaryWithObject:userInfo forKey:@"data"]];
+    NSNumber* didBringAppIntoForeground = [NSNumber numberWithBool:(application.applicationState != UIApplicationStateActive)];
+    [self notify:@"push.notification" info:[NSDictionary dictionaryWithObjectsAndKeys:
+                                            userInfo, @"data",
+                                            didBringAppIntoForeground, @"didBringAppIntoForeground",
+                                            nil]];
 }
 
 /* Misc API
