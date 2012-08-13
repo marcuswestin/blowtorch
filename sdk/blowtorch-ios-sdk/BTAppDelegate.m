@@ -23,15 +23,13 @@ static BOOL DEV_MODE = false;
 
 - (void) createWindowAndWebView;
 
-- (void) registerForPush;
-
 - (void) showLoadingOverlay;
 - (void) hideLoadingOverlay;
 @end
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost, state, net, overlay, config, launchNotification;
+@synthesize window, webView, javascriptBridge, serverHost, state, net, overlay, config, launchNotification, pushRegistrationCallback;
 
 /* App lifecycle
  **********************/
@@ -76,6 +74,12 @@ static BOOL DEV_MODE = false;
                                client, @"client",
                                nil];
     [self notify:@"app.start" info:appInfo];
+}
+
+- (void)registerForPush:(ResponseCallback)responseCallback {
+    pushRegistrationCallback = responseCallback;
+    [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
+     (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application {
@@ -208,7 +212,7 @@ static BOOL DEV_MODE = false;
         [state reset];
     
     } else if ([command isEqualToString:@"push.register"]) {
-        [self registerForPush];
+        [self registerForPush:responseCallback];
         
     } else if ([command isEqualToString:@"media.pick"]) {
         [self pickMedia:data responseCallback:responseCallback];
@@ -376,12 +380,21 @@ static BOOL DEV_MODE = false;
     NSString * tokenAsString = [[[deviceToken description]
                                  stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]] 
                                 stringByReplacingOccurrencesOfString:@" " withString:@""];
-    [self notify:@"push.registered" info:[NSDictionary dictionaryWithObject:tokenAsString forKey:@"deviceToken"]];
+    NSDictionary* info = [NSDictionary dictionaryWithObject:tokenAsString forKey:@"deviceToken"];
+    [self notify:@"push.registered" info:info];
+    if (pushRegistrationCallback) {
+        pushRegistrationCallback(nil, info);
+        pushRegistrationCallback = nil;
+    }
 }     
 
 - (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
     NSLog(@"Push registration failure %@", err);
     [self notify:@"push.registerFailed" info:nil];
+    if (pushRegistrationCallback) {
+        pushRegistrationCallback(@"Notifications were not allowed.", nil);
+        pushRegistrationCallback = nil;
+    }
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)notification {
@@ -483,11 +496,6 @@ static int uniqueId = 1;
  *************************/
 
 @implementation BTAppDelegate (hidden)
-
-- (void)registerForPush {
-    [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
-     (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
-}
 
 - (NSString *)getCurrentVersionPath:(NSString *)resourcePath {
     return [self getFilePath:[NSString stringWithFormat:@"versions/%@/%@", [self getCurrentVersion], resourcePath]];

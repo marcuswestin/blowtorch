@@ -52,6 +52,8 @@
 
 /* Notifications
  ***************/
+@property (nonatomic,copy) ResponseCallback pushRegistrationCallback;
+- (void) registerForPush:(ResponseCallback)responseCallback;
 @property (strong, nonatomic) NSDictionary* launchNotification;
 - (void) handlePushNotification:(NSDictionary*)notification didBringAppToForeground:(BOOL)didBringAppToForeground;
 
