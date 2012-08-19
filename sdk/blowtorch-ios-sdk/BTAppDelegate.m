@@ -161,7 +161,9 @@ static BOOL DEV_MODE = false;
     __block NSString *responseId = [message objectForKey:@"responseId"];
     __block NSString *command = [message objectForKey:@"command"];
     
-    NSLog(@"command %@", command);
+    if (![command isEqualToString:@"console.log"]) {
+        NSLog(@"command %@", command);
+    }
     
     ResponseCallback responseCallback = ^(NSString *errorMessage, NSDictionary *response) {
         NSLog(@"respond %@ %@", command, errorMessage);
