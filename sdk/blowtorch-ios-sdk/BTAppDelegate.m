@@ -514,14 +514,12 @@ static int uniqueId = 1;
 }
 
 - (void)createWindowAndWebView {
-    CGRect screenBounds = [[UIScreen mainScreen] applicationFrame];
-    screenBounds.origin.y -= 20;
-    screenBounds.size.height += 20;
+    CGRect screenBounds = [[UIScreen mainScreen] bounds];
+    screenBounds.size.height -= 20;
     window = [[UIWindow alloc] initWithFrame:screenBounds];
     window.backgroundColor = [UIColor whiteColor];
     [window makeKeyAndVisible];
     window.rootViewController = [[BTViewController alloc] init];
-    window.rootViewController.view.frame = screenBounds;
 
 #ifdef DEBUG
     webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
@@ -537,7 +535,7 @@ static int uniqueId = 1;
 
 - (void)showLoadingOverlay {
     CGRect frame = [[UIScreen mainScreen] bounds];
-//    frame.origin.y -= 10;
+    frame.origin.y -= 20;
     UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
     splashScreen.image = [UIImage imageNamed:@"Default"];
     self.overlay = splashScreen;
@@ -545,7 +543,6 @@ static int uniqueId = 1;
 }
 
 - (void)hideLoadingOverlay {
-    [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationFade];
     [UIView animateWithDuration:0.2 animations:^{
         self.overlay.alpha = 0;
     } completion:^(BOOL finished) {
