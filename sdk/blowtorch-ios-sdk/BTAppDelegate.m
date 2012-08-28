@@ -5,9 +5,6 @@
 
 #ifdef DEBUG
 static BOOL DEV_MODE = true;
-@interface WebView
-+ (void)_enableRemoteInspector;
-@end
 
 #import "DebugUIWebView.h"
 
@@ -45,7 +42,7 @@ static BOOL DEV_MODE = false;
     [self showLoadingOverlay];
     
 #ifdef DEBUG
-    [NSClassFromString(@"WebView") _enableRemoteInspector];
+    [NSClassFromString(@"WebView") performSelector:@selector(_enableRemoteInspector)];
 #endif
     
     [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
@@ -515,12 +512,12 @@ static int uniqueId = 1;
 
 - (void)createWindowAndWebView {
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
-    screenBounds.size.height -= 20;
     window = [[UIWindow alloc] initWithFrame:screenBounds];
-    window.backgroundColor = [UIColor whiteColor];
+    window.backgroundColor = [UIColor grayColor];
     [window makeKeyAndVisible];
     window.rootViewController = [[BTViewController alloc] init];
-
+    
+    screenBounds.size.height -= 20;
 #ifdef DEBUG
     webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
 #else
