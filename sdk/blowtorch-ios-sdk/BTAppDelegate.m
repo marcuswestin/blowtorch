@@ -444,7 +444,7 @@ static int uniqueId = 1;
         return responseCallback(@"Unknown source", nil);
     }
     
-    if ([data objectForKey:@"allowEditing"]) {
+    if ([data objectForKey:@"allowsEditing"]) {
         mediaUI.allowsEditing = YES;
     } else {
         mediaUI.allowsEditing = NO;
