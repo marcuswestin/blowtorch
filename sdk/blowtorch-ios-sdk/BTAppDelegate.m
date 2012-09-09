@@ -248,7 +248,9 @@ static BOOL DEV_MODE = false;
 
 - (void)notify:(NSString *)event { [self notify:event info:NULL]; }
 - (void)notify:(NSString *)event info:(NSDictionary *)info {
-    NSLog(@"Notify %@ %@", event, info);
+    if (![event isEqualToString:@"device.rotated"]) {
+        NSLog(@"Notify %@ %@", event, info);
+    }
     if (!info) { info = [NSDictionary dictionary]; }
     NSDictionary* message = [NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil];
     [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
