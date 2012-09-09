@@ -209,6 +209,7 @@ static BOOL DEV_MODE = false;
     
     } else if ([command isEqualToString:@"state.clear"]) {
         [state reset];
+        responseCallback(nil, nil);
     
     } else if ([command isEqualToString:@"push.register"]) {
         [self registerForPush:responseCallback];
