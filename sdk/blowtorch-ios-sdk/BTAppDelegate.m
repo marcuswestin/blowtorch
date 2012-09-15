@@ -276,20 +276,11 @@ static BOOL DEV_MODE = false;
         }
     }
     
-    NSString* prefix = @"/blowtorch/";
-    if ([[url path] hasPrefix:prefix]) {
-        NSString* path = [[url path] substringFromIndex:prefix.length];
+    NSString* btPrefix = @"/blowtorch/";
+    if ([[url path] hasPrefix:btPrefix]) {
+        NSString* path = [[url path] substringFromIndex:btPrefix.length];
         NSArray* parts = [path componentsSeparatedByString:@"/"];
-        if ([[parts objectAtIndex:0] isEqualToString:@"img"]) {
-            NSArray* file = [path componentsSeparatedByString:@"."];
-            NSString* type = [file objectAtIndex:1];
-            NSString* path = [file objectAtIndex:0];
-            NSString* path2x = [path stringByAppendingString:@"@2x"];
-            if ([self isRetina] && [[NSBundle mainBundle] pathForResource:path2x ofType:type]) {
-                path = path2x;
-            }
-            return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
-        } else if ([[parts objectAtIndex:0] isEqualToString:@"media"]) {
+        if ([[parts objectAtIndex:0] isEqualToString:@"media"]) {
             NSString* format = [[url path] pathExtension];
             NSString* mediaId = [parts.lastObject stringByDeletingPathExtension];
             UIImage* image = [mediaCache objectForKey:mediaId];
@@ -307,6 +298,23 @@ static BOOL DEV_MODE = false;
             
             NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
             return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
+        }
+    }
+    
+    NSString* staticPrefix = @"/static/";
+    if ([[url path] hasPrefix:staticPrefix]) {
+        NSString* path = [[url path] substringFromIndex:staticPrefix.length];
+        NSArray* parts = [path componentsSeparatedByString:@"/"];
+
+        if ([[parts objectAtIndex:0] isEqualToString:@"img"]) {
+            NSArray* file = [path componentsSeparatedByString:@"."];
+            NSString* type = [file objectAtIndex:1];
+            NSString* path = [file objectAtIndex:0];
+            NSString* path2x = [path stringByAppendingString:@"@2x"];
+            if ([self isRetina] && [[NSBundle mainBundle] pathForResource:path2x ofType:type]) {
+                path = path2x;
+            }
+            return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
         } else if ([[parts objectAtIndex:0] isEqualToString:@"fonts"]) {
             NSString* filePath = [[NSBundle mainBundle] pathForResource:path ofType:nil];
             return [self localFileResponse:filePath forUrl:url];
