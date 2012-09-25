@@ -201,7 +201,7 @@ static BOOL DEV_MODE = false;
         NSLog(@"console.log %@", data);
 
     } else if ([command isEqualToString:@"state.load"]) {
-        responseCallback(nil, [state load]);
+        responseCallback(nil, [state load:[data objectForKey:@"key"]]);
     
     } else if ([command isEqualToString:@"state.set"]) {
         [state set:[data objectForKey:@"key"] value:[data objectForKey:@"value"]];

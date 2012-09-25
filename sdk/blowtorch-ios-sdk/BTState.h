@@ -3,10 +3,9 @@
 @interface BTState : NSObject
 
 - (void) set:(NSString*)key value:(id)value;
-- (id) get:(NSString*)key;
-- (NSDictionary*) load;
+- (NSDictionary*) load:(NSString*)key;
+- (NSString *)getFilePath:(NSString*)key;
 - (void) reset;
 
-- (NSString *)getFilePath;
 
 @end
