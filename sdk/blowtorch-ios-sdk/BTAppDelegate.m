@@ -57,8 +57,10 @@ static BOOL DEV_MODE = false;
 
 -(void)startApp:(BOOL)devMode {
     DEV_MODE = devMode;
-    [self.state set:@"installedVersion" value:[self.state get:@"downloadedVersion"]];
-    NSLog(@"Starting app with version %@", [self.state get:@"installedVersion"]);
+    NSString* downloadedVersion = [self getAppInfo:@"downloadedVersion"];
+    if (downloadedVersion) {
+        [self setAppInfo:@"installedVersion" value:downloadedVersion];
+    }
     
     NSURL* url = [self getUrl:@"app.html"];
     [self.javascriptBridge resetQueue];
@@ -71,6 +73,18 @@ static BOOL DEV_MODE = false;
                                client, @"client",
                                nil];
     [self notify:@"app.start" info:appInfo];
+}
+
+- (void)setAppInfo:(NSString *)key value:(NSString *)value {
+    NSMutableDictionary* info = [NSMutableDictionary dictionaryWithDictionary:[state load:@"__btAppInfo"]];
+    [info setObject:value forKey:key];
+    [state set:@"__btAppInfo" value:info];
+}
+
+- (NSString *)getAppInfo:(NSString *)key {
+    NSDictionary* info = [state load:@"__btAppInfo"];
+    if (!info) { return nil; }
+    return [info objectForKey:key];
 }
 
 - (void)registerForPush:(ResponseCallback)responseCallback {
@@ -373,7 +387,7 @@ static BOOL DEV_MODE = false;
             NSLog(@"Error untarring version %@", error);
             responseCallback(@"Error untarring version", nil);
         } else {
-            [self.state set:@"downloadedVersion" value:version];
+            [self setAppInfo:@"downloadedVersion" value:version];
             NSLog(@"Success downloading and untarring version %@", version);
             responseCallback(nil, nil);
         }
@@ -381,7 +395,7 @@ static BOOL DEV_MODE = false;
 }
 
 - (NSString *)getCurrentVersion {
-    return [self.state get:@"installedVersion"];
+    return [self getAppInfo:@"installedVersion"];
 }
 
 /* Push API

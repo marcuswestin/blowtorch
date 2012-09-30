@@ -18,6 +18,8 @@
 /* Lifecycle API
  ***************/
 - (void)startApp:(BOOL)devMode;
+- (void)setAppInfo:(NSString*)key value:(NSString*)value;
+- (NSString*)getAppInfo:(NSString*)key;
 
 /* Webview API
  *************/
