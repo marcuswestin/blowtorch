@@ -11,7 +11,8 @@
 }
 
 - (void)set:(NSString *)key value:(NSDictionary*)value {
-    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:NSJSONWritingPrettyPrinted error:nil];
+    NSJSONWritingOptions opts = 0; // NSJSONWritingPrettyPrinted
+    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:opts error:nil];
     [jsonData writeToFile:[self getFilePath:key] atomically:YES];
 }
 

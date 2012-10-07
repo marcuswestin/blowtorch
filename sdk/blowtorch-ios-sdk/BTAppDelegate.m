@@ -2,6 +2,7 @@
 #import "NSFileManager+Tar.h"
 #import "BTViewController.h"
 #import "BTIndex.h"
+#import "BTTextInput.h"
 
 #ifdef DEBUG
 static BOOL DEV_MODE = true;
@@ -26,7 +27,7 @@ static BOOL DEV_MODE = false;
 
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge, serverHost, state, net, overlay, config, launchNotification, pushRegistrationCallback;
+@synthesize window, webView, javascriptBridge=_bridge, serverHost, state, net, overlay, config, launchNotification;
 
 /* App lifecycle
  **********************/
@@ -46,10 +47,14 @@ static BOOL DEV_MODE = false;
 #endif
     
     [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didRotate:) name:@"UIDeviceOrientationDidChangeNotification" object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
-
+    
+    NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
+    
+    [notifications addObserver:self selector:@selector(didRotate:) name:@"UIDeviceOrientationDidChangeNotification" object:nil];
+    [notifications addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [notifications addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+    [notifications addObserver:self selector:@selector(handleBTNotification:) name:@"bt.notify" object:nil];
+    
     launchNotification = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
     
     return YES;
@@ -63,7 +68,6 @@ static BOOL DEV_MODE = false;
     }
     
     NSURL* url = [self getUrl:@"app.html"];
-    [self.javascriptBridge resetQueue];
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
     
     NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
@@ -87,8 +91,9 @@ static BOOL DEV_MODE = false;
     return [info objectForKey:key];
 }
 
-- (void)registerForPush:(ResponseCallback)responseCallback {
-    pushRegistrationCallback = responseCallback;
+@synthesize pushRegistrationResponse=_pushRegistrationResponse;
+- (void)registerForPush:(WVJBResponse*)response {
+    _pushRegistrationResponse = response;
     [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
      (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
 }
@@ -144,6 +149,10 @@ static BOOL DEV_MODE = false;
     [self notify:@"device.rotated" info:[NSDictionary dictionaryWithObject:degNum forKey:@"deg"]];
 }
 
+- (void)handleBTNotification:(NSNotification*)notification {
+    [self notify:notification.object info:notification.userInfo];
+}
+
 - (void)keyboardWillShow:(NSNotification *)notification {
     [self notify:@"keyboard.willShow" info:[self keyboardEventInfo:notification]];
 }
@@ -163,101 +172,114 @@ static BOOL DEV_MODE = false;
 
 /* WebView <-> Native API
  ************************/
-- (void)javascriptBridge:(WebViewJavascriptBridge *)bridge receivedMessage:(NSString *)messageString fromWebView:(UIWebView *)fromWebView {
-    NSDictionary* message = [messageString objectFromJSONString];
-    NSDictionary* data = [message objectForKey:@"data"];
+- (void)handleBridgeData:(id)data response:(WVJBResponse *)response {
+    NSLog(@"Received unknown message %@", data);
+}
 
-    if (!data) { data = [NSDictionary dictionary]; }
+- (void)setupBridgeHandlers {
+//    ResponseCallback responseCallback = ^(NSString *errorMessage, NSDictionary *response) {
+//        NSLog(@"respond %@ %@", command, errorMessage);
+//        NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
+//        
+//        if (responseId) {
+//            [responseMessage setObject:responseId forKey:@"responseId"];
+//        }
+//        
+//        if (errorMessage) {
+//            [responseMessage setObject:errorMessage forKey:@"error"];
+//        } else if (response) {
+//            [responseMessage setObject:response forKey:@"data"];
+//        }
+//        
+//        [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
+//    };
     
-    __block NSString *responseId = [message objectForKey:@"responseId"];
-    __block NSString *command = [message objectForKey:@"command"];
-    
-    if (![command isEqualToString:@"console.log"]) {
-        NSLog(@"command %@", command);
-    }
-    
-    ResponseCallback responseCallback = ^(NSString *errorMessage, NSDictionary *response) {
-        NSLog(@"respond %@ %@", command, errorMessage);
-        NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
-        
-        if (responseId) {
-            [responseMessage setObject:responseId forKey:@"responseId"];
-        }
-        
-        if (errorMessage) {
-            [responseMessage setObject:errorMessage forKey:@"error"];
-        } else if (response) {
-            [responseMessage setObject:response forKey:@"data"];
-        }
-        
-        [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
-    };
-    
-
-    if ([command isEqualToString:@"app.restart"]) {
+    // app.*
+    [_bridge registerHandler:@"app.restart" handler:^(id data, WVJBResponse* response) {
         [self startApp:DEV_MODE];
-
-    } else if ([command isEqualToString:@"app.show"]) {
+    }];
+    [_bridge registerHandler:@"app.show" handler:^(id data,  WVJBResponse* response) {
         [self hideLoadingOverlay];
         if (launchNotification) {
             [self handlePushNotification:launchNotification didBringAppToForeground:YES];
             launchNotification = nil;
         }
-    } else if ([command isEqualToString:@"app.setIconBadgeNumber"]) {
+        NSLog(@"APP HAS SHOWN");
+    }];
+    [_bridge registerHandler:@"app.setIconBadgeNumber" handler:^(id data, WVJBResponse* response) {
         NSNumber* number = [data objectForKey:@"number"];
         [[UIApplication sharedApplication] setApplicationIconBadgeNumber:[number intValue]];
-    
-    } else if ([command isEqualToString:@"app.getIconBadgeNumber"]) {
+    }];
+    [_bridge registerHandler:@"app.getIconBadgeNumber" handler:^(id data, WVJBResponse* response) {
         NSNumber* number = [NSNumber numberWithInt:[[UIApplication sharedApplication] applicationIconBadgeNumber]];
-        responseCallback(nil, [NSDictionary dictionaryWithObject:number forKey:@"number"]);
-        
-    } else if ([command isEqualToString:@"console.log"]) {
-        NSLog(@"console.log %@", data);
-
-    } else if ([command isEqualToString:@"state.load"]) {
-        responseCallback(nil, [state load:[data objectForKey:@"key"]]);
+        [response respondWith:[NSDictionary dictionaryWithObject:number forKey:@"number"]];
+    }];
     
-    } else if ([command isEqualToString:@"state.set"]) {
+    // console.*
+    [_bridge registerHandler:@"console.log" handler:^(id data, WVJBResponse* response) {
+        
+    }];
+    
+    // state.*
+    [_bridge registerHandler:@"state.load" handler:^(id data, WVJBResponse* response) {
+        [response respondWith:[state load:[data objectForKey:@"key"]]];
+    }];
+    [_bridge registerHandler:@"state.set" handler:^(id data, WVJBResponse* response) {
         [state set:[data objectForKey:@"key"] value:[data objectForKey:@"value"]];
-        responseCallback(nil, nil);
-    
-    } else if ([command isEqualToString:@"state.clear"]) {
+        [response respondWith:nil];
+    }];
+    [_bridge registerHandler:@"state.clear" handler:^(id data, WVJBResponse* response) {
         [state reset];
-        responseCallback(nil, nil);
+        [response respondWith:nil];
+    }];
     
-    } else if ([command isEqualToString:@"push.register"]) {
-        [self registerForPush:responseCallback];
-        
-    } else if ([command isEqualToString:@"media.pick"]) {
-        [self pickMedia:data responseCallback:responseCallback];
-
-    } else if ([command isEqualToString:@"menu.show"]) {
-        [self showMenu:data responseCallback:responseCallback];
-        
-    } else if ([command isEqualToString:@"net.cache"]) {
-        [self.net cache:[data objectForKey:@"url"] override:!![data objectForKey:@"override"]
-                  asUrl:[data objectForKey:@"asUrl"] responseCallback:responseCallback];
+    // push.*
+    [_bridge registerHandler:@"push.register" handler:^(id data, WVJBResponse* response) {
+        [self registerForPush:response];
+    }];
     
-    } else if ([command isEqualToString:@"device.vibrate"]) {
+    // media.*
+    [_bridge registerHandler:@"media.pick" handler:^(id data, WVJBResponse* response) {
+        [self pickMedia:data response:response];
+    }];
+    
+    // menu.*
+    [_bridge registerHandler:@"menu.show" handler:^(id data, WVJBResponse* response) {
+        [self showMenu:data response:response];
+    }];
+    
+    // device.*
+    [_bridge registerHandler:@"device.vibrate" handler:^(id data, WVJBResponse* response) {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-        
-    } else if ([command isEqualToString:@"index.build"]) {
-        [BTIndex buildIndex:[data objectForKey:@"name"] payloadToStrings:[data objectForKey:@"payloadToStrings"]];
+    }];
     
-    } else if ([command isEqualToString:@"index.lookup"]) {
-        BTIndex* index = [BTIndex indexByName:[data objectForKey:@"name"]];
-        [index lookup:[data objectForKey:@"searchString"] responseCallback:responseCallback];
-
-    } else if ([command isEqualToString:@"version.download"]) {
-        [self downloadAppVersion:data responseCallback:responseCallback];
-        
-    } else {
-        [self handleCommand:command data:data responseCallback:responseCallback];
-    }
-}
-
-- (void) handleCommand:(NSString *)command data:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
-    [NSException raise:@"BlowTorch abstract method" format:@" handleCommand:data:responseCallback must be overridden"];
+    // version.*
+    [_bridge registerHandler:@"version.download" handler:^(id data, WVJBResponse* response) {
+        [self downloadAppVersion:data response:response];
+    }];
+    
+    // testInput.*
+    [_bridge registerHandler:@"textInput.show" handler:^(id data, WVJBResponse* response) {
+        [BTTextInput show:data webView:webView];
+    }];
+    [_bridge registerHandler:@"textInput.hide" handler:^(id data, WVJBResponse* response) {
+        [BTTextInput hide];
+    }];
+    [_bridge registerHandler:@"textInput.animate" handler:^(id data, WVJBResponse* response) {
+        [BTTextInput animate:data];
+    }];
+    [_bridge registerHandler:@"textInput.set" handler:^(id data, WVJBResponse* response) {
+        [BTTextInput set:data];
+    }];
+    
+//    // index.*
+//    [_bridge registerHandler:@"index.build" handler:^(id data, WVJBResponseCallback responseCallback) {
+//        [BTIndex buildIndex:[data objectForKey:@"name"] payloadToStrings:[data objectForKey:@"payloadToStrings"]];
+//    }];
+//    [_bridge registerHandler:@"index.lookup" handler:^(id data, WVJBResponseCallback responseCallback) {
+//        BTIndex* index = [BTIndex indexByName:[data objectForKey:@"name"]];
+//        [index lookup:[data objectForKey:@"searchString"] responseCallback:responseCallback];
+//    }];
 }
 
 - (void)notify:(NSString *)event { [self notify:event info:NULL]; }
@@ -267,7 +289,7 @@ static BOOL DEV_MODE = false;
     }
     if (!info) { info = [NSDictionary dictionary]; }
     NSDictionary* message = [NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil];
-    [javascriptBridge sendMessage:[message JSONString] toWebView:webView];
+    [_bridge send:message];
 }
 
 /* Net API
@@ -297,7 +319,7 @@ static BOOL DEV_MODE = false;
         if ([[parts objectAtIndex:0] isEqualToString:@"media"]) {
             NSString* format = [[url path] pathExtension];
             NSString* mediaId = [parts.lastObject stringByDeletingPathExtension];
-            UIImage* image = [mediaCache objectForKey:mediaId];
+            UIImage* image = [_mediaCache objectForKey:mediaId];
             NSData* data;
             NSString* mimeType;
             if ([format isEqualToString:@"png"]) {
@@ -366,17 +388,17 @@ static BOOL DEV_MODE = false;
 
 /* Upgrade API
  *************/
-- (void)downloadAppVersion:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
+- (void)downloadAppVersion:(NSDictionary *)data response:(WVJBResponse *)response {
     NSString* url = [data objectForKey:@"url"];
     NSDictionary* headers = [data objectForKey:@"headers"];
     NSString* version = [url urlEncodedString];
     NSString* directoryPath = [self getFilePath:[@"versions/" stringByAppendingString:version]];
-    [BTNet request:url method:@"GET" headers:headers params:nil responseCallback:^(id error, NSDictionary *response) {
+    [BTNet request:url method:@"GET" headers:headers params:nil responseCallback:^(id error, NSDictionary *netData) {
         if (error) {
-            responseCallback(error, nil);
+            [response respondWithError:error];
             return;
         }
-        NSData* tarData = [response objectForKey:@"responseData"];
+        NSData* tarData = [netData objectForKey:@"responseData"];
         if (!tarData || tarData.length == 0) {
             NSLog(@"Received download response with no data");
             return;
@@ -385,11 +407,11 @@ static BOOL DEV_MODE = false;
         [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarData:tarData error:&tarError];
         if (tarError) {
             NSLog(@"Error untarring version %@", error);
-            responseCallback(@"Error untarring version", nil);
+            [response respondWithError:@"Error untarring version"];
         } else {
             [self setAppInfo:@"downloadedVersion" value:version];
             NSLog(@"Success downloading and untarring version %@", version);
-            responseCallback(nil, nil);
+            [response respondWith:nil];
         }
     }];
 }
@@ -406,18 +428,18 @@ static BOOL DEV_MODE = false;
                                 stringByReplacingOccurrencesOfString:@" " withString:@""];
     NSDictionary* info = [NSDictionary dictionaryWithObject:tokenAsString forKey:@"deviceToken"];
     [self notify:@"push.registered" info:info];
-    if (pushRegistrationCallback) {
-        pushRegistrationCallback(nil, info);
-        pushRegistrationCallback = nil;
+    if (_pushRegistrationResponse) {
+        [_pushRegistrationResponse respondWith:info];
+        _pushRegistrationResponse = nil;
     }
 }     
 
 - (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
     NSLog(@"Push registration failure %@", err);
     [self notify:@"push.registerFailed" info:nil];
-    if (pushRegistrationCallback) {
-        pushRegistrationCallback(@"Notifications were not allowed.", nil);
-        pushRegistrationCallback = nil;
+    if (_pushRegistrationResponse) {
+        [_pushRegistrationResponse respondWithError:@"Notifications were not allowed."];
+        _pushRegistrationResponse = nil;
     }
 }
 
@@ -446,9 +468,9 @@ static int uniqueId = 1;
     return ([[UIScreen mainScreen] respondsToSelector:@selector(scale)] && [[UIScreen mainScreen] scale] == 2.0);
 }
 
-@synthesize mediaResponseCallback, mediaCache;
-- (void)pickMedia:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback {
-    if (!mediaCache) { mediaCache = [NSMutableDictionary dictionary]; }
+@synthesize mediaResponse=_mediaResponse, mediaCache=_mediaCache;
+- (void)pickMedia:(NSDictionary*)data response:(WVJBResponse *)response {
+    if (!_mediaCache) { _mediaCache = [NSMutableDictionary dictionary]; }
     
     UIImagePickerController *mediaUI = [[UIImagePickerController alloc] init];
     NSString* source = [data objectForKey:@"source"];
@@ -463,7 +485,7 @@ static int uniqueId = 1;
     } else if ([source isEqualToString:@"camera"]) {
         mediaUI.sourceType = UIImagePickerControllerSourceTypeCamera;
     } else {
-        return responseCallback(@"Unknown source", nil);
+        return [response respondWithError:@"Unknown source"];
     }
     
     if ([data objectForKey:@"allowsEditing"]) {
@@ -474,29 +496,29 @@ static int uniqueId = 1;
     
     mediaUI.delegate = self;
     
-    mediaResponseCallback = responseCallback;
+    _mediaResponse = response;
     [self.window.rootViewController presentModalViewController: mediaUI animated: YES];
 }
 
 - (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingImage:(UIImage *)image editingInfo:(NSDictionary *)editingInfo {
     [self.window.rootViewController dismissModalViewControllerAnimated: YES];
     NSString* mediaId = [self unique];
-    [mediaCache setObject:image forKey:mediaId];
+    [_mediaCache setObject:image forKey:mediaId];
     NSDictionary* info = [NSDictionary dictionaryWithObjectsAndKeys:
                             mediaId, @"mediaId",
                             [NSNumber numberWithFloat:image.size.width], @"width",
                             [NSNumber numberWithFloat:image.size.height], @"height",
                             nil];
-    mediaResponseCallback(nil, info);
+    [_mediaResponse respondWith:info];
 }
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
     [self.window.rootViewController dismissModalViewControllerAnimated: YES];
-    mediaResponseCallback(nil, [NSDictionary dictionary]);
+    [_mediaResponse respondWith:[NSDictionary dictionary]];
 }
 
-- (void)showMenu:(NSDictionary *)data responseCallback:(ResponseCallback)responseCallback {
-    menuResponseCallback = responseCallback;
+- (void)showMenu:(NSDictionary *)data response:(WVJBResponse *)response {
+    _menuResponse = response;
     UIActionSheet* sheet = [[UIActionSheet alloc] init];
     sheet.delegate = self;
     for (NSString* title in [data objectForKey:@"titles"]) {
@@ -505,13 +527,13 @@ static int uniqueId = 1;
     [sheet showInView:self.webView];
 }
 
-@synthesize menuResponseCallback;
+@synthesize menuResponse=_menuResponse;
 - (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex {
-    menuResponseCallback(nil, [NSDictionary dictionaryWithObject:[NSNumber numberWithInt:buttonIndex] forKey:@"index"]);
+    [_menuResponse respondWith:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:buttonIndex] forKey:@"index"]];
 }
 
 - (void)actionSheetCancel:(UIActionSheet *)actionSheet {
-    menuResponseCallback(nil, nil);
+    [_menuResponse respondWith:nil];
 }
 
 @end
@@ -551,8 +573,10 @@ static int uniqueId = 1;
     webView.clipsToBounds = YES;
     webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal;
     [window.rootViewController.view addSubview:webView];
-    javascriptBridge = [WebViewJavascriptBridge javascriptBridgeWithDelegate:self];
-    webView.delegate = javascriptBridge;
+    _bridge = [WebViewJavascriptBridge bridgeForWebView:webView handler:^(id data, WVJBResponse *response) {
+        [self handleBridgeData:data response:response];
+    }];
+    [self setupBridgeHandlers];
 }
 
 - (void)showLoadingOverlay {

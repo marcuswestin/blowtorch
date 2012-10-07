@@ -2,11 +2,10 @@
 #import "JSONKit.h"
 #import "WebViewJavascriptBridge.h"
 #import "BTNet.h"
-#import "BTTypes.h"
 #import "BTState.h"
 #import <AudioToolbox/AudioServices.h>
 
-@interface BTAppDelegate : UIResponder <UIApplicationDelegate, WebViewJavascriptBridgeDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIActionSheetDelegate>
+@interface BTAppDelegate : UIResponder <UIApplicationDelegate, UIWebViewDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIActionSheetDelegate>
 
 /* Properties
  ************/
@@ -23,9 +22,10 @@
 
 /* Webview API
  *************/
-- (void) handleCommand:(NSString*)command data:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
 - (void) notify:(NSString*)name info:(NSDictionary*)response;
 - (void) notify:(NSString*)name;
+- (void) handleBridgeData:(id)data response:(WVJBResponse*)response;
+- (void)setupBridgeHandlers;
 
 /* Net API
  *********/
@@ -34,7 +34,7 @@
 
 /* Upgrade API
  *************/
-- (void) downloadAppVersion:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
+- (void) downloadAppVersion:(NSDictionary*)data response:(WVJBResponse*)response;
 - (NSString*) getCurrentVersion;
 
 /* Keyboard
@@ -46,16 +46,16 @@
  ******/
 - (NSString*) unique;
 - (BOOL) isRetina;
-- (void) pickMedia:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
+- (void) pickMedia:(NSDictionary*)data response:(WVJBResponse*)response;
 @property (atomic,strong) NSMutableDictionary* mediaCache;
-@property (atomic,strong) ResponseCallback mediaResponseCallback;
-- (void) showMenu:(NSDictionary*)data responseCallback:(ResponseCallback)responseCallback;
-@property (atomic,strong) ResponseCallback menuResponseCallback;
+@property (atomic,strong) WVJBResponse* mediaResponse;
+- (void) showMenu:(NSDictionary*)data response:(WVJBResponse*)response;
+@property (atomic,strong) WVJBResponse* menuResponse;
 
 /* Notifications
  ***************/
-@property (nonatomic,copy) ResponseCallback pushRegistrationCallback;
-- (void) registerForPush:(ResponseCallback)responseCallback;
+@property (nonatomic,copy) WVJBResponse* pushRegistrationResponse;
+- (void) registerForPush:(WVJBResponse*)response;
 @property (strong, nonatomic) NSDictionary* launchNotification;
 - (void) handlePushNotification:(NSDictionary*)notification didBringAppToForeground:(BOOL)didBringAppToForeground;
 

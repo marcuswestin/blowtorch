@@ -1,4 +1,5 @@
 #import "BTNet.h"
+#import "WebViewJavascriptBridge.h"
 
 @implementation BTNet
 
@@ -11,7 +12,7 @@
     return self;
 }
 
-- (void) cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(ResponseCallback)responseCallback {
+- (void) cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(WVJBResponseCallback)responseCallback {
     if (!asUrl) { asUrl = url; }
     
     NSLog(@"Cache request %@ as %@", url, asUrl);
@@ -60,14 +61,14 @@
     return [cachePath stringByAppendingPathComponent:fileName];
 }
 
-+ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary *)headers  params:(NSDictionary*)params responseCallback:(ResponseCallback)responseCallback {
++ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary *)headers  params:(NSDictionary*)params response:(WVJBResponse*)response {
     MKNetworkEngine* netEngine = [[MKNetworkEngine alloc] initWithHostName:nil customHeaderFields:headers];
     MKNetworkOperation* op = [netEngine operationWithURLString:url params:[NSMutableDictionary dictionaryWithDictionary:params] httpMethod:method];
     [op setPostDataEncoding:MKNKPostDataEncodingTypeJSON];
     [op onCompletion:^(MKNetworkOperation* completedOperation) {
-        responseCallback(nil, [NSDictionary dictionaryWithObject:[completedOperation responseData] forKey:@"responseData"]);
+        [response respondWith:[NSDictionary dictionaryWithObject:[completedOperation responseData] forKey:@"responseData"]];
     } onError:^(NSError* error) {
-        responseCallback(error, nil);
+        [response respondWithError:error.domain];
     }];
     [netEngine enqueueOperation:op];
 }

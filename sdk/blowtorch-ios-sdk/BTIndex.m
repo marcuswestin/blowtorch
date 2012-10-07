@@ -34,15 +34,15 @@ static NSMutableDictionary* indices;
     return [indices objectForKey:name];
 }
 
-- (void)lookup:(NSString *)searchString responseCallback:(ResponseCallback)responseCallback {
+- (void)lookup:(NSString *)searchString response:(WVJBResponse*)response {
     NSMutableSet* matches = [NSMutableSet set];
     if (!listsByFirstCharacter || !searchString || [searchString isEqualToString:@""]) {
-        return [self respond:matches responseCallback:responseCallback];
+        return [self respond:matches response:response];
     }
     NSString* indexFirstChar = [[searchString substringToIndex:1] lowercaseString];
     NSArray* possibleMatches = [listsByFirstCharacter objectForKey:indexFirstChar];
     if (!possibleMatches) {
-        return [self respond:matches responseCallback:responseCallback];
+        return [self respond:matches response:response];
     }
     NSPredicate* beginsWithsearchString = [NSPredicate predicateWithFormat:@"SELF BEGINSWITH[cd] %@", searchString];
     for (BTIndexByStrings* indexByStrings in possibleMatches) {
@@ -53,11 +53,11 @@ static NSMutableDictionary* indices;
             }
         }
     }
-    [self respond:matches responseCallback:responseCallback];
+    [self respond:matches response:response];
 }
 
-- (void)respond:(NSSet *)matches responseCallback:(ResponseCallback)responseCallback {
-    responseCallback(nil, [NSDictionary dictionaryWithObject:[matches allObjects] forKey:@"matches"]);
+- (void)respond:(NSSet *)matches response:(WVJBResponse *)response {
+    [response respondWith:[NSDictionary dictionaryWithObject:[matches allObjects] forKey:@"matches"]];
 }
 
 @end
