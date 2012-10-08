@@ -67,7 +67,7 @@ static BOOL DEV_MODE = false;
         [self setAppInfo:@"installedVersion" value:downloadedVersion];
     }
     
-    NSURL* url = [self getUrl:@"app.html"];
+    NSURL* url = [self getUrl:@"app"];
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
     
     NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
