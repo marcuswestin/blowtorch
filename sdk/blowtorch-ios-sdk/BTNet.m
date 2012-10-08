@@ -61,14 +61,14 @@
     return [cachePath stringByAppendingPathComponent:fileName];
 }
 
-+ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary *)headers  params:(NSDictionary*)params response:(WVJBResponse*)response {
++ (void)request:(NSString *)url method:(NSString *)method headers:(NSDictionary *)headers params:(NSDictionary *)params responseCallback:(WVJBResponseCallback)responseCallback {
     MKNetworkEngine* netEngine = [[MKNetworkEngine alloc] initWithHostName:nil customHeaderFields:headers];
     MKNetworkOperation* op = [netEngine operationWithURLString:url params:[NSMutableDictionary dictionaryWithDictionary:params] httpMethod:method];
     [op setPostDataEncoding:MKNKPostDataEncodingTypeJSON];
     [op onCompletion:^(MKNetworkOperation* completedOperation) {
-        [response respondWith:[NSDictionary dictionaryWithObject:[completedOperation responseData] forKey:@"responseData"]];
+        responseCallback(nil, [NSDictionary dictionaryWithObject:[completedOperation responseData] forKey:@"responseData"]);
     } onError:^(NSError* error) {
-        [response respondWithError:error.domain];
+        responseCallback(error.domain, nil);
     }];
     [netEngine enqueueOperation:op];
 }
