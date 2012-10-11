@@ -13,3 +13,6 @@
 [submodule "dependencies/MKNetworkKit"]
 	path = dependencies/MKNetworkKit
 	url = git://github.com/MugunthKumar/MKNetworkKit.git
+[submodule "dependencies/WebViewProxy"]
+	path = dependencies/WebViewProxy
+	url = git@github.com:marcuswestin/WebViewProxy.git
