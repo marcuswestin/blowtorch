@@ -2,7 +2,6 @@
 #import "NSFileManager+Tar.h"
 #import "BTViewController.h"
 #import "BTIndex.h"
-#import "BTTextInput.h"
 
 #ifdef DEBUG
 static BOOL DEV_MODE = true;
@@ -31,10 +30,11 @@ static BOOL DEV_MODE = false;
 
 /* App lifecycle
  **********************/
+- (void)setupModules {}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     state = [[BTState alloc] init];
     net = [[BTNet alloc] init];
-    
     config = [NSMutableDictionary dictionary];
     BTInterceptionCache* interceptionCache = [[BTInterceptionCache alloc] init];
     interceptionCache.blowtorchInstance = self;
@@ -70,6 +70,8 @@ static BOOL DEV_MODE = false;
     NSURL* url = [self getUrl:@"app"];
     [webView loadRequest:[NSURLRequest requestWithURL:url]];
     
+    [self setupModules];
+
     NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
     NSString* client = [bundleVersion stringByAppendingString:@"-ios"];
     NSDictionary* appInfo = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -256,20 +258,6 @@ static BOOL DEV_MODE = false;
     // version.*
     [_bridge registerHandler:@"version.download" handler:^(id data, WVJBResponse* response) {
         [self downloadAppVersion:data response:response];
-    }];
-    
-    // testInput.*
-    [_bridge registerHandler:@"textInput.show" handler:^(id data, WVJBResponse* response) {
-        [BTTextInput show:data webView:webView];
-    }];
-    [_bridge registerHandler:@"textInput.hide" handler:^(id data, WVJBResponse* response) {
-        [BTTextInput hide];
-    }];
-    [_bridge registerHandler:@"textInput.animate" handler:^(id data, WVJBResponse* response) {
-        [BTTextInput animate:data];
-    }];
-    [_bridge registerHandler:@"textInput.set" handler:^(id data, WVJBResponse* response) {
-        [BTTextInput set:data];
     }];
     
 //    // index.*

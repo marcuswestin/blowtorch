@@ -16,6 +16,7 @@
 
 /* Lifecycle API
  ***************/
+- (void)setupModules;
 - (void)startApp:(BOOL)devMode;
 - (void)setAppInfo:(NSString*)key value:(NSString*)value;
 - (NSString*)getAppInfo:(NSString*)key;
@@ -25,7 +26,8 @@
 - (void) notify:(NSString*)name info:(NSDictionary*)response;
 - (void) notify:(NSString*)name;
 - (void) handleBridgeData:(id)data response:(WVJBResponse*)response;
-- (void)setupBridgeHandlers;
+- (void) setupBridgeHandlers;
+- (void) setupNetHandlers;
 
 /* Net API
  *********/

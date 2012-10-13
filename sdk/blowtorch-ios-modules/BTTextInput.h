@@ -7,11 +7,8 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "BTModule.h"
 
-@interface BTTextInput : NSObject
+@interface BTTextInput : BTModule
 @property (strong,nonatomic,readonly) UITextView* textInput;
-+ (void) show:(NSDictionary*)params webView:(UIWebView*)webView;
-+ (void) hide;
-+ (void) set:(NSDictionary*) params;
-+ (void) animate:(NSDictionary*) params;
 @end

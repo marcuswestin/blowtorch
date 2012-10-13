@@ -10,109 +10,109 @@
 #import <QuartzCore/QuartzCore.h>
 
 @interface BTTextInput (hidden) <UITextViewDelegate>
+- (void) show:(NSDictionary*)params webView:(UIWebView*)webView;
+- (void) hide;
+- (void) set:(NSDictionary*) params;
+- (void) animate:(NSDictionary*) params;
 - (void) size;
 - (CGRect)rectFromDict:(NSDictionary *)params;
 - (UIReturnKeyType)returnKeyTypeFromDict:(NSDictionary *)params;
 - (UIEdgeInsets)insetsFromParam:(NSArray *)param;
 - (UIColor *)colorFromParam:(NSArray *)param;
-- (BTTextInput*) initWithParams:(NSDictionary*)params webView:(UIWebView*)webView;
-- (void)animate:(NSDictionary*)params;
 - (void)notify:(NSString*)signal info:(NSDictionary*)info;
-- (void)hide;
 @end
 
-static BTTextInput* instance;
-
 @implementation BTTextInput {
+    UITextView* _textInput;
     NSDictionary* _params;
     UIWebView* _webView;
 }
 
-+ (void)show:(NSDictionary *)params webView:(UIWebView *)webView {
-    [self hide];
-    instance = [[BTTextInput alloc] initWithParams:params webView:webView];
-    [webView addSubview:instance.textInput];
-    [instance.textInput becomeFirstResponder];
-}
-
-+ (void)hide {
-    if (!instance) { return; }
-    [instance hide];
-    instance = nil;
-}
-
-+ (void)animate:(NSDictionary *)params {
-    [instance animate:params];
-}
-
-+ (void)set:(NSDictionary *)params {
-    if (!instance) { return; }
-    instance.textInput.text = [params objectForKey:@"text"];
-    [instance size];
+- (void) setup:(BTAppDelegate*)app {
+    [app.javascriptBridge registerHandler:@"textInput.show" handler:^(id data, WVJBResponse* response) {
+        [self show:data webView:app.webView];
+    }];
+    [app.javascriptBridge registerHandler:@"textInput.hide" handler:^(id data, WVJBResponse* response) {
+        [self hide];
+    }];
+    [app.javascriptBridge registerHandler:@"textInput.animate" handler:^(id data, WVJBResponse* response) {
+        [self animate:data];
+    }];
+    [app.javascriptBridge registerHandler:@"textInput.set" handler:^(id data, WVJBResponse* response) {
+        [self set:data];
+    }];
 }
 
 @end
 
 @implementation BTTextInput (hidden)
 
-- (UITextView*) input {
-    return _textInput;
-}
-
-- (BTTextInput *)initWithParams:(NSDictionary *)params webView:(UIWebView *)webView {
-    if (self=[super init]) {
-        _textInput = [[UITextView alloc] initWithFrame:[self rectFromDict:[params objectForKey:@"at"]]];
-        _params=params;
-        _webView = webView;
-        _textInput.font = [UIFont systemFontOfSize:17];
-        
-        _textInput.autoresizingMask = UIViewAutoresizingFlexibleWidth;
-        _textInput.clipsToBounds = YES;
-        _textInput.scrollEnabled = NO;
-        _textInput.keyboardType = UIKeyboardTypeDefault;
-        _textInput.delegate = self;
-        
-        UIReturnKeyType returnKeyType = [self returnKeyTypeFromDict:params];
-        if (returnKeyType) {
-            _textInput.returnKeyType = returnKeyType;
-        }
-        
-        NSDictionary* font = [params objectForKey:@"font"];
-        if (font) {
-            NSNumber* size = [font objectForKey:@"size"];
-            [_textInput setFont:[UIFont fontWithName:[font objectForKey:@"name"] size:[size floatValue]]];
-        }
-        
-        NSString* backgroundImage = [params objectForKey:@"backgroundImage"];
-        if (backgroundImage) {
-            _textInput.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:backgroundImage]];
-        }
-        if ([params objectForKey:@"backgroundColor"]) {
-            _textInput.backgroundColor = [self colorFromParam:[params objectForKey:@"backgroundColor"]];
-        }
-        if ([params objectForKey:@"borderColor"]) {
-            _textInput.layer.borderColor = [[self colorFromParam:[params objectForKey:@"borderColor"]] CGColor];
-            _textInput.layer.borderWidth = 1.0;
-        }
-        if ([params objectForKey:@"cornerRadius"]) {
-            NSNumber* cornerRadius = [params objectForKey:@"cornerRadius"];
-            [_textInput.layer setCornerRadius:[cornerRadius floatValue]];
-        }
-        if ([params objectForKey:@"contentInset"]) {
-            _textInput.contentInset = [self insetsFromParam:[params objectForKey:@"contentInset"]];
-        }
-        _textInput.text = @"";
-        [self size];
+- (void) show:(NSDictionary*)params webView:(UIWebView*)webView {
+    [self hide];
+    
+    _textInput = [[UITextView alloc] initWithFrame:[self rectFromDict:[params objectForKey:@"at"]]];
+    _params=params;
+    _webView = webView;
+    
+    _textInput.font = [UIFont systemFontOfSize:17];
+    _textInput.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    _textInput.clipsToBounds = YES;
+    _textInput.scrollEnabled = NO;
+    _textInput.keyboardType = UIKeyboardTypeDefault;
+    _textInput.delegate = self;
+    
+    UIReturnKeyType returnKeyType = [self returnKeyTypeFromDict:params];
+    if (returnKeyType) {
+        _textInput.returnKeyType = returnKeyType;
     }
-    return self;
+    
+    NSDictionary* font = [params objectForKey:@"font"];
+    if (font) {
+        NSNumber* size = [font objectForKey:@"size"];
+        [_textInput setFont:[UIFont fontWithName:[font objectForKey:@"name"] size:[size floatValue]]];
+    }
+    
+    NSString* backgroundImage = [params objectForKey:@"backgroundImage"];
+    if (backgroundImage) {
+        _textInput.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:backgroundImage]];
+    }
+    if ([params objectForKey:@"backgroundColor"]) {
+        _textInput.backgroundColor = [self colorFromParam:[params objectForKey:@"backgroundColor"]];
+    }
+    if ([params objectForKey:@"borderColor"]) {
+        _textInput.layer.borderColor = [[self colorFromParam:[params objectForKey:@"borderColor"]] CGColor];
+        _textInput.layer.borderWidth = 1.0;
+    }
+    if ([params objectForKey:@"cornerRadius"]) {
+        NSNumber* cornerRadius = [params objectForKey:@"cornerRadius"];
+        [_textInput.layer setCornerRadius:[cornerRadius floatValue]];
+    }
+    if ([params objectForKey:@"contentInset"]) {
+        _textInput.contentInset = [self insetsFromParam:[params objectForKey:@"contentInset"]];
+    }
+    _textInput.text = @"";
+    
+    [_webView addSubview:_textInput];
+    [_textInput becomeFirstResponder];
+    
+    [self size];
 }
 
-- (void)hide {
+- (void) hide {
+    if (!_textInput) { return; }
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
     [center addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [center addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
     [_textInput resignFirstResponder];
     [_textInput removeFromSuperview];
+    _textInput = nil;
+    _params = nil;
+    _webView = nil;
+}
+
+- (void) set:(NSDictionary*) params {
+    _textInput.text = [params objectForKey:@"text"];
+    [self size];
 }
 
 - (void)animate:(NSDictionary *)params {
