@@ -16,3 +16,6 @@
 [submodule "dependencies/WebViewProxy"]
 	path = dependencies/WebViewProxy
 	url = git@github.com:marcuswestin/WebViewProxy.git
+[submodule "dependencies/UIImage-Categories"]
+	path = dependencies/UIImage-Categories
+	url = git://github.com/mbcharbonneau/UIImage-Categories.git

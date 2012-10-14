@@ -1,11 +1,15 @@
 #import <UIKit/UIKit.h>
 #import "JSONKit.h"
 #import "WebViewJavascriptBridge.h"
+#import "WebViewProxy.h"
 #import "BTNet.h"
 #import "BTState.h"
 #import <AudioToolbox/AudioServices.h>
+#import "BTCache.h"
 
 @interface BTAppDelegate : UIResponder <UIApplicationDelegate, UIWebViewDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIActionSheetDelegate>
+
++ (BTAppDelegate*) instance;
 
 /* Properties
  ************/
@@ -13,6 +17,8 @@
 @property (atomic, strong) BTState* state;
 @property (atomic, strong) BTNet* net;
 @property (strong, atomic) NSMutableDictionary* config;
+@property (strong, nonatomic) BTCache* cache;
+@property (strong, nonatomic) BTCache* documents;
 
 /* Lifecycle API
  ***************/

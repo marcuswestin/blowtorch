@@ -10,8 +10,10 @@
 #import "BTAppDelegate.h"
 
 @interface BTModule : NSObject
-
 + (void) setup:(BTAppDelegate*)app;
 - (void) setup:(BTAppDelegate*)app;
-
+// Utilities
+- (NSString*)encodeURIComponent:(NSString*)string;
+- (NSString*)decodeURIComponent:(NSString*)string;
+- (NSMutableDictionary*)parseQueryParams:(NSString*)queryString;
 @end

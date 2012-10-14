@@ -24,18 +24,26 @@ static BOOL DEV_MODE = false;
 - (void) hideLoadingOverlay;
 @end
 
+static BTAppDelegate* instance;
+
 @implementation BTAppDelegate
 
-@synthesize window, webView, javascriptBridge=_bridge, serverHost, state, net, overlay, config, launchNotification;
+@synthesize window, webView, javascriptBridge=_bridge, serverHost, state, net, overlay, config, launchNotification,
+    cache=_cache, documents=_documents;
+
++ (BTAppDelegate *)instance { return instance; }
 
 /* App lifecycle
  **********************/
 - (void)setupModules {}
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    instance = self;
     state = [[BTState alloc] init];
     net = [[BTNet alloc] init];
     config = [NSMutableDictionary dictionary];
+    _documents = [[BTCache alloc] initWithDirectory:NSDocumentDirectory];
+    _cache = [[BTCache alloc] initWithDirectory:NSCachesDirectory];
     BTInterceptionCache* interceptionCache = [[BTInterceptionCache alloc] init];
     interceptionCache.blowtorchInstance = self;
     [NSURLCache setSharedURLCache:interceptionCache];
