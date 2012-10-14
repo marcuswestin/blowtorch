@@ -187,23 +187,6 @@ static BTAppDelegate* instance;
 }
 
 - (void)setupBridgeHandlers {
-//    ResponseCallback responseCallback = ^(NSString *errorMessage, NSDictionary *response) {
-//        NSLog(@"respond %@ %@", command, errorMessage);
-//        NSMutableDictionary* responseMessage = [NSMutableDictionary dictionary];
-//        
-//        if (responseId) {
-//            [responseMessage setObject:responseId forKey:@"responseId"];
-//        }
-//        
-//        if (errorMessage) {
-//            [responseMessage setObject:errorMessage forKey:@"error"];
-//        } else if (response) {
-//            [responseMessage setObject:response forKey:@"data"];
-//        }
-//        
-//        [javascriptBridge sendMessage:[responseMessage JSONString] toWebView:fromWebView];
-//    };
-    
     // app.*
     [_bridge registerHandler:@"app.restart" handler:^(id data, WVJBResponse* response) {
         [self startApp:DEV_MODE];
@@ -214,7 +197,6 @@ static BTAppDelegate* instance;
             [self handlePushNotification:launchNotification didBringAppToForeground:YES];
             launchNotification = nil;
         }
-        NSLog(@"APP HAS SHOWN");
     }];
     [_bridge registerHandler:@"app.setIconBadgeNumber" handler:^(id data, WVJBResponse* response) {
         NSNumber* number = [data objectForKey:@"number"];
