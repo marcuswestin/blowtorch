@@ -15,13 +15,11 @@ static BOOL DEV_MODE = false;
 @interface BTAppDelegate (hidden)
 - (NSURL*) getUrl:(NSString*) path;
 - (NSString*) getFilePath:(NSString*) name;
-
 - (NSString*) getCurrentVersionPath:(NSString*)resourcePath;
-
 - (void) createWindowAndWebView;
-
 - (void) showLoadingOverlay;
 - (void) hideLoadingOverlay;
+- (void)_respond:(WVPResponse*)res fileName:(NSString *)fileName mimeType:(NSString *)mimeType;
 @end
 
 static BTAppDelegate* instance;
@@ -44,9 +42,6 @@ static BTAppDelegate* instance;
     config = [NSMutableDictionary dictionary];
     _documents = [[BTCache alloc] initWithDirectory:NSDocumentDirectory];
     _cache = [[BTCache alloc] initWithDirectory:NSCachesDirectory];
-    BTInterceptionCache* interceptionCache = [[BTInterceptionCache alloc] init];
-    interceptionCache.blowtorchInstance = self;
-    [NSURLCache setSharedURLCache:interceptionCache];
     [self createWindowAndWebView];
     [self showLoadingOverlay];
     
@@ -272,30 +267,25 @@ static BTAppDelegate* instance;
 
 /* Net API
  *********/
-- (NSCachedURLResponse *)cachedResponseForRequest:(NSURLRequest *)request url:(NSURL *)url host:(NSString *)host path:(NSString *)path {
-    // Check currently downloaded version first
-    // This hits disc TWICE PER REQUEST. FOR ALL REQUESTS. FIX that.
-//    NSString* currentVersionPath = [self getCurrentVersionPath:path];
-//    if (false && currentVersionPath && [[NSFileManager defaultManager] fileExistsAtPath:currentVersionPath]) {
-//        return [self localFileResponse:currentVersionPath forUrl:url];
-//    } else
-        if (!DEV_MODE) {
-        // Else check bootstrap files
-        if ([path isEqualToString:@"/app.html"] ||
-            [path isEqualToString:@"/appJs.html"] ||
-            [path isEqualToString:@"/appCss.css"]) {
-            
-            NSString* bootstrapPath = [[NSBundle mainBundle] pathForResource:path ofType:nil];
-            return [self localFileResponse:bootstrapPath forUrl:url];
-        }
+- (void)setupNetHandlers {
+    if (!DEV_MODE) {
+        [WebViewProxy handleRequestsWithHost:serverHost path:@"/app" handler:^(NSURLRequest* req, WVPResponse *res) {
+            [self _respond:res fileName:@"app.html" mimeType:@"text/html"];
+        }];
+        [WebViewProxy handleRequestsWithHost:serverHost path:@"appJs.js" handler:^(NSURLRequest *req, WVPResponse *res) {
+            [self _respond:res fileName:@"appJs.html" mimeType:@"application/javascript"];
+        }];
+        [WebViewProxy handleRequestsWithHost:serverHost handler:^(NSURLRequest *req, WVPResponse *res) {
+            [self _respond:res fileName:@"appCss.css" mimeType:@"text/css"];
+        }];
     }
     
     NSString* btPrefix = @"/blowtorch/";
-    if ([[url path] hasPrefix:btPrefix]) {
-        NSString* path = [[url path] substringFromIndex:btPrefix.length];
+    [WebViewProxy handleRequestsWithHost:serverHost pathPrefix:btPrefix handler:^(NSURLRequest *req, WVPResponse *res) {
+        NSString* path = [req.URL.path substringFromIndex:btPrefix.length];
         NSArray* parts = [path componentsSeparatedByString:@"/"];
         if ([[parts objectAtIndex:0] isEqualToString:@"media"]) {
-            NSString* format = [[url path] pathExtension];
+            NSString* format = [req.URL.path pathExtension];
             NSString* mediaId = [parts.lastObject stringByDeletingPathExtension];
             UIImage* image = [_mediaCache objectForKey:mediaId];
             NSData* data;
@@ -307,19 +297,17 @@ static BTAppDelegate* instance;
                 data = UIImageJPEGRepresentation(image, .8);
                 mimeType = @"image/jpg";
             } else {
-                return nil;
+                return;
             }
-            
-            NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
-            return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
+            [res respondWithData:data mimeType:mimeType];
         }
-    }
+    }];
     
     NSString* staticPrefix = @"/static/";
-    if ([[url path] hasPrefix:staticPrefix]) {
-        NSString* path = [[url path] substringFromIndex:staticPrefix.length];
+    [WebViewProxy handleRequestsWithHost:serverHost pathPrefix:staticPrefix handler:^(NSURLRequest* req, WVPResponse *res) {
+        NSString* path = [req.URL.path substringFromIndex:staticPrefix.length];
         NSArray* parts = [path componentsSeparatedByString:@"/"];
-
+        
         if ([[parts objectAtIndex:0] isEqualToString:@"img"]) {
             NSArray* file = [path componentsSeparatedByString:@"."];
             NSString* type = [file objectAtIndex:1];
@@ -328,41 +316,14 @@ static BTAppDelegate* instance;
             if ([self isRetina] && [[NSBundle mainBundle] pathForResource:path2x ofType:type]) {
                 path = path2x;
             }
-            return [self localFileResponse:[[NSBundle mainBundle] pathForResource:path ofType:type] forUrl:url];
+            NSData* data = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:path ofType:type]];
+            [res respondWithData:data mimeType:nil];
         } else if ([[parts objectAtIndex:0] isEqualToString:@"fonts"]) {
-            NSString* filePath = [[NSBundle mainBundle] pathForResource:path ofType:nil];
-            return [self localFileResponse:filePath forUrl:url];
+            NSData* data = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:path ofType:nil]];
+            [res respondWithData:data mimeType:nil];
         }
-    }
-    
-    if ([[url path] hasPrefix:@"/local_cache"]) {
-        NSString* cachePath = [BTNet pathForUrl:[url absoluteString]];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:cachePath]) {
-            NSLog(@"Found file in cache! %@", url);
-            return [self localFileResponse:cachePath forUrl:url];
-        }
-    }
-    
-    return nil;
+    }];
 }
-
-- (NSCachedURLResponse *)localFileResponse:(NSString *)filePath forUrl:(NSURL*)url {
-    NSData* data = [NSData dataWithContentsOfFile:filePath];
-    NSString* mimeType = @"";
-    NSString* extension = [url pathExtension];
-    if ([extension isEqualToString:@"png"]) {
-        mimeType = @"image/png";
-    } else if ([extension isEqualToString:@"jpg"] || [extension isEqualToString:@"jpeg"]) {
-        mimeType = @"image/jpg";
-    } else if ([extension isEqualToString:@"woff"]) {
-        mimeType = @"font/woff";
-    } else if ([extension isEqualToString:@"ttf"]) {
-        mimeType = @"font/opentype";
-    }
-    NSURLResponse* response = [[NSURLResponse alloc] initWithURL:url MIMEType:mimeType expectedContentLength:[data length] textEncodingName:nil];
-    return [[NSCachedURLResponse alloc] initWithResponse:response data:data];
-}
-
 
 /* Upgrade API
  *************/
@@ -521,6 +482,12 @@ static int uniqueId = 1;
 
 @implementation BTAppDelegate (hidden)
 
+- (void)_respond:(WVPResponse*)res fileName:(NSString *)fileName mimeType:(NSString *)mimeType {
+    NSString* filePath = [[NSBundle mainBundle] pathForResource:fileName ofType:nil];
+    NSData* data = [NSData dataWithContentsOfFile:filePath];
+    [res respondWithData:data mimeType:mimeType];
+}
+
 - (NSString *)getCurrentVersionPath:(NSString *)resourcePath {
     return [self getFilePath:[NSString stringWithFormat:@"versions/%@/%@", [self getCurrentVersion], resourcePath]];
 }
@@ -555,6 +522,7 @@ static int uniqueId = 1;
         [self handleBridgeData:data response:response];
     }];
     [self setupBridgeHandlers];
+    [self setupNetHandlers];
 }
 
 - (void)showLoadingOverlay {
@@ -574,14 +542,4 @@ static int uniqueId = 1;
     }];
 }
 
-@end
-
-@implementation BTInterceptionCache
-@synthesize blowtorchInstance;
-- (NSCachedURLResponse*)cachedResponseForRequest:(NSURLRequest *)request {
-    NSURL* url = [request URL];
-    NSString* host = [url host];
-    NSString* path = [url path];
-    return [self.blowtorchInstance cachedResponseForRequest:(NSURLRequest *)request url:url host:host path:path];
-}
 @end
