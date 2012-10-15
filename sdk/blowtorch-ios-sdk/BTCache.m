@@ -42,7 +42,6 @@
 - (NSData *)get:(NSString *)bucket key:(NSString *)key {
     NSString* name = [self _nameFor:bucket key:key];
     if ([_cacheInfo objectForKey:name]) {
-        NSLog(@"UAAAAAAAASDKASGDKAYSGDKYASD");
         return [NSData dataWithContentsOfFile:[self _pathFor:name]];
     } else {
         return nil;
