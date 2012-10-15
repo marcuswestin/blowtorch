@@ -12,12 +12,15 @@
 
 /* Properties
  ************/
-@property (strong, atomic) NSString* serverHost;
 @property (atomic, strong) BTState* state;
 @property (atomic, strong) BTNet* net;
 @property (strong, atomic) NSMutableDictionary* config;
 @property (strong, nonatomic) BTCache* cache;
 @property (strong, nonatomic) BTCache* documents;
+
+- (NSString*) serverUrl;
+- (NSString*) serverHost;
+- (void) setServerHost:(NSString*)host port:(NSString*)port;
 
 /* Lifecycle API
  ***************/

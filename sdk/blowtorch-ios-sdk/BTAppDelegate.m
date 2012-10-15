@@ -24,9 +24,12 @@ static BOOL DEV_MODE = false;
 
 static BTAppDelegate* instance;
 
-@implementation BTAppDelegate
+@implementation BTAppDelegate {
+    NSString* _serverHost;
+    NSString* _serverPort;
+}
 
-@synthesize window, webView, javascriptBridge=_bridge, serverHost, state, net, overlay, config, launchNotification,
+@synthesize window, webView, javascriptBridge=_bridge, state, net, overlay, config, launchNotification,
     cache=_cache, documents=_documents;
 
 + (BTAppDelegate *)instance { return instance; }
@@ -63,6 +66,20 @@ static BTAppDelegate* instance;
     return YES;
 }
 
+- (void)setServerHost:(NSString *)host port:(NSString *)port {
+    _serverHost = host;
+    _serverPort = port;
+}
+
+- (NSString *)serverHost {
+    return _serverHost;
+}
+
+- (NSString*) serverUrl {
+    if (_serverPort) { return [_serverHost stringByAppendingFormat:@":%@", _serverPort]; }
+    else { return _serverHost; }
+}
+
 -(void)startApp:(BOOL)devMode {
     DEV_MODE = devMode;
     NSString* downloadedVersion = [self getAppInfo:@"downloadedVersion"];
@@ -70,8 +87,7 @@ static BTAppDelegate* instance;
         [self setAppInfo:@"installedVersion" value:downloadedVersion];
     }
     
-    NSURL* url = [self getUrl:@"app"];
-    [webView loadRequest:[NSURLRequest requestWithURL:url]];
+    [webView loadRequest:[NSURLRequest requestWithURL:[self getUrl:@"app"]]];
     
     [self setupModules];
 
@@ -269,19 +285,19 @@ static BTAppDelegate* instance;
  *********/
 - (void)setupNetHandlers {
     if (!DEV_MODE) {
-        [WebViewProxy handleRequestsWithHost:serverHost path:@"/app" handler:^(NSURLRequest* req, WVPResponse *res) {
+        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"/app" handler:^(NSURLRequest* req, WVPResponse *res) {
             [self _respond:res fileName:@"app.html" mimeType:@"text/html"];
         }];
-        [WebViewProxy handleRequestsWithHost:serverHost path:@"appJs.js" handler:^(NSURLRequest *req, WVPResponse *res) {
+        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"appJs.js" handler:^(NSURLRequest *req, WVPResponse *res) {
             [self _respond:res fileName:@"appJs.html" mimeType:@"application/javascript"];
         }];
-        [WebViewProxy handleRequestsWithHost:serverHost handler:^(NSURLRequest *req, WVPResponse *res) {
+        [WebViewProxy handleRequestsWithHost:self.serverHost handler:^(NSURLRequest *req, WVPResponse *res) {
             [self _respond:res fileName:@"appCss.css" mimeType:@"text/css"];
         }];
     }
     
     NSString* btPrefix = @"/blowtorch/";
-    [WebViewProxy handleRequestsWithHost:serverHost pathPrefix:btPrefix handler:^(NSURLRequest *req, WVPResponse *res) {
+    [WebViewProxy handleRequestsWithHost:self.serverHost pathPrefix:btPrefix handler:^(NSURLRequest *req, WVPResponse *res) {
         NSString* path = [req.URL.path substringFromIndex:btPrefix.length];
         NSArray* parts = [path componentsSeparatedByString:@"/"];
         if ([[parts objectAtIndex:0] isEqualToString:@"media"]) {
@@ -300,27 +316,6 @@ static BTAppDelegate* instance;
                 return;
             }
             [res respondWithData:data mimeType:mimeType];
-        }
-    }];
-    
-    NSString* staticPrefix = @"/static/";
-    [WebViewProxy handleRequestsWithHost:serverHost pathPrefix:staticPrefix handler:^(NSURLRequest* req, WVPResponse *res) {
-        NSString* path = [req.URL.path substringFromIndex:staticPrefix.length];
-        NSArray* parts = [path componentsSeparatedByString:@"/"];
-        
-        if ([[parts objectAtIndex:0] isEqualToString:@"img"]) {
-            NSArray* file = [path componentsSeparatedByString:@"."];
-            NSString* type = [file objectAtIndex:1];
-            NSString* path = [file objectAtIndex:0];
-            NSString* path2x = [path stringByAppendingString:@"@2x"];
-            if ([self isRetina] && [[NSBundle mainBundle] pathForResource:path2x ofType:type]) {
-                path = path2x;
-            }
-            NSData* data = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:path ofType:type]];
-            [res respondWithData:data mimeType:nil];
-        } else if ([[parts objectAtIndex:0] isEqualToString:@"fonts"]) {
-            NSData* data = [NSData dataWithContentsOfFile:[[NSBundle mainBundle] pathForResource:path ofType:nil]];
-            [res respondWithData:data mimeType:nil];
         }
     }];
 }
@@ -499,7 +494,7 @@ static int uniqueId = 1;
 }
 
 -(NSURL *)getUrl:(NSString *)path {
-    return [NSURL URLWithString:[NSString stringWithFormat:@"%@/%@", self.serverHost, path]];
+    return [NSURL URLWithString:[NSString stringWithFormat:@"%@/%@", self.serverUrl, path]];
 }
 
 - (void)createWindowAndWebView {
