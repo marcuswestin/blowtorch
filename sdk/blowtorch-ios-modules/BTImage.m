@@ -15,7 +15,7 @@
 
 @implementation BTImage
 - (void)setup:(BTAppDelegate *)app {
-    [WebViewProxy handleRequestsWithHost:@"BTImage" path:@"fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
+    [WebViewProxy handleRequestsWithHost:@"blowtorch" path:@"/BTImage/fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
         [self fetchImage:req res:res];
     }];
 }
