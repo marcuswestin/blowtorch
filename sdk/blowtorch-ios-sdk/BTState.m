@@ -11,9 +11,21 @@
 }
 
 - (void)set:(NSString *)key value:(NSDictionary*)value {
-    NSJSONWritingOptions opts = 0; // NSJSONWritingPrettyPrinted
-    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:opts error:nil];
-    [jsonData writeToFile:[self getFilePath:key] atomically:YES];
+    NSString* path = [self getFilePath:key];
+    if (value) {
+        NSJSONWritingOptions opts = 0; // NSJSONWritingPrettyPrinted
+        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:opts error:nil];
+        [jsonData writeToFile:path atomically:YES];
+    } else {
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        if ([fileManager fileExistsAtPath:path]) {
+            NSError *error;
+            [fileManager removeItemAtPath:path error:&error];
+            if (error) {
+                NSLog(@"Error removing state for key %@: %@", key, error);
+            }
+        }
+    }
 }
 
 - (void)reset {
