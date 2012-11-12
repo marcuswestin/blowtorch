@@ -33,7 +33,7 @@
     NSString *documentPath = [searchPaths lastObject];
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSArray* contents = [fileManager contentsOfDirectoryAtPath:documentPath error:nil];
-    NSArray* btstateFiles = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"self ENDSWITH .btstate"]];
+    NSArray* btstateFiles = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"self ENDSWITH '.btstate'"]];
     for (NSString* btstateFile in btstateFiles) {
         [fileManager removeItemAtPath:btstateFile error:nil];
     }
