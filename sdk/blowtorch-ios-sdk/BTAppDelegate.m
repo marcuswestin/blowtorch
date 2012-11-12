@@ -4,13 +4,10 @@
 #import "BTIndex.h"
 
 #ifdef DEBUG
-static BOOL DEV_MODE = true;
-
 #import "DebugUIWebView.h"
-
-#else 
-static BOOL DEV_MODE = false;
 #endif
+
+static BOOL DEV_MODE;
 
 @interface BTAppDelegate (hidden)
 - (NSURL*) getUrl:(NSString*) path;
@@ -25,6 +22,7 @@ static BOOL DEV_MODE = false;
 static BTAppDelegate* instance;
 
 @implementation BTAppDelegate {
+    NSString* _serverScheme;
     NSString* _serverHost;
     NSString* _serverPort;
 }
@@ -66,7 +64,8 @@ static BTAppDelegate* instance;
     return YES;
 }
 
-- (void)setServerHost:(NSString *)host port:(NSString *)port {
+- (void)setServerScheme:(NSString*)scheme host:(NSString *)host port:(NSString *)port {
+    _serverScheme = scheme;
     _serverHost = host;
     _serverPort = port;
 }
@@ -76,21 +75,33 @@ static BTAppDelegate* instance;
 }
 
 - (NSString*) serverUrl {
-    if (_serverPort) { return [_serverHost stringByAppendingFormat:@":%@", _serverPort]; }
-    else { return _serverHost; }
+    if (_serverPort) { return [_serverScheme stringByAppendingFormat:@"//%@:%@", _serverHost, _serverPort]; }
+    else { return [_serverScheme stringByAppendingFormat:@"//%@", _serverHost]; }
 }
 
 -(void)startApp:(BOOL)devMode {
+    if (!devMode) {
+        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"/app" handler:^(NSURLRequest* req, WVPResponse *res) {
+            [self _respond:res fileName:@"app.html" mimeType:@"text/html"];
+        }];
+        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"appJs.js" handler:^(NSURLRequest *req, WVPResponse *res) {
+            [self _respond:res fileName:@"appJs.html" mimeType:@"application/javascript"];
+        }];
+        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"appCss.css" handler:^(NSURLRequest *req, WVPResponse *res) {
+            [self _respond:res fileName:@"appCss.css" mimeType:@"text/css"];
+        }];
+    }
+    
     DEV_MODE = devMode;
     NSString* downloadedVersion = [self getAppInfo:@"downloadedVersion"];
     if (downloadedVersion) {
         [self setAppInfo:@"installedVersion" value:downloadedVersion];
     }
     
+    [self setupModules];
+    
     [webView loadRequest:[NSURLRequest requestWithURL:[self getUrl:@"app"]]];
     
-    [self setupModules];
-
     NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
     NSString* client = [bundleVersion stringByAppendingString:@"-ios"];
     NSDictionary* appInfo = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -284,18 +295,6 @@ static BTAppDelegate* instance;
 /* Net API
  *********/
 - (void)setupNetHandlers {
-    if (!DEV_MODE) {
-        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"/app" handler:^(NSURLRequest* req, WVPResponse *res) {
-            [self _respond:res fileName:@"app.html" mimeType:@"text/html"];
-        }];
-        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"appJs.js" handler:^(NSURLRequest *req, WVPResponse *res) {
-            [self _respond:res fileName:@"appJs.html" mimeType:@"application/javascript"];
-        }];
-        [WebViewProxy handleRequestsWithHost:self.serverHost handler:^(NSURLRequest *req, WVPResponse *res) {
-            [self _respond:res fileName:@"appCss.css" mimeType:@"text/css"];
-        }];
-    }
-    
     NSString* btPrefix = @"/blowtorch/";
     [WebViewProxy handleRequestsWithHost:self.serverHost pathPrefix:btPrefix handler:^(NSURLRequest *req, WVPResponse *res) {
         NSString* path = [req.URL.path substringFromIndex:btPrefix.length];
