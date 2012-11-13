@@ -50,6 +50,10 @@
 - (void) show:(NSDictionary*)params webView:(UIWebView*)webView {
     [self hide];
     
+    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+    [center addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [center addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+
     _textInput = [[UITextView alloc] initWithFrame:[self rectFromDict:[params objectForKey:@"at"]]];
     _params=params;
     _webView = webView;
@@ -100,14 +104,12 @@
 
 - (void) hide {
     if (!_textInput) { return; }
-    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
-    [center addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
-    [center addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
     [_textInput resignFirstResponder];
     [_textInput removeFromSuperview];
     _textInput = nil;
     _params = nil;
     _webView = nil;
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void) set:(NSDictionary*) params {
