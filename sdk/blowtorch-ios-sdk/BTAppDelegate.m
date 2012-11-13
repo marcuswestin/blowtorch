@@ -326,12 +326,11 @@ static BTAppDelegate* instance;
     NSDictionary* headers = [data objectForKey:@"headers"];
     NSString* version = [url urlEncodedString];
     NSString* directoryPath = [self getFilePath:[@"versions/" stringByAppendingString:version]];
-    [BTNet request:url method:@"GET" headers:headers params:nil responseCallback:^(id error, NSDictionary *netData) {
+    [BTNet request:url method:@"GET" headers:headers params:nil responseCallback:^(id error, NSData *tarData) {
         if (error) {
             [response respondWithError:error];
             return;
         }
-        NSData* tarData = [netData objectForKey:@"responseData"];
         if (!tarData || tarData.length == 0) {
             NSLog(@"Received download response with no data");
             return;

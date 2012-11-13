@@ -52,8 +52,7 @@ static NSOperationQueue* queue;
     }
     [NSURLConnection sendAsynchronousRequest:request queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) { return responseCallback(@"Could not load", nil); }
-        NSDictionary* responseData = [NSJSONSerialization JSONObjectWithData:netData options:NSJSONReadingAllowFragments error:nil];
-        responseCallback(nil, [NSDictionary dictionaryWithObject:responseData forKey:@"responseData"]);
+        responseCallback(nil, netData);
     }];
 }
 
