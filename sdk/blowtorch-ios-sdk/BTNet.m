@@ -39,7 +39,18 @@ static NSOperationQueue* queue;
 
 
 + (void)request:(NSString *)url method:(NSString *)method headers:(NSDictionary *)headers params:(NSDictionary *)params responseCallback:(WVJBResponseCallback)responseCallback {
-    [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
+    request.HTTPMethod = method;
+    for (NSString* headerName in headers) {
+        [request setValue:[headers objectForKey:headerName] forHTTPHeaderField:headerName];
+    }
+    if (params) {
+        NSData* data = [NSJSONSerialization dataWithJSONObject:params options:0 error:nil];
+        request.HTTPBody = data;
+        [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+        [request setValue:[NSString stringWithFormat:@"%d", data.length] forHTTPHeaderField:@"Content-Length"];
+    }
+    [NSURLConnection sendAsynchronousRequest:request queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) { return responseCallback(@"Could not load", nil); }
         NSDictionary* responseData = [NSJSONSerialization JSONObjectWithData:netData options:NSJSONReadingAllowFragments error:nil];
         responseCallback(nil, [NSDictionary dictionaryWithObject:responseData forKey:@"responseData"]);
