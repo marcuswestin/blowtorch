@@ -31,10 +31,12 @@
 }
 
 - (void)store:(NSString *)bucket key:(NSString *)key data:(NSData *)data {
-    NSString* name = [self _nameFor:bucket key:key];
-    [_cacheInfo setObject:[NSNumber numberWithInt:1] forKey:name];
-    [_cacheInfo writeToFile:_cacheInfoPath atomically:YES];
-    [data writeToFile:[self _pathFor:name] atomically:YES];
+    @synchronized(self) {
+        NSString* name = [self _nameFor:bucket key:key];
+        [_cacheInfo setObject:[NSNumber numberWithInt:1] forKey:name];
+        [_cacheInfo writeToFile:_cacheInfoPath atomically:YES];
+        [data writeToFile:[self _pathFor:name] atomically:YES];
+    }
 }
 
 - (NSData *)get:(NSString *)bucket key:(NSString *)key {
