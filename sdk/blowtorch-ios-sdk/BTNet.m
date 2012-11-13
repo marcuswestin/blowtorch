@@ -1,76 +1,49 @@
 #import "BTNet.h"
 #import "WebViewJavascriptBridge.h"
+#import "BTCache.h"
+#import "BTAppDelegate.h"
 
 @implementation BTNet
 
-@synthesize engine;
+static NSOperationQueue* queue;
 
 - (id)init {
     if (self = [super init]) {
-        self.engine = [[MKNetworkEngine alloc] initWithHostName:nil customHeaderFields:nil];
+        queue = [[NSOperationQueue alloc] init];
+        [queue setMaxConcurrentOperationCount:5];
     }
     return self;
 }
 
-- (void) cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(WVJBResponseCallback)responseCallback {
-    if (!asUrl) { asUrl = url; }
-    
-    NSLog(@"Cache request %@ as %@", url, asUrl);
-    
-    NSString *filePath = [BTNet pathForUrl:asUrl];
-    
-    if (!override && [[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
-        NSLog(@"FOUND URL IN CACHE %@ %@", asUrl, filePath);
-        responseCallback(nil, nil);
-    } else {
-        MKNetworkOperation* operation = [engine operationWithURLString:url];
-        [operation onCompletion:^(MKNetworkOperation *completedOperation) {
-            [completedOperation.responseData writeToFile:filePath atomically:YES];
-            NSLog(@"Cached %@ as %@", url, asUrl);
-            responseCallback(nil, nil);
-        } onError:^(NSError *error) {
-            NSLog(@"ERROR GETTING URL %@ %@", url, error);
-            responseCallback(@"Error getting url", nil);
-        }];
-        [engine enqueueOperation:operation];
-    }
-    
-}
+//static NSString* cacheBucket = @"__BTNet__";
+//- (void) cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(WVJBResponseCallback)responseCallback {
+//    if (!asUrl) { asUrl = url; }
+//    
+//    NSLog(@"Cache request %@ as %@", url, asUrl);
+//    
+//    if (!override && [BTAppDelegate.instance.cache has:cacheBucket key:[BTNet urlEncodeValue:asUrl]]) {
+//        NSLog(@"FOUND URL IN CACHE %@ %@", url, asUrl);
+//        responseCallback(nil, nil);
+//    } else {
+//        [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
+//            if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) {
+//                NSLog(@"ERROR GETTING URL %@", url);
+//                return responseCallback(@"Error getting url", nil);
+//            }
+//            [BTAppDelegate.instance.cache store:cacheBucket key:asUrl data:netData];
+//            NSLog(@"Cached %@ as %@", url, asUrl);
+//            responseCallback(nil, nil);
+//        }];
+//    }
+//}
 
-
-+ (NSString *)urlEncodeValue:(NSString *)str {
-    NSString* res = (__bridge NSString*) CFURLCreateStringByAddingPercentEscapes(
-                                                   NULL,
-                                                   (__bridge CFStringRef)str,
-                                                   NULL,
-                                                   (CFStringRef)@"!*'\"();:@&=+$,/?%#[]% ",
-                                                   kCFStringEncodingUTF8 );
-    return res;
-}
-
-+ (NSString *)pathForUrl:(NSString *)url {
-    NSString* fileName = [BTNet urlEncodeValue:url];
-    
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-    NSString *cachePath = [paths objectAtIndex:0];
-    BOOL isDir = NO;
-    NSError *error;
-    if (! [[NSFileManager defaultManager] fileExistsAtPath:cachePath isDirectory:&isDir] && isDir == NO) {
-        [[NSFileManager defaultManager] createDirectoryAtPath:cachePath withIntermediateDirectories:NO attributes:nil error:&error];
-    }
-    return [cachePath stringByAppendingPathComponent:fileName];
-}
 
 + (void)request:(NSString *)url method:(NSString *)method headers:(NSDictionary *)headers params:(NSDictionary *)params responseCallback:(WVJBResponseCallback)responseCallback {
-    MKNetworkEngine* netEngine = [[MKNetworkEngine alloc] initWithHostName:nil customHeaderFields:headers];
-    MKNetworkOperation* op = [netEngine operationWithURLString:url params:[NSMutableDictionary dictionaryWithDictionary:params] httpMethod:method];
-    [op setPostDataEncoding:MKNKPostDataEncodingTypeJSON];
-    [op onCompletion:^(MKNetworkOperation* completedOperation) {
-        responseCallback(nil, [NSDictionary dictionaryWithObject:[completedOperation responseData] forKey:@"responseData"]);
-    } onError:^(NSError* error) {
-        responseCallback(error.domain, nil);
+    [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
+        if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) { return responseCallback(@"Could not load", nil); }
+        NSDictionary* responseData = [NSJSONSerialization JSONObjectWithData:netData options:NSJSONReadingAllowFragments error:nil];
+        responseCallback(nil, [NSDictionary dictionaryWithObject:responseData forKey:@"responseData"]);
     }];
-    [netEngine enqueueOperation:op];
 }
 
 @end

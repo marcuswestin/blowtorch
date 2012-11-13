@@ -31,12 +31,10 @@
 }
 
 - (void)store:(NSString *)bucket key:(NSString *)key data:(NSData *)data {
-    @synchronized(self) {
-        NSString* name = [self _nameFor:bucket key:key];
-        [_cacheInfo setObject:[NSNumber numberWithInt:1] forKey:name];
-        [_cacheInfo writeToFile:_cacheInfoPath atomically:YES];
-        [data writeToFile:[self _pathFor:name] atomically:YES];
-    }
+    NSString* name = [self _nameFor:bucket key:key];
+    [_cacheInfo setObject:[NSNumber numberWithInt:1] forKey:name];
+    [_cacheInfo writeToFile:_cacheInfoPath atomically:YES];
+    [data writeToFile:[self _pathFor:name] atomically:YES];
 }
 
 - (NSData *)get:(NSString *)bucket key:(NSString *)key {
@@ -47,11 +45,15 @@
         return nil;
     }
 }
+
+- (bool)has:(NSString *)bucket key:(NSString *)key {
+    return !![_cacheInfo objectForKey:[self _nameFor:bucket key:key]];
+}
 @end
 
 @implementation BTCache (hidden)
 - (NSString *)_nameFor:(NSString *)bucket key:(NSString *)key {
-    return [bucket stringByAppendingPathComponent:[self _sanitizeFileNameString:key]];
+    return [bucket stringByAppendingString:[self _sanitizeFileNameString:key]];
 }
 - (NSString *)_pathFor:(NSString *)name {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(_searchPathDirectory, NSUserDomainMask, YES);

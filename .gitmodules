@@ -7,9 +7,6 @@
 [submodule "dependencies/Light-Untar-for-iOS"]
 	path = dependencies/Light-Untar-for-iOS
 	url = https://github.com/mhausherr/Light-Untar-for-iOS.git
-[submodule "dependencies/MKNetworkKit"]
-	path = dependencies/MKNetworkKit
-	url = git://github.com/MugunthKumar/MKNetworkKit.git
 [submodule "dependencies/WebViewProxy"]
 	path = dependencies/WebViewProxy
 	url = git@github.com:marcuswestin/WebViewProxy.git

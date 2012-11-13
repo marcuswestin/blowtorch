@@ -6,6 +6,8 @@
 #import <AudioToolbox/AudioServices.h>
 #import "BTCache.h"
 
+#import "NSString+Util.h"
+
 @interface BTAppDelegate : UIResponder <UIApplicationDelegate, UIWebViewDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIActionSheetDelegate>
 
 + (BTAppDelegate*) instance;

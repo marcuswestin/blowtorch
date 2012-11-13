@@ -3,13 +3,9 @@
 
 @interface BTNet : NSObject
 
-@property (nonatomic,strong) MKNetworkEngine* engine;
+//- (void)cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(WVJBResponseCallback)responseCallback;
 
-- (void)cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(WVJBResponseCallback)responseCallback;
-
-+ (NSString *)urlEncodeValue:(NSString *)str;
-
-+ (NSString*)pathForUrl:(NSString*)url;
+//+ (NSString *)urlEncodeValue:(NSString *)str;
 
 + (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary*)headers params:(NSDictionary*)params responseCallback:(WVJBResponseCallback)responseCallback;
 

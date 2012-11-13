@@ -10,56 +10,62 @@
 #import "UIImage+Resize.h"
 
 @interface BTImage (hidden)
-- (void) fetchImage:(NSURLRequest*)req res:(WVPResponse*)res;
+- (void) fetchImage:(NSURLRequest*)req response:(WVPResponse*)res;
+- (void) respondWithData:(NSData*)data response:(WVPResponse*)res params:(NSDictionary*)params;
 @end
 
-@implementation BTImage
+@implementation BTImage {
+    NSOperationQueue* queue;
+}
+
+- (id)init {
+    if (self = [super init]) {
+        queue = [[NSOperationQueue alloc] init];
+        queue.maxConcurrentOperationCount = 5;
+    }
+    return self;
+}
+
 - (void)setup:(BTAppDelegate *)app {
     [WebViewProxy handleRequestsWithHost:@"blowtorch" path:@"/BTImage/fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
-        [self fetchImage:req res:res];
+        [self fetchImage:req response:res];
     }];
 }
 @end
 
+static NSString* cacheBucket = @"__BTImage__";
+
 @implementation BTImage (hidden)
-- (void)fetchImage:(NSURLRequest *)req res:(WVPResponse *)res {
+
+- (void)fetchImage:(NSURLRequest *)req response:(WVPResponse *)res {
     NSDictionary* params = [self parseQueryParams:req.URL.query];
     NSString* urlParam = [params objectForKey:@"url"];
-    NSString* cacheParam = [params objectForKey:@"cache"];
-    NSString* mimeTypeParam = [params objectForKey:@"mimeType"];
-    bool diskCache = false;
-    if ([cacheParam isEqualToString:@"both"]) {
-        res.cachePolicy = NSURLCacheStorageAllowed;
-        diskCache = true;
-    } else if ([cacheParam isEqualToString:@"memory"]) {
-        res.cachePolicy = NSURLCacheStorageAllowedInMemoryOnly;
-    } else if ([cacheParam isEqualToString:@"disk"]) {
-        res.cachePolicy = NSURLCacheStorageAllowed;
-        diskCache = true;
-    }
-    
-    if (diskCache) {
-        res.cachePolicy = NSURLCacheStorageAllowed;
-        NSData* cacheData = [BTAppDelegate.instance.cache get:@"BTImage" key:urlParam];
+    bool cache = !![params objectForKey:@"cache"];
+
+    if (cache) {
+        NSData* cacheData = [BTAppDelegate.instance.cache get:cacheBucket key:urlParam];
         if (cacheData) {
-            [res respondWithImage:[UIImage imageWithData:cacheData]];
-            return;
+            return [self respondWithData:cacheData response:res params:params];
         }
     }
-    NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:urlParam]];
-    UIImage* image = [UIImage imageWithData:data];
+    [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
+        if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
+        if (cache) {
+            [BTAppDelegate.instance.cache store:cacheBucket key:urlParam data:netData];
+        }
+        [self respondWithData:netData response:res params:params];
+    }];
+}
 
+- (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {
+    NSString* mimeTypeParam = [params objectForKey:@"mimeType"];
     NSString* resizeParam = [params objectForKey:@"resize"];
-    NSLog(@"BTImage TODO handle resizeParam %@", resizeParam);
-    if (true) {
+    UIImage* image = [UIImage imageWithData:data];
+    if (resizeParam) {
+        NSLog(@"BTImage TODO handle resizeParam properly %@", resizeParam);
         // kCGInterpolationHigh
         image = [image thumbnailImage:100 transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
     }
-
-    if (diskCache) {
-        [BTAppDelegate.instance.cache store:@"BTImage" key:urlParam data:data];
-    }
-    
     [res respondWithImage:image mimeType:mimeTypeParam];
 }
 @end
