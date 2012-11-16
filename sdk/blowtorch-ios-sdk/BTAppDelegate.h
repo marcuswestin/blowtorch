@@ -27,7 +27,8 @@
 /* Lifecycle API
  ***************/
 - (void)setupModules;
-- (void)startApp:(BOOL)devMode;
+- (void)setupApp:(BOOL)devMode;
+- (void)startApp;
 - (void)setAppInfo:(NSString*)key value:(NSString*)value;
 - (NSString*)getAppInfo:(NSString*)key;
 

@@ -17,14 +17,7 @@
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:opts error:nil];
         [jsonData writeToFile:path atomically:YES];
     } else {
-        NSFileManager *fileManager = [NSFileManager defaultManager];
-        if ([fileManager fileExistsAtPath:path]) {
-            NSError *error;
-            [fileManager removeItemAtPath:path error:&error];
-            if (error) {
-                NSLog(@"Error removing state for key %@: %@", key, error);
-            }
-        }
+        [[NSFileManager defaultManager] removeItemAtPath:path error:nil];
     }
 }
 
@@ -35,7 +28,7 @@
     NSArray* contents = [fileManager contentsOfDirectoryAtPath:documentPath error:nil];
     NSArray* btstateFiles = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"self ENDSWITH '.btstate'"]];
     for (NSString* btstateFile in btstateFiles) {
-        [fileManager removeItemAtPath:btstateFile error:nil];
+        [fileManager removeItemAtPath:[documentPath stringByAppendingPathComponent:btstateFile] error:nil];
     }
 }
 

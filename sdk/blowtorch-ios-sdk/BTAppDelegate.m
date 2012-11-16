@@ -79,7 +79,8 @@ static BTAppDelegate* instance;
     else { return [_serverScheme stringByAppendingFormat:@"//%@", _serverHost]; }
 }
 
--(void)startApp:(BOOL)devMode {
+-(void)setupApp:(BOOL)devMode {
+    DEV_MODE = devMode;
     if (!devMode) {
         [WebViewProxy handleRequestsWithHost:self.serverHost path:@"/app" handler:^(NSURLRequest* req, WVPResponse *res) {
             [self _respond:res fileName:@"app.html" mimeType:@"text/html"];
@@ -92,22 +93,23 @@ static BTAppDelegate* instance;
         }];
     }
     
-    DEV_MODE = devMode;
+    
+    [self setupModules];
+}
+
+-(void)startApp {
     NSString* downloadedVersion = [self getAppInfo:@"downloadedVersion"];
     if (downloadedVersion) {
         [self setAppInfo:@"installedVersion" value:downloadedVersion];
     }
-    
-    [self setupModules];
-    
+    [_bridge reset];
     [webView loadRequest:[NSURLRequest requestWithURL:[self getUrl:@"app"]]];
-    
     NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
     NSString* client = [bundleVersion stringByAppendingString:@"-ios"];
     NSDictionary* appInfo = [NSDictionary dictionaryWithObjectsAndKeys:
-                               config, @"config",
-                               client, @"client",
-                               nil];
+                             config, @"config",
+                             client, @"client",
+                             nil];
     [self notify:@"app.start" info:appInfo];
 }
 
@@ -211,7 +213,7 @@ static BTAppDelegate* instance;
 - (void)setupBridgeHandlers {
     // app.*
     [_bridge registerHandler:@"app.restart" handler:^(id data, WVJBResponse* response) {
-        [self startApp:DEV_MODE];
+        [self startApp];
     }];
     [_bridge registerHandler:@"app.show" handler:^(id data,  WVJBResponse* response) {
         [self hideLoadingOverlay];
