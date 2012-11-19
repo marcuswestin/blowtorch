@@ -513,7 +513,7 @@ static int uniqueId = 1;
     webView.clipsToBounds = YES;
     webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal;
     [window.rootViewController.view addSubview:webView];
-    _bridge = [WebViewJavascriptBridge bridgeForWebView:webView handler:^(id data, WVJBResponse *response) {
+    _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponse *response) {
         [self handleBridgeData:data response:response];
     }];
     [self setupBridgeHandlers];
