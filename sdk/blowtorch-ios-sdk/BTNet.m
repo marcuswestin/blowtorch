@@ -38,7 +38,7 @@ static NSOperationQueue* queue;
 //}
 
 
-+ (void)request:(NSString *)url method:(NSString *)method headers:(NSDictionary *)headers params:(NSDictionary *)params responseCallback:(WVJBResponseCallback)responseCallback {
++ (void)request:(NSString *)url method:(NSString *)method headers:(NSDictionary *)headers params:(NSDictionary *)params responseCallback:(BTResponseCallback)responseCallback {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
     request.HTTPMethod = method;
     for (NSString* headerName in headers) {
@@ -51,8 +51,11 @@ static NSOperationQueue* queue;
         [request setValue:[NSString stringWithFormat:@"%d", data.length] forHTTPHeaderField:@"Content-Length"];
     }
     [NSURLConnection sendAsynchronousRequest:request queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
-        if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) { return responseCallback(@"Could not load", nil); }
-        responseCallback(nil, netData);
+        if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) {
+            responseCallback(@"Could not load", nil);
+        } else {
+            responseCallback(nil, netData);
+        }
     }];
 }
 

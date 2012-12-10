@@ -34,7 +34,7 @@ static NSMutableDictionary* indices;
     return [indices objectForKey:name];
 }
 
-- (void)lookup:(NSString *)searchString response:(WVJBResponse*)response {
+- (void)lookup:(NSString *)searchString response:(BTResponse*)response {
     NSMutableSet* matches = [NSMutableSet set];
     if (!listsByFirstCharacter || !searchString || [searchString isEqualToString:@""]) {
         return [self respond:matches response:response];
@@ -56,7 +56,7 @@ static NSMutableDictionary* indices;
     [self respond:matches response:response];
 }
 
-- (void)respond:(NSSet *)matches response:(WVJBResponse *)response {
+- (void)respond:(NSSet *)matches response:(BTResponse*)response {
     [response respondWith:[NSDictionary dictionaryWithObject:[matches allObjects] forKey:@"matches"]];
 }
 

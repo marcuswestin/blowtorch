@@ -17,6 +17,7 @@ static BOOL DEV_MODE;
 - (void) showLoadingOverlay;
 - (void) hideLoadingOverlay;
 - (void)_respond:(WVPResponse*)res fileName:(NSString *)fileName mimeType:(NSString *)mimeType;
+- (NSDictionary*) keyboardEventInfo:(NSNotification*) notification;
 @end
 
 static BTAppDelegate* instance;
@@ -125,9 +126,9 @@ static BTAppDelegate* instance;
     return [info objectForKey:key];
 }
 
-@synthesize pushRegistrationResponse=_pushRegistrationResponse;
-- (void)registerForPush:(WVJBResponse*)response {
-    _pushRegistrationResponse = response;
+@synthesize pushRegistrationResponseCallback=_pushRegistrationResponseCallback;
+- (void)registerForPush:(BTResponseCallback)responseCallback {
+    _pushRegistrationResponseCallback = responseCallback;
     [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
      (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
 }
@@ -195,83 +196,70 @@ static BTAppDelegate* instance;
     [self notify:@"keyboard.willHide" info:[self keyboardEventInfo:notification]];
 }
 
-- (NSDictionary *)keyboardEventInfo:(NSNotification *)notification {
-    NSDictionary *userInfo = [notification userInfo];
-    NSValue *keyboardAnimationDurationValue = [userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
-    NSTimeInterval keyboardAnimationDurationInterval;
-    [keyboardAnimationDurationValue getValue:&keyboardAnimationDurationInterval];
-    NSNumber* keyboardAnimationDuration = [NSNumber numberWithDouble:keyboardAnimationDurationInterval];
-    return [NSDictionary dictionaryWithObject:keyboardAnimationDuration forKey:@"keyboardAnimationDuration"];
-}
-
 /* WebView <-> Native API
  ************************/
-- (void)handleBridgeData:(id)data response:(WVJBResponse *)response {
-    NSLog(@"Received unknown message %@", data);
-}
-
 - (void)setupBridgeHandlers {
     // app.*
-    [_bridge registerHandler:@"app.restart" handler:^(id data, WVJBResponse* response) {
+    [self registerHandler:@"app.restart" handler:^(id data, BTResponseCallback responseCallback) {
         [self startApp];
     }];
-    [_bridge registerHandler:@"app.show" handler:^(id data,  WVJBResponse* response) {
+    [self registerHandler:@"app.show" handler:^(id data, BTResponseCallback  responseCallback) {
         [self hideLoadingOverlay];
         if (launchNotification) {
             [self handlePushNotification:launchNotification didBringAppToForeground:YES];
             launchNotification = nil;
         }
     }];
-    [_bridge registerHandler:@"app.setIconBadgeNumber" handler:^(id data, WVJBResponse* response) {
+    [self registerHandler:@"app.setIconBadgeNumber" handler:^(id data, BTResponseCallback responseCallback) {
         NSNumber* number = [data objectForKey:@"number"];
         [[UIApplication sharedApplication] setApplicationIconBadgeNumber:[number intValue]];
     }];
-    [_bridge registerHandler:@"app.getIconBadgeNumber" handler:^(id data, WVJBResponse* response) {
+    [self registerHandler:@"app.getIconBadgeNumber" handler:^(id data, BTResponseCallback responseCallback) {
         NSNumber* number = [NSNumber numberWithInt:[[UIApplication sharedApplication] applicationIconBadgeNumber]];
-        [response respondWith:[NSDictionary dictionaryWithObject:number forKey:@"number"]];
+        responseCallback(nil, [NSDictionary dictionaryWithObject:number forKey:@"number"]);
     }];
     
     // console.*
-    [_bridge registerHandler:@"console.log" handler:^(id data, WVJBResponse* response) {
+    [self registerHandler:@"console.log" handler:^(id data, BTResponseCallback responseCallback) {
         
     }];
     
     // state.*
-    [_bridge registerHandler:@"state.load" handler:^(id data, WVJBResponse* response) {
-        [response respondWith:[state load:[data objectForKey:@"key"]]];
+    [self registerHandler:@"state.load" handler:^(id data, BTResponseCallback responseCallback) {
+        responseCallback(nil, [state load:[data objectForKey:@"key"]]);
     }];
-    [_bridge registerHandler:@"state.set" handler:^(id data, WVJBResponse* response) {
+    [self registerHandler:@"state.set" handler:^(id data, BTResponseCallback responseCallback) {
         [state set:[data objectForKey:@"key"] value:[data objectForKey:@"value"]];
-        [response respondWith:nil];
+        responseCallback(nil, nil);
     }];
-    [_bridge registerHandler:@"state.clear" handler:^(id data, WVJBResponse* response) {
+    [self registerHandler:@"state.clear" handler:^(id data, BTResponseCallback responseCallback) {
         [state reset];
-        [response respondWith:nil];
+        responseCallback(nil, nil);
     }];
     
     // push.*
-    [_bridge registerHandler:@"push.register" handler:^(id data, WVJBResponse* response) {
-        [self registerForPush:response];
+    [self registerHandler:@"push.register" handler:^(id data, BTResponseCallback responseCallback) {
+        [self registerForPush:responseCallback];
     }];
     
     // media.*
-    [_bridge registerHandler:@"media.pick" handler:^(id data, WVJBResponse* response) {
-        [self pickMedia:data response:response];
+    [self registerHandler:@"media.pick" handler:^(id data, BTResponseCallback responseCallback) {
+        [self pickMedia:data response:[BTResponse responseWithCallback:responseCallback]];
     }];
     
     // menu.*
-    [_bridge registerHandler:@"menu.show" handler:^(id data, WVJBResponse* response) {
-        [self showMenu:data response:response];
+    [self registerHandler:@"menu.show" handler:^(id data, BTResponseCallback responseCallback) {
+        [self showMenu:data response:[BTResponse responseWithCallback:responseCallback]];
     }];
     
     // device.*
-    [_bridge registerHandler:@"device.vibrate" handler:^(id data, WVJBResponse* response) {
+    [self registerHandler:@"device.vibrate" handler:^(id data, BTResponseCallback responseCallback) {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
     }];
     
     // version.*
-    [_bridge registerHandler:@"version.download" handler:^(id data, WVJBResponse* response) {
-        [self downloadAppVersion:data response:response];
+    [self registerHandler:@"version.download" handler:^(id data, BTResponseCallback responseCallback) {
+        [self downloadAppVersion:data response:[BTResponse responseWithCallback:responseCallback]];
     }];
     
 //    // index.*
@@ -323,7 +311,7 @@ static BTAppDelegate* instance;
 
 /* Upgrade API
  *************/
-- (void)downloadAppVersion:(NSDictionary *)data response:(WVJBResponse *)response {
+- (void)downloadAppVersion:(NSDictionary *)data response:(BTResponse*)response {
     NSString* url = [data objectForKey:@"url"];
     NSDictionary* headers = [data objectForKey:@"headers"];
     NSString* version = [url urlEncodedString];
@@ -362,18 +350,18 @@ static BTAppDelegate* instance;
                                 stringByReplacingOccurrencesOfString:@" " withString:@""];
     NSDictionary* info = [NSDictionary dictionaryWithObject:tokenAsString forKey:@"deviceToken"];
     [self notify:@"push.registered" info:info];
-    if (_pushRegistrationResponse) {
-        [_pushRegistrationResponse respondWith:info];
-        _pushRegistrationResponse = nil;
+    if (_pushRegistrationResponseCallback) {
+        _pushRegistrationResponseCallback(nil, info);
+        _pushRegistrationResponseCallback = nil;
     }
 }     
 
 - (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
     NSLog(@"Push registration failure %@", err);
     [self notify:@"push.registerFailed" info:nil];
-    if (_pushRegistrationResponse) {
-        [_pushRegistrationResponse respondWithError:@"Notifications were not allowed."];
-        _pushRegistrationResponse = nil;
+    if (_pushRegistrationResponseCallback) {
+        _pushRegistrationResponseCallback(@"Notifications were not allowed.", nil);
+        _pushRegistrationResponseCallback = nil;
     }
 }
 
@@ -403,7 +391,7 @@ static int uniqueId = 1;
 }
 
 @synthesize mediaResponse=_mediaResponse, mediaCache=_mediaCache;
-- (void)pickMedia:(NSDictionary*)data response:(WVJBResponse *)response {
+- (void)pickMedia:(NSDictionary*)data response:(BTResponse*)response {
     if (!_mediaCache) { _mediaCache = [NSMutableDictionary dictionary]; }
     
     UIImagePickerController *mediaUI = [[UIImagePickerController alloc] init];
@@ -451,7 +439,7 @@ static int uniqueId = 1;
     [_mediaResponse respondWith:[NSDictionary dictionary]];
 }
 
-- (void)showMenu:(NSDictionary *)data response:(WVJBResponse *)response {
+- (void)showMenu:(NSDictionary *)data response:(BTResponse*)response {
     _menuResponse = response;
     UIActionSheet* sheet = [[UIActionSheet alloc] init];
     sheet.delegate = self;
@@ -468,6 +456,20 @@ static int uniqueId = 1;
 
 - (void)actionSheetCancel:(UIActionSheet *)actionSheet {
     [_menuResponse respondWith:nil];
+}
+
+- (void)registerHandler:(NSString *)handlerName handler:(BTHandler)handler {
+    [self.javascriptBridge registerHandler:handlerName handler:^(id data, WVJBResponseCallback responseCallback) {
+        handler(data, ^(id err, id responseData) {
+            if (err) {
+                responseCallback([NSDictionary dictionaryWithObject:err forKey:@"error"]);
+            } else if (responseData) {
+                responseCallback([NSDictionary dictionaryWithObject:responseData forKey:@"responseData"]);
+            } else {
+                responseCallback([NSDictionary dictionary]);
+            }
+        });
+    }];
 }
 
 @end
@@ -513,8 +515,8 @@ static int uniqueId = 1;
     webView.clipsToBounds = YES;
     webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal;
     [window.rootViewController.view addSubview:webView];
-    _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponse *response) {
-        [self handleBridgeData:data response:response];
+    _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) {
+        NSLog(@"Received unknown message %@", data);
     }];
     [self setupBridgeHandlers];
     [self setupNetHandlers];
@@ -535,6 +537,15 @@ static int uniqueId = 1;
     } completion:^(BOOL finished) {
         [self.overlay removeFromSuperview];
     }];
+}
+
+- (NSDictionary *)keyboardEventInfo:(NSNotification *)notification {
+    NSDictionary *userInfo = [notification userInfo];
+    NSValue *keyboardAnimationDurationValue = [userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
+    NSTimeInterval keyboardAnimationDurationInterval;
+    [keyboardAnimationDurationValue getValue:&keyboardAnimationDurationInterval];
+    NSNumber* keyboardAnimationDuration = [NSNumber numberWithDouble:keyboardAnimationDurationInterval];
+    return [NSDictionary dictionaryWithObject:keyboardAnimationDuration forKey:@"keyboardAnimationDuration"];
 }
 
 @end

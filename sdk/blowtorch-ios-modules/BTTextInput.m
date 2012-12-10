@@ -29,16 +29,16 @@
 }
 
 - (void) setup:(BTAppDelegate*)app {
-    [app.javascriptBridge registerHandler:@"textInput.show" handler:^(id data, WVJBResponse* response) {
+    [app.javascriptBridge registerHandler:@"textInput.show" handler:^(id data, WVJBResponseCallback responseCallback) {
         [self show:data webView:app.webView];
     }];
-    [app.javascriptBridge registerHandler:@"textInput.hide" handler:^(id data, WVJBResponse* response) {
+    [app.javascriptBridge registerHandler:@"textInput.hide" handler:^(id data,  WVJBResponseCallback responseCallback) {
         [self hide];
     }];
-    [app.javascriptBridge registerHandler:@"textInput.animate" handler:^(id data, WVJBResponse* response) {
+    [app.javascriptBridge registerHandler:@"textInput.animate" handler:^(id data,  WVJBResponseCallback responseCallback) {
         [self animate:data];
     }];
-    [app.javascriptBridge registerHandler:@"textInput.set" handler:^(id data, WVJBResponse* response) {
+    [app.javascriptBridge registerHandler:@"textInput.set" handler:^(id data,  WVJBResponseCallback responseCallback) {
         [self set:data];
     }];
 }

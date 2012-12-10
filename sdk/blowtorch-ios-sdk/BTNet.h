@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import "WebViewJavascriptBridge.h"
+#import "BTResponse.h"
 
 @interface BTNet : NSObject
 
@@ -7,6 +8,6 @@
 
 //+ (NSString *)urlEncodeValue:(NSString *)str;
 
-+ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary*)headers params:(NSDictionary*)params responseCallback:(WVJBResponseCallback)responseCallback;
++ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary*)headers params:(NSDictionary*)params responseCallback:(BTResponseCallback)responseCallback;
 
 @end

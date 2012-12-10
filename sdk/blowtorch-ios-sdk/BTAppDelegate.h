@@ -5,6 +5,7 @@
 #import "BTState.h"
 #import <AudioToolbox/AudioServices.h>
 #import "BTCache.h"
+#import "BTResponse.h"
 
 #import "NSString+Util.h"
 
@@ -36,13 +37,12 @@
  *************/
 - (void) notify:(NSString*)name info:(NSDictionary*)response;
 - (void) notify:(NSString*)name;
-- (void) handleBridgeData:(id)data response:(WVJBResponse*)response;
 - (void) setupBridgeHandlers;
 - (void) setupNetHandlers;
 
 /* Upgrade API
  *************/
-- (void) downloadAppVersion:(NSDictionary*)data response:(WVJBResponse*)response;
+- (void) downloadAppVersion:(NSDictionary*)data response:(BTResponse*)response;
 - (NSString*) getCurrentVersion;
 
 /* Keyboard
@@ -54,22 +54,22 @@
  ******/
 - (NSString*) unique;
 - (BOOL) isRetina;
-- (void) pickMedia:(NSDictionary*)data response:(WVJBResponse*)response;
+- (void) pickMedia:(NSDictionary*)data response:(BTResponse*)response;
 @property (atomic,strong) NSMutableDictionary* mediaCache;
-@property (atomic,strong) WVJBResponse* mediaResponse;
-- (void) showMenu:(NSDictionary*)data response:(WVJBResponse*)response;
-@property (atomic,strong) WVJBResponse* menuResponse;
+@property (atomic,strong) BTResponse* mediaResponse;
+- (void) showMenu:(NSDictionary*)data response:(BTResponse*)response;
+@property (atomic,strong) BTResponse* menuResponse;
 
 /* Notifications
  ***************/
-@property (nonatomic,copy) WVJBResponse* pushRegistrationResponse;
-- (void) registerForPush:(WVJBResponse*)response;
+@property (nonatomic,copy) BTResponseCallback pushRegistrationResponseCallback;
+- (void) registerForPush:(BTResponseCallback)response;
 @property (strong, nonatomic) NSDictionary* launchNotification;
 - (void) handlePushNotification:(NSDictionary*)notification didBringAppToForeground:(BOOL)didBringAppToForeground;
 
 /* Private
  *********/
-- (NSDictionary*) keyboardEventInfo:(NSNotification*) notification;
+- (void) registerHandler:(NSString*)handlerName handler:(BTHandler)handler;
 @property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) UIWebView *webView;
 @property (strong, nonatomic) WebViewJavascriptBridge *javascriptBridge;
