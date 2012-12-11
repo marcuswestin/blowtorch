@@ -9,6 +9,13 @@ function setup(app) {
 	app.get('/BTImage/fetchImage', function(req, res) {
 		var params = parseUrl(req.url, true).query
 		delete req.headers.host
-		request({ url:params.url, headers:req.headers, method:req.method }).pipe(res)
+		console.log("BTImage.fetchImage", params.url)
+		request({ url:params.url, headers:req.headers, method:req.method, timeout:5000 }, function(err, response, body) {
+			if (err) {
+				console.log("BTImage.fetchImage error", err)
+				res.writeHead(err.code == 'ETIMEDOUT' ? 408 : 500)
+				res.end()
+			}
+		}).pipe(res)
 	})
 }
