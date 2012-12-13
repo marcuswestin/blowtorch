@@ -59,11 +59,13 @@ static NSString* cacheBucket = @"__BTImage__";
 
 - (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {
     NSString* mimeTypeParam = [params objectForKey:@"mimeType"];
-    NSString* squareSize = [params objectForKey:@"square"];
+    NSString* resizeParam = [params objectForKey:@"resize"];
     UIImage* image = [UIImage imageWithData:data];
-    if (squareSize) {
+    if (resizeParam) {
+        NSArray* sizes = [resizeParam componentsSeparatedByString:@"x"];
+        CGSize size = CGSizeMake([sizes[0] integerValue], [sizes[1] integerValue]);
+        image = [image thumbnailSize:size transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
         // kCGInterpolationHigh
-        image = [image thumbnailImage:[squareSize integerValue] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
     }
     [res respondWithImage:image mimeType:mimeTypeParam];
 }
