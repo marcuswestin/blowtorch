@@ -1,6 +1,7 @@
 var parseUrl = require('url').parse
 var request = require('request')
 var imagemagick = require('imagemagick')
+var filter = require('std/filter')
 
 module.exports = {
 	setup:setup
@@ -16,14 +17,18 @@ function setup(app) {
 			send(res, params, cache[params.url])
 		} else {
 			delete req.headers.host
-			delete req.headers['cache-control']
-			request({ url:params.url, headers:req.headers, method:req.method, timeout:5000, encoding:null }, function(err, response, data) {
+			var headers = scrubHeaders(req.headers)
+			console.log("BTImage.fetchImage", params.url)
+			request({ url:params.url, headers:headers, method:req.method, timeout:5000, encoding:null }, function(err, response, data) {
 				if (err || res.statusCode >= 300) {
-					console.log("BTImage.fetchImage error", err)
+					console.log("BTImage.fetchImage error", params, err)
 					res.writeHead(err.code == 'ETIMEDOUT' ? 408 : 500)
 					res.end()
 				} else {
-					if (!data) { throw new Error("Got no data from Facebook") }
+					if (!data) {
+						console.log("No data", params, req.headers)
+						throw new Error("Got no data")
+					}
 					var result = { headers:response.headers, data:data }
 					if (params.cache) { cache[params.url] = result }
 					send(res, params, result)
@@ -33,17 +38,21 @@ function setup(app) {
 	})
 }
 
+var scrubHeaders = function(headers) {
+	var blackList = ['content-length', 'cache-control', 'if-none-match', 'expires', 'date']
+	return filter(headers, function(header) {
+		return blackList.indexOf(header) < 0
+	})
+}
+
 function send(res, params, result) {
 	var data = result.data
 	
 	function doSend(data) {
-		each(['content-length', 'cache-control', 'expires', 'date'], function(header) {
-			delete result.headers[header]
-		})
 		if (params.mimeType) {
 			result['content-type'] = params.mimeType
 		}
-		res.writeHead(200, result.headers)
+		res.writeHead(200, scrubHeaders(result.headers))
 		res.end(data)
 	}
 	
@@ -70,7 +79,7 @@ function resizeImage(data, resize, callback) {
 		height: sizes[1]+'^',
 		customArgs: customArgs
 	}, function(err, stdout, stderr) {
-		if (err) { throw err }
+		if (err || stderr) { throw (err || new Error(stderr)) }
 		callback(new Buffer(stdout, 'binary'))
 	})
 }
