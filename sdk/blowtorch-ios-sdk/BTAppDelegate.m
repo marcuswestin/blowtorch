@@ -502,7 +502,8 @@ static int uniqueId = 1;
 - (void)createWindowAndWebView {
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
     window = [[UIWindow alloc] initWithFrame:screenBounds];
-    window.backgroundColor = [UIColor grayColor];
+    window.windowLevel = UIWindowLevelStatusBar+1.f;
+    window.backgroundColor = [UIColor clearColor];
     [window makeKeyAndVisible];
     window.rootViewController = [[BTViewController alloc] init];
     
@@ -518,8 +519,18 @@ static int uniqueId = 1;
     _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Received unknown message %@", data);
     }];
+    
+    UIView* statusBarInterceptView = [[UIView alloc] initWithFrame:[UIApplication sharedApplication].statusBarFrame];
+    statusBarInterceptView.backgroundColor = [UIColor clearColor];
+    [statusBarInterceptView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onStatusBarTapped)]];
+    [window addSubview:statusBarInterceptView];
+    
     [self setupBridgeHandlers];
     [self setupNetHandlers];
+}
+
+- (void) onStatusBarTapped {
+    [self notify:@"statusBar.wasTapped"];
 }
 
 - (void)showLoadingOverlay {
