@@ -94,7 +94,8 @@ static BTAppDelegate* instance;
         }];
     }
     
-    
+    [self setupBridgeHandlers];
+    [self setupNetHandlers];
     [self setupModules];
 }
 
@@ -285,27 +286,24 @@ static BTAppDelegate* instance;
 /* Net API
  *********/
 - (void)setupNetHandlers {
-    NSString* btPrefix = @"/blowtorch/";
-    [WebViewProxy handleRequestsWithHost:self.serverHost pathPrefix:btPrefix handler:^(NSURLRequest *req, WVPResponse *res) {
-        NSString* path = [req.URL.path substringFromIndex:btPrefix.length];
-        NSArray* parts = [path componentsSeparatedByString:@"/"];
-        if ([[parts objectAtIndex:0] isEqualToString:@"media"]) {
-            NSString* format = [req.URL.path pathExtension];
-            NSString* mediaId = [parts.lastObject stringByDeletingPathExtension];
-            UIImage* image = [_mediaCache objectForKey:mediaId];
-            NSData* data;
-            NSString* mimeType;
-            if ([format isEqualToString:@"png"]) {
-                data = UIImagePNGRepresentation(image);
-                mimeType = @"image/png";
-            } else if ([format isEqualToString:@"jpg"] || [format isEqualToString:@"jpeg"]) {
-                data = UIImageJPEGRepresentation(image, .8);
-                mimeType = @"image/jpg";
-            } else {
-                return;
-            }
-            [res respondWithData:data mimeType:mimeType];
+    NSString* mediaPrefix = @"/blowtorch/media/";
+    [WebViewProxy handleRequestsWithHost:self.serverHost pathPrefix:mediaPrefix handler:^(NSURLRequest *req, WVPResponse *res) {
+        NSString* file = [req.URL.path substringFromIndex:mediaPrefix.length];
+        NSString* format = [file pathExtension];
+        NSString* mediaId = [file stringByDeletingPathExtension];
+        UIImage* image = [_mediaCache objectForKey:mediaId];
+        NSData* data;
+        NSString* mimeType;
+        if ([format isEqualToString:@"png"]) {
+            data = UIImagePNGRepresentation(image);
+            mimeType = @"image/png";
+        } else if ([format isEqualToString:@"jpg"] || [format isEqualToString:@"jpeg"]) {
+            data = UIImageJPEGRepresentation(image, .8);
+            mimeType = @"image/jpg";
+        } else {
+            return;
         }
+        [res respondWithData:data mimeType:mimeType];
     }];
 }
 
@@ -524,9 +522,6 @@ static int uniqueId = 1;
     statusBarInterceptView.backgroundColor = [UIColor clearColor];
     [statusBarInterceptView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onStatusBarTapped)]];
     [window addSubview:statusBarInterceptView];
-    
-    [self setupBridgeHandlers];
-    [self setupNetHandlers];
 }
 
 - (void) onStatusBarTapped {
