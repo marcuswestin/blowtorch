@@ -7,8 +7,6 @@
 #import "DebugUIWebView.h"
 #endif
 
-static BOOL DEV_MODE;
-
 @interface BTAppDelegate (hidden)
 - (NSURL*) getUrl:(NSString*) path;
 - (NSString*) getFilePath:(NSString*) name;
@@ -80,9 +78,8 @@ static BTAppDelegate* instance;
     else { return [_serverScheme stringByAppendingFormat:@"//%@", _serverHost]; }
 }
 
--(void)setupApp:(BOOL)devMode {
-    DEV_MODE = devMode;
-    if (!devMode) {
+-(void)setupApp:(BOOL)useLocalBuild {
+    if (useLocalBuild) {
         [WebViewProxy handleRequestsWithHost:self.serverHost path:@"/app" handler:^(NSURLRequest* req, WVPResponse *res) {
             [self _respond:res fileName:@"app.html" mimeType:@"text/html"];
         }];

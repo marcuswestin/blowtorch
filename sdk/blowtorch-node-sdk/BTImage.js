@@ -20,14 +20,14 @@ function setup(app) {
 			var headers = scrubHeaders(req.headers)
 			console.log("BTImage.fetchImage", params.url)
 			request({ url:params.url, headers:headers, method:req.method, timeout:5000, encoding:null }, function(err, response, data) {
-				if (err || res.statusCode >= 300) {
-					console.log("BTImage.fetchImage error", params, err)
-					res.writeHead(err.code == 'ETIMEDOUT' ? 408 : 500)
+				if (err || response.statusCode >= 300) {
+					console.log("BTImage.fetchImage error", params, response.statusCode, err, data && data.toString())
+					res.writeHead((err && err.code == 'ETIMEDOUT') ? 408 : 500)
 					res.end()
 				} else {
 					if (!data) {
 						console.log("No data", params, req.headers)
-						throw new Error("Got no data")
+						throw new Error("Got no data for " + params.url + " ("+JSON.stringify(headers)+")")
 					}
 					var result = { headers:response.headers, data:data }
 					if (params.cache) { cache[params.url] = result }

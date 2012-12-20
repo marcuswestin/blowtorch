@@ -23,7 +23,7 @@
 
 - (NSString*) serverUrl;
 - (NSString*) serverHost;
-- (void) setServerScheme:(NSString*)scheme host:(NSString*)host port:(NSString*)port;
+- (void)setServerScheme:(NSString*)scheme host:(NSString *)host port:(NSString *)port;
 
 /* Lifecycle API
  ***************/

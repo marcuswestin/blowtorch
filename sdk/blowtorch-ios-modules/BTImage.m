@@ -27,7 +27,7 @@
 }
 
 - (void)setup:(BTAppDelegate *)app {
-    [WebViewProxy handleRequestsWithHost:@"blowtorch" path:@"/BTImage/fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
+    [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage/fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
         [self fetchImage:req response:res];
     }];
 }
@@ -43,9 +43,13 @@ static NSString* cacheBucket = @"__BTImage__";
     bool cache = !![params objectForKey:@"cache"];
 
     if (cache) {
-        NSData* cacheData = [BTAppDelegate.instance.cache get:cacheBucket key:urlParam];
-        if (cacheData) {
-            return [self respondWithData:cacheData response:res params:params];
+        if ([BTAppDelegate.instance.cache has:cacheBucket key:urlParam]) {
+            UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
+            bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+                [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
+            }];
+            [self respondWithData:[BTAppDelegate.instance.cache get:cacheBucket key:urlParam] response:res params:params];
+            return;
         }
     }
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
