@@ -21,7 +21,7 @@ function setup(app) {
 			console.log("BTImage.fetchImage", params.url)
 			request({ url:params.url, headers:headers, method:req.method, timeout:5000, encoding:null }, function(err, response, data) {
 				if (err || response.statusCode >= 300) {
-					console.log("BTImage.fetchImage error", params, response.statusCode, err, data && data.toString())
+					console.log("BTImage.fetchImage error", params, response && response.statusCode, err, data && data.toString())
 					res.writeHead((err && err.code == 'ETIMEDOUT') ? 408 : 500)
 					res.end()
 				} else {
