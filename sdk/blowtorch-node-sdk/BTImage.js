@@ -39,7 +39,7 @@ function setup(app) {
 }
 
 var scrubHeaders = function(headers) {
-	var blackList = ['content-length', 'cache-control', 'if-none-match', 'expires', 'date']
+	var blackList = ['content-length', 'cache-control', 'if-modified-since', 'if-none-match', 'expires', 'date']
 	return filter(headers, function(value, header) {
 		return blackList.indexOf(header) < 0
 	})
