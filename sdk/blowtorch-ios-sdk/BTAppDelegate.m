@@ -270,14 +270,16 @@ static BTAppDelegate* instance;
 //    }];
 }
 
++ (void)notify:(NSString *)name info:(NSDictionary *)info { [instance notify:name info:info]; }
++ (void)notify:(NSString *)name { [instance notify:name]; }
 - (void)notify:(NSString *)event { [self notify:event info:NULL]; }
 - (void)notify:(NSString *)event info:(NSDictionary *)info {
     if (![event isEqualToString:@"device.rotated"]) {
         NSLog(@"Notify %@ %@", event, info);
     }
     if (!info) { info = [NSDictionary dictionary]; }
-    NSDictionary* message = [NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil];
-    [_bridge send:message];
+    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:event object:nil userInfo:info]];
+    [_bridge send:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil]];
 }
 
 /* Net API

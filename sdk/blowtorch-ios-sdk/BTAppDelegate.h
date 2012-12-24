@@ -35,7 +35,9 @@
 
 /* Webview API
  *************/
-- (void) notify:(NSString*)name info:(NSDictionary*)response;
++ (void) notify:(NSString*)name info:(NSDictionary*)info;
++ (void) notify:(NSString*)name;
+- (void) notify:(NSString*)name info:(NSDictionary*)info;
 - (void) notify:(NSString*)name;
 - (void) setupBridgeHandlers;
 - (void) setupNetHandlers;
