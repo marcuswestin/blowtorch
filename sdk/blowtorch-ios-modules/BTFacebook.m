@@ -68,6 +68,10 @@
     //    }];
 }
 
++ (BOOL)handleOpenURL:(NSURL *)url {
+    return [FBSession.activeSession handleOpenURL:url];
+}
+
 - (void)appDidBecomeActive {
     if (!FBSession.activeSession) { return; }
     [FBSession.activeSession handleDidBecomeActive];

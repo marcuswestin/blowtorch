@@ -5,4 +5,6 @@
 
 @interface BTFacebook : BTModule <FBDialogDelegate>
 
++ (BOOL)handleOpenURL:(NSURL*)url;
+
 @end
