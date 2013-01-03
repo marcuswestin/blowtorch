@@ -437,12 +437,14 @@ static int uniqueId = 1;
 }
 
 - (void)showMenu:(NSDictionary *)data response:(BTResponse*)response {
+    NSArray* titles = [data objectForKey:@"titles"];
+    NSString* title1 = titles.count > 0 ? [titles objectAtIndex:0] : nil;
+    NSString* title2 = titles.count > 1 ? [titles objectAtIndex:1] : nil;
+    NSString* title3 = titles.count > 2 ? [titles objectAtIndex:2] : nil;
+    NSString* title4 = titles.count > 3 ? [titles objectAtIndex:3] : nil;
+    
     _menuResponse = response;
-    UIActionSheet* sheet = [[UIActionSheet alloc] init];
-    sheet.delegate = self;
-    for (NSString* title in [data objectForKey:@"titles"]) {
-        [sheet addButtonWithTitle:title];
-    }
+    UIActionSheet* sheet = [[UIActionSheet alloc] initWithTitle:[data objectForKey:@"title"] delegate:self cancelButtonTitle:[data objectForKey:@"cancelTitle"] destructiveButtonTitle:[data objectForKey:@"destructiveTitle"] otherButtonTitles:title1, title2, title3, title4, nil];
     [sheet showInView:self.webView];
 }
 
