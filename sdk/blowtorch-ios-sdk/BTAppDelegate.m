@@ -514,6 +514,9 @@ static int uniqueId = 1;
     webView.dataDetectorTypes = UIDataDetectorTypeNone;
     webView.clipsToBounds = YES;
     webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal;
+    webView.scrollView.bounces = NO;
+    webView.scrollView.scrollsToTop = NO;
+    webView.scrollView.clipsToBounds = YES;
     [window.rootViewController.view addSubview:webView];
     _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Received unknown message %@", data);
