@@ -511,6 +511,7 @@ static int uniqueId = 1;
 #else
     webView = [[UIWebView alloc] initWithFrame:screenBounds];
 #endif
+    webView.dataDetectorTypes = UIDataDetectorTypeNone;
     webView.clipsToBounds = YES;
     webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal;
     [window.rootViewController.view addSubview:webView];
