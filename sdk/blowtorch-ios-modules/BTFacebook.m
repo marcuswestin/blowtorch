@@ -53,19 +53,12 @@
         NSMutableDictionary* params = [NSMutableDictionary dictionaryWithDictionary:[data objectForKey:@"params"]]; // so silly
         [_facebook dialog:dialog andParams:params andDelegate:self];
     }];
-    //    [self registerHandler:@"facebook.setSession" handler:^(id data, BTResponseCallback responseCallback) {
-    //        _facebook.accessToken = [data objectForKey:@"accessToken"];
-    //        NSDate* expirationDate = [NSDate dateWithTimeIntervalSince1970:[[data objectForKey:@"expirationDate"] doubleValue]];
-    //        _facebook.expirationDate = expirationDate;
-    //    }];
-    //    [self registerHandler:@"facebook.isSessionValid" handler:^(id data, BTResponseCallback responseCallback) {
-    //        bool hasSession = (FBSession.activeSession.state == FBSessionStateCreatedTokenLoaded);
-    //        responseCallback(nil, [NSDictionary dictionaryWithObject:jsonBool(hasSession) forKey:@"isValid"]);
-    //        responseCallback(nil, [NSDictionary dictionaryWithObject:jsonBool([_facebook isSessionValid]) forKey:@"isValid"]);
-    //    }];
-    //    [self registerHandler:@"facebook.extendAccessTokenIfNeeded" handler:^(id data, BTResponseCallback responseCallback) {
-    //        [_facebook extendAccessTokenIfNeeded];
-    //    }];
+    [app registerHandler:@"facebook.clear" handler:^(id data, BTResponseCallback responseCallback) {
+        if (FBSession.activeSession) {
+            [FBSession.activeSession closeAndClearTokenInformation];
+        }
+        responseCallback(nil, nil);
+    }];
 }
 
 + (BOOL)handleOpenURL:(NSURL *)url {
