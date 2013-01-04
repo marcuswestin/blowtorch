@@ -39,38 +39,61 @@ static NSString* cacheBucket = @"__BTImage__";
 
 - (void)fetchImage:(NSURLRequest *)req response:(WVPResponse *)res {
     NSDictionary* params = [self parseQueryParams:req.URL.query];
-    NSString* urlParam = [params objectForKey:@"url"];
-    bool cache = !![params objectForKey:@"cache"];
 
-    if (cache) {
-        if ([BTAppDelegate.instance.cache has:cacheBucket key:urlParam]) {
-            UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
-            bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
-                [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
-            }];
-            [self respondWithData:[BTAppDelegate.instance.cache get:cacheBucket key:urlParam] response:res params:params];
-            return;
+    bool useCache = !![params objectForKey:@"cache"];
+    if (useCache) {
+//        UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
+//        bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+//            [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
+//        }];
+        if ([BTAppDelegate.instance.cache has:cacheBucket key:req.URL.absoluteString]) {
+            NSData* cachedProcessedData = [BTAppDelegate.instance.cache get:cacheBucket key:req.URL.absoluteString];
+            [self respondWithData:cachedProcessedData response:res params:params];
+        } else if ([BTAppDelegate.instance.cache has:cacheBucket key:[params objectForKey:@"url"]]) {
+            NSData* cachedNetData = [BTAppDelegate.instance.cache get:cacheBucket key:[params objectForKey:@"url"]];
+            [self processData:cachedNetData request:req response:res params:params];
+        } else {
+            [self fetchData:req response:res params:params];
         }
+    } else {
+        [self fetchData:req response:res params:params];
     }
+}
+
+- (void)fetchData:(NSURLRequest *)req response:(WVPResponse*)res params:(NSDictionary*)params {
+    NSString* urlParam = [params objectForKey:@"url"];
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
-        if (cache) {
-            [BTAppDelegate.instance.cache store:cacheBucket key:urlParam data:netData];
-        }
-        [self respondWithData:netData response:res params:params];
+        [self processData:netData request:req response:res params:params];
     }];
 }
 
-- (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {
-    NSString* mimeTypeParam = [params objectForKey:@"mimeType"];
+- (void)processData:(NSData*)netData request:(NSURLRequest*)req response:(WVPResponse*)res params:(NSDictionary*)params {
+    bool useCache = !![params objectForKey:@"cache"];
+    if (useCache) {
+        [BTAppDelegate.instance.cache store:cacheBucket key:[params objectForKey:@"url"] data:netData];
+    }
+    
     NSString* resizeParam = [params objectForKey:@"resize"];
-    UIImage* image = [UIImage imageWithData:data];
     if (resizeParam) {
+        UIImage* image = [UIImage imageWithData:netData];
         NSArray* sizes = [resizeParam componentsSeparatedByString:@"x"];
         CGSize size = CGSizeMake([sizes[0] integerValue], [sizes[1] integerValue]);
         image = [image thumbnailSize:size transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
         // kCGInterpolationHigh
+        NSData* resizedData = UIImageJPEGRepresentation(image, 0.9);
+//        NSData* resizedData = UIImagePNGRepresentation(image);
+        if (useCache) {
+            [BTAppDelegate.instance.cache store:cacheBucket key:req.URL.absoluteString data:resizedData];
+        }
+        [self respondWithData:resizedData response:res params:params];
+    } else {
+        [self respondWithData:netData response:res params:params];
     }
-    [res respondWithImage:image mimeType:mimeTypeParam];
+}
+
+- (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {
+    NSString* mimeTypeParam = [params objectForKey:@"mimeType"];
+    [res respondWithData:data mimeType:mimeTypeParam];
 }
 @end
