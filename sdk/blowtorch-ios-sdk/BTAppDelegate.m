@@ -297,7 +297,7 @@ static BTAppDelegate* instance;
             data = UIImagePNGRepresentation(image);
             mimeType = @"image/png";
         } else if ([format isEqualToString:@"jpg"] || [format isEqualToString:@"jpeg"]) {
-            data = UIImageJPEGRepresentation(image, .8);
+            data = UIImageJPEGRepresentation(image, 1.0);
             mimeType = @"image/jpg";
         } else {
             return;
