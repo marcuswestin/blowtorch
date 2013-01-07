@@ -75,21 +75,38 @@ static NSString* cacheBucket = @"__BTImage__";
     }
     
     NSString* resizeParam = [params objectForKey:@"resize"];
+    NSString* cropParam = [params objectForKey:@"crop"];
+    
     if (resizeParam) {
+        CGSize size = [self getSize:resizeParam];
         UIImage* image = [UIImage imageWithData:netData];
-        NSArray* sizes = [resizeParam componentsSeparatedByString:@"x"];
-        CGSize size = CGSizeMake([sizes[0] integerValue], [sizes[1] integerValue]);
         image = [image thumbnailSize:size transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
         // kCGInterpolationHigh
-        NSData* resizedData = UIImageJPEGRepresentation(image, 0.9);
+        NSData* resizedData = UIImageJPEGRepresentation(image, 1.0);
 //        NSData* resizedData = UIImagePNGRepresentation(image);
         if (useCache) {
             [BTAppDelegate.instance.cache store:cacheBucket key:req.URL.absoluteString data:resizedData];
         }
         [self respondWithData:resizedData response:res params:params];
+    } else if (cropParam) {
+        CGSize size = [self getSize:cropParam];
+        UIImage* image = [UIImage imageWithData:netData];
+        CGSize deltaSize = CGSizeMake(image.size.width - size.width, image.size.height - size.height);
+        CGRect cropRect = CGRectMake(deltaSize.width / 2, deltaSize.height / 2, size.width, size.height);
+        image = [image croppedImage:cropRect];
+        NSData* croppedData = UIImageJPEGRepresentation(image, 1.0);
+        if (useCache) {
+            [BTAppDelegate.instance.cache store:cacheBucket key:req.URL.absoluteString data:croppedData];
+        }
+        [self respondWithData:croppedData response:res params:params];
     } else {
         [self respondWithData:netData response:res params:params];
     }
+}
+
+- (CGSize) getSize:(NSString*)sizeParam {
+    NSArray* sizes = [sizeParam componentsSeparatedByString:@"x"];
+    return CGSizeMake([sizes[0] integerValue], [sizes[1] integerValue]);
 }
 
 - (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {

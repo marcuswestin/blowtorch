@@ -2,6 +2,7 @@ var parseUrl = require('url').parse
 var request = require('request')
 var imagemagick = require('imagemagick')
 var filter = require('std/filter')
+var fs = require('fs')
 
 module.exports = {
 	setup:setup
@@ -58,9 +59,30 @@ function send(res, params, result) {
 	
 	if (params.resize) {
 		resizeImage(data, params.resize, doSend)
+	} else if (params.crop) {
+		cropImage(data, params.crop, doSend)
 	} else {
 		doSend(data)
 	}
+}
+
+function cropImage(data, crop, callback) {
+	var sizes = crop.split('x')
+	var time = new Date().getTime()
+	var srcPath = '/tmp/BTImage-crop-'+time+'.jpg'
+	fs.writeFileSync(srcPath, data)
+	
+	imagemagick.resize({
+		srcPath: srcPath,
+		// dstPath:dstPath,
+		width: parseInt(sizes[0]),
+		height: parseInt(sizes[1]),
+		quality: 1,
+		gravity: "Center"
+	}, function(err, stdout, stderr){
+		if (err || stderr) { throw (err || new Error(stderr)) }
+		callback(new Buffer(stdout, 'binary'))
+	})
 }
 
 function resizeImage(data, resize, callback) {
