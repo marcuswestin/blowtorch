@@ -78,9 +78,11 @@ static NSString* cacheBucket = @"__BTImage__";
     NSString* cropParam = [params objectForKey:@"crop"];
     
     if (resizeParam) {
+        NSString* radiusParam = [params objectForKey:@"radius"];
+        int radius = radiusParam ? [radiusParam intValue] : 0;
         CGSize size = [self getSize:resizeParam];
         UIImage* image = [UIImage imageWithData:netData];
-        image = [image thumbnailSize:size transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
+        image = [image thumbnailSize:size transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
         // kCGInterpolationHigh
         NSData* resizedData = UIImageJPEGRepresentation(image, 1.0);
 //        NSData* resizedData = UIImagePNGRepresentation(image);
