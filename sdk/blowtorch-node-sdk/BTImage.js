@@ -68,18 +68,11 @@ function send(res, params, result) {
 
 function cropImage(data, crop, callback) {
 	var sizes = crop.split('x')
-	var time = new Date().getTime()
+	var time = new Date().getTime()+Math.random()
 	var srcPath = '/tmp/BTImage-crop-'+time+'.jpg'
 	fs.writeFileSync(srcPath, data)
-	
-	imagemagick.resize({
-		srcPath: srcPath,
-		// dstPath:dstPath,
-		width: parseInt(sizes[0]),
-		height: parseInt(sizes[1]),
-		quality: 1,
-		gravity: "Center"
-	}, function(err, stdout, stderr){
+	imagemagick.convert([srcPath, '-gravity', 'center', '-crop', sizes.join('x')+'+0+0', '+repage', ':-'],
+		function(err, stdout, stderr){
 		if (err || stderr) { throw (err || new Error(stderr)) }
 		callback(new Buffer(stdout, 'binary'))
 	})
