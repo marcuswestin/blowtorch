@@ -517,10 +517,15 @@ static int uniqueId = 1;
     webView.scrollView.bounces = NO;
     webView.scrollView.scrollsToTop = NO;
     webView.scrollView.clipsToBounds = YES;
+    webView.scrollView.scrollEnabled = NO;
     [window.rootViewController.view addSubview:webView];
     _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Received unknown message %@", data);
     }];
+}
+
+-(UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
+    return nil;
 }
 
 - (void) onStatusBarTapped {
