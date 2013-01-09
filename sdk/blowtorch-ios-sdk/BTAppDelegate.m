@@ -522,6 +522,10 @@ static int uniqueId = 1;
     _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Received unknown message %@", data);
     }];
+
+    // we need to handle viewForZoomingInScrollView to avoid shifting the webview contents
+    // when a webview text input gains focus and becomes the first responder.
+    webView.scrollView.delegate = self;
 }
 
 -(UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
