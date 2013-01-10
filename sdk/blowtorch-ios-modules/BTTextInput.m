@@ -216,6 +216,8 @@
 }
 
 - (void)keyboardWillShow:(NSNotification *)notification {
+    [BTAppDelegate.instance putWindowOverChrome];
+    [self performSelector:@selector(_removeWebViewKeyboardBar) withObject:nil afterDelay:0];
     if (_params && [_params objectForKey:@"preventWebviewShift"]) {
         // do nothing
     } else {
@@ -230,6 +232,31 @@
         [self _shiftWebviewWithKeyboard:notification delay:0 speedup:0.05f];
     }
     _params = nil;
+}
+
+- (void)_removeWebViewKeyboardBar {
+    UIWindow *keyboardWindow = nil;
+    for (UIWindow *testWindow in [[UIApplication sharedApplication] windows]) {
+        if (![[testWindow class] isEqual:[UIWindow class]]) {
+            keyboardWindow = testWindow;
+            break;
+        }
+    }
+    if (!keyboardWindow) { return; }
+    for (UIView *possibleFormView in [keyboardWindow subviews]) {
+        if ([[possibleFormView description] rangeOfString:@"UIPeripheralHostView"].location != NSNotFound) {
+            for (UIView *subviewWhichIsPossibleFormView in [possibleFormView subviews]) {
+                if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"UIImageView"].location != NSNotFound) {
+                    // ios6 on retina phone adds a drop shadow to the UIWebFormAccessory. Hide it.
+                    subviewWhichIsPossibleFormView.frame = CGRectMake(0,0,0,0);
+                } else if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"UIWebFormAccessory"].location != NSNotFound) {
+                    // This is the "prev/next/done" bar
+                    [subviewWhichIsPossibleFormView removeFromSuperview];
+                }
+            }
+        }
+    }
+    [BTAppDelegate.instance putWindowUnderChrome];
 }
 
 - (void)_shiftWebviewWithKeyboard:(NSNotification *)notification delay:(float)delay speedup:(double)speedup {
