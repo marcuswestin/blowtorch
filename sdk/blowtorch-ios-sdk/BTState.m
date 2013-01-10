@@ -22,7 +22,7 @@
 }
 
 - (void)reset {
-    NSArray *searchPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray *searchPaths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *documentPath = [searchPaths lastObject];
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSArray* contents = [fileManager contentsOfDirectoryAtPath:documentPath error:nil];
@@ -33,7 +33,7 @@
 }
 
 - (NSString *)getFilePath:(NSString *)key {
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths lastObject];
     return [documentsDirectory stringByAppendingPathComponent:[key stringByAppendingString:@".btstate"]];
 }
