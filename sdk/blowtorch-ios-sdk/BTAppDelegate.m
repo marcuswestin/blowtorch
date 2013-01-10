@@ -530,6 +530,9 @@ static int uniqueId = 1;
 #else
     webView = [[UIWebView alloc] initWithFrame:screenBounds];
 #endif
+    if ([webView respondsToSelector:@selector(setSuppressesIncrementalRendering:)]) {
+        [webView setSuppressesIncrementalRendering:YES]; // iOS6 only
+    }
     webView.dataDetectorTypes = UIDataDetectorTypeNone;
     webView.clipsToBounds = YES;
     webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal;
