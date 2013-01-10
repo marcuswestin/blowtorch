@@ -8,19 +8,7 @@
 
 #import "BTTextInput.h"
 #import <QuartzCore/QuartzCore.h>
-
-@interface BTTextInput (hidden) <UITextViewDelegate>
-- (void) show:(NSDictionary*)params webView:(UIWebView*)webView;
-- (void) hide;
-- (void) set:(NSDictionary*) params;
-- (void) animate:(NSDictionary*) params;
-- (void) size;
-- (CGRect)rectFromDict:(NSDictionary *)params;
-- (UIReturnKeyType)returnKeyTypeFromDict:(NSDictionary *)params;
-- (UIEdgeInsets)insetsFromParam:(NSArray *)param;
-- (UIColor *)colorFromParam:(NSArray *)param;
-- (void)notify:(NSString*)signal info:(NSDictionary*)info;
-@end
+#import "BTAppDelegate.h"
 
 @implementation BTTextInput {
     UITextView* _textInput;
@@ -41,19 +29,33 @@
     [app.javascriptBridge registerHandler:@"textInput.set" handler:^(id data,  WVJBResponseCallback responseCallback) {
         [self set:data];
     }];
-}
-
-@end
-
-@implementation BTTextInput (hidden)
-
-- (void) show:(NSDictionary*)params webView:(UIWebView*)webView {
-    [self hide];
+    [app registerHandler:@"textInput.hideKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
+        [self hideKeyboard];
+    }];
     
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
     [center addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [center addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+}
 
+- (void)hideKeyboard {
+    [self blur:BTAppDelegate.instance.webView];
+}
+
+- (bool) blur:(UIView*)view {
+    if ([view isFirstResponder]) {
+        [view resignFirstResponder];
+        return YES;
+    }
+    for (UIView* subview in [view subviews]) {
+        if ([self blur:subview]) { return YES; }
+    }
+    return NO;
+}
+
+- (void) show:(NSDictionary*)params webView:(UIWebView*)webView {
+    [self hide];
+    
     _textInput = [[UITextView alloc] initWithFrame:[self rectFromDict:[params objectForKey:@"at"]]];
     _params=params;
     _webView = webView;
@@ -109,7 +111,6 @@
     _textInput = nil;
     _params = nil;
     _webView = nil;
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void) set:(NSDictionary*) params {
@@ -131,7 +132,7 @@
 // Text view events
 - (void)textViewDidChange:(UITextView *)textView {
     [self size];
-    [self notify:@"textInput.didChange" info:[NSDictionary dictionaryWithObject:_textInput.text forKey:@"text"]];
+    [BTAppDelegate notify:@"textInput.didChange" info:[NSDictionary dictionaryWithObject:_textInput.text forKey:@"text"]];
 }
 
 - (UIReturnKeyType)returnKeyTypeFromDict:(NSDictionary *)params {
@@ -150,7 +151,7 @@
 
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
     if([text isEqualToString:@"\n"]) {
-        [self notify:@"textInput.return" info:[NSDictionary dictionaryWithObject:_textInput.text forKey:@"text"]];
+        [BTAppDelegate notify:@"textInput.return" info:[NSDictionary dictionaryWithObject:_textInput.text forKey:@"text"]];
         return NO;
     }
     return YES;
@@ -180,7 +181,7 @@
 }
 
 - (void)textViewDidEndEditing:(UITextView *)textView {
-    [self notify:@"textInput.didEndEditing" info:nil];
+    [BTAppDelegate notify:@"textInput.didEndEditing" info:nil];
 }
 
 - (UIEdgeInsets)insetsFromParam:(NSArray *)param {
@@ -210,27 +211,28 @@
                               [NSNumber numberWithInt:dHeight], @"heightChange",
                               [NSNumber numberWithFloat:_textInput.frame.size.height], @"height",
                               nil];
-        [self notify:@"textInput.changedHeight" info:info];
+        [BTAppDelegate notify:@"textInput.changedHeight" info:info];
     }
 }
 
-- (void)notify:(NSString *)signal info:(NSDictionary *)info {
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"bt.notify" object:signal userInfo:info];
-}
-
 - (void)keyboardWillShow:(NSNotification *)notification {
-    if ([_params objectForKey:@"shiftWebview"]) {
-        [self shiftWebviewWithKeyboard:notification];
+    if (_params && [_params objectForKey:@"preventWebviewShift"]) {
+        // do nothing
+    } else {
+        [self _shiftWebviewWithKeyboard:notification delay:0.02f speedup:0.02f];
     }
 }
 
 - (void)keyboardWillHide:(NSNotification *)notification {
-    if ([_params objectForKey:@"shiftWebview"]) {
-        [self shiftWebviewWithKeyboard:notification];
+    if (_params && [_params objectForKey:@"preventWebviewShift"]) {
+        // do nothing
+    } else {
+        [self _shiftWebviewWithKeyboard:notification delay:0 speedup:0.05f];
     }
+    _params = nil;
 }
 
-- (void)shiftWebviewWithKeyboard:(NSNotification *)notification {
+- (void)_shiftWebviewWithKeyboard:(NSNotification *)notification delay:(float)delay speedup:(double)speedup {
     NSDictionary* userInfo = [notification userInfo];
     NSTimeInterval animationDuration;
     CGRect begin;
@@ -238,11 +240,23 @@
     [[userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey] getValue:&animationDuration];
     [[userInfo objectForKey:UIKeyboardFrameBeginUserInfoKey] getValue:&begin];
     [[userInfo objectForKey:UIKeyboardFrameEndUserInfoKey] getValue:&end];
-    [UIView animateWithDuration:animationDuration animations:^{
-        CGRect frame = _webView.frame;
-        _webView.frame = CGRectMake(frame.origin.x, frame.origin.y-(begin.origin.y-end.origin.y), frame.size.width, frame.size.height);
-    }];
+    float delta = begin.origin.y-end.origin.y;
+    delta = (delta > 0 ? delta - 44 : delta + 44); // take the webview top bar into account
+    if (delta == 0.0) {
+        return;
+    }
+    UIWebView* webView = BTAppDelegate.instance.webView;
+    CGRect frame = webView.frame;
+    CGRect newFrame = CGRectMake(frame.origin.x, frame.origin.y-delta, frame.size.width, frame.size.height);
+    animationDuration -= speedup;
+    if (delay > 0.0f) {
+        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
+        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+            [UIView animateWithDuration:animationDuration animations:^{ webView.frame = newFrame; }];
+        });
+    } else {
+        [UIView animateWithDuration:animationDuration animations:^{ webView.frame = newFrame; }];
+    }
 }
-
 
 @end

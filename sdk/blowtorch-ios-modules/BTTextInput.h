@@ -9,6 +9,6 @@
 #import <Foundation/Foundation.h>
 #import "BTModule.h"
 
-@interface BTTextInput : BTModule
+@interface BTTextInput : BTModule <UITextViewDelegate>
 @property (strong,nonatomic,readonly) UITextView* textInput;
 @end

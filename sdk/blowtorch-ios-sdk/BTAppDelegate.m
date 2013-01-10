@@ -52,11 +52,9 @@ static BTAppDelegate* instance;
     [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
     
     NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
-    
     [notifications addObserver:self selector:@selector(didRotate:) name:@"UIDeviceOrientationDidChangeNotification" object:nil];
     [notifications addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [notifications addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
-    [notifications addObserver:self selector:@selector(handleBTNotification:) name:@"bt.notify" object:nil];
     
     launchNotification = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
     
@@ -180,10 +178,6 @@ static BTAppDelegate* instance;
     }
     NSNumber* degNum = [NSNumber numberWithInt:deg];
     [self notify:@"device.rotated" info:[NSDictionary dictionaryWithObject:degNum forKey:@"deg"]];
-}
-
-- (void)handleBTNotification:(NSNotification*)notification {
-    [self notify:notification.object info:notification.userInfo];
 }
 
 - (void)keyboardWillShow:(NSNotification *)notification {
@@ -416,6 +410,8 @@ static int uniqueId = 1;
     mediaUI.delegate = self;
     
     _mediaResponse = response;
+
+    [self _putWindowUnderBar];
     [self.window.rootViewController presentModalViewController: mediaUI animated: YES];
 }
 
@@ -429,11 +425,34 @@ static int uniqueId = 1;
                             [NSNumber numberWithFloat:image.size.height], @"height",
                             nil];
     [_mediaResponse respondWith:info];
+    [self performSelector:@selector(_putWindowOverChrome) withObject:nil afterDelay:0.25];
 }
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
     [self.window.rootViewController dismissModalViewControllerAnimated: YES];
     [_mediaResponse respondWith:[NSDictionary dictionary]];
+    [self performSelector:@selector(_putWindowOverChrome) withObject:nil afterDelay:0.25];
+}
+
+- (void)_createStatusBarOverlay {
+    // Put a transparent view on top of the status bar in order to intercept touch 
+    [self _putWindowOverChrome];
+    UIView* statusBarOverlay = [[UIView alloc] initWithFrame:[UIApplication sharedApplication].statusBarFrame];
+    statusBarOverlay.backgroundColor = [UIColor clearColor];
+    [statusBarOverlay addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onStatusBarTapped)]];
+    window.backgroundColor = [UIColor clearColor];
+    [window addSubview:statusBarOverlay];
+}
+
+- (void)_putWindowOverChrome {
+    // This is done for 2 reasons:
+    // 1) cause the keyboard (and its webview accessory - "prev/next/done" toolbar - to render underneath the webview)
+    // 2) cause the status bar overlay to intercept status bar touch events
+    window.windowLevel = UIWindowLevelStatusBar + 1;
+}
+
+- (void)_putWindowUnderBar {
+    window.windowLevel = UIWindowLevelNormal;
 }
 
 - (void)showMenu:(NSDictionary *)data response:(BTResponse*)response {
@@ -560,11 +579,7 @@ static int uniqueId = 1;
 
 - (void) finishHideOverlay {
     [self.overlay removeFromSuperview];
-    window.windowLevel = UIWindowLevelStatusBar+0.5; // setting the window level lets us put
-    UIView* statusBarInterceptView = [[UIView alloc] initWithFrame:[UIApplication sharedApplication].statusBarFrame];
-    statusBarInterceptView.backgroundColor = [UIColor clearColor];
-    [statusBarInterceptView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onStatusBarTapped)]];
-    [window addSubview:statusBarInterceptView];
+    [self _createStatusBarOverlay];
 }
 
 - (NSDictionary *)keyboardEventInfo:(NSNotification *)notification {
