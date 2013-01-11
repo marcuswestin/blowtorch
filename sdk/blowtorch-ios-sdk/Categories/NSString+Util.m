@@ -3,7 +3,7 @@
 //  dogo
 //
 //  Created by Marcus Westin on 11/13/12.
-//  Copyright (c) 2012 Meebo. All rights reserved.
+//  Copyright (c) 2012 Flutterby. All rights reserved.
 //
 
 #import "NSString+Util.h"
