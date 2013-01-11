@@ -55,6 +55,7 @@ static BTAppDelegate* instance;
     [notifications addObserver:self selector:@selector(didRotate:) name:@"UIDeviceOrientationDidChangeNotification" object:nil];
     [notifications addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
     [notifications addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+    [notifications addObserver:self selector:@selector(keyboardDidHide:) name:UIKeyboardDidHideNotification object:nil];
     
     launchNotification = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
     
@@ -188,6 +189,10 @@ static BTAppDelegate* instance;
     [self notify:@"keyboard.willHide" info:[self keyboardEventInfo:notification]];
 }
 
+- (void)keyboardDidHide:(NSNotification*)notification {
+    [self _expandViewport:0.0]; // always return viewport to 0 expansion when keyboard goes away
+}
+
 /* WebView <-> Native API
  ************************/
 - (void)setupBridgeHandlers {
@@ -252,6 +257,20 @@ static BTAppDelegate* instance;
     // version.*
     [self registerHandler:@"version.download" handler:^(id data, BTResponseCallback responseCallback) {
         [self downloadAppVersion:data response:[BTResponse responseWithCallback:responseCallback]];
+    }];
+    
+    // viewport.*
+    [self registerHandler:@"viewport.expand" handler:^(id data, BTResponseCallback responseCallback) {
+        [self _expandViewport:[[data objectForKey:@"height"] floatValue]];
+    }];
+    [self registerHandler:@"viewport.putOverKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
+        [self putWindowOverKeyboard];
+    }];
+    [self registerHandler:@"viewport.putOverStatusBar" handler:^(id data, BTResponseCallback responseCallback) {
+        [self putWindowOverStatusBar];
+    }];
+    [self registerHandler:@"viewport.putUnderChrome" handler:^(id data, BTResponseCallback responseCallback) {
+        [self putWindowUnderChrome];
     }];
     
 //    // index.*
@@ -456,6 +475,13 @@ static int uniqueId = 1;
 
 - (void)putWindowUnderChrome {
     window.windowLevel = UIWindowLevelNormal;
+}
+
+- (void) _expandViewport:(float)addHeight {
+    float normalHeight = [[UIScreen mainScreen] bounds].size.height - 20;
+    CGRect frame = webView.frame;
+    CGRect newFrame = CGRectMake(frame.origin.x, frame.origin.y, frame.size.width, normalHeight + addHeight);
+    webView.frame = newFrame;
 }
 
 - (void)showMenu:(NSDictionary *)data response:(BTResponse*)response {
