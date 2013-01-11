@@ -216,7 +216,7 @@
 }
 
 - (void)keyboardWillShow:(NSNotification *)notification {
-    [BTAppDelegate.instance putWindowOverChrome];
+    [BTAppDelegate.instance putWindowOverKeyboard];
     [self performSelector:@selector(_removeWebViewKeyboardBar) withObject:nil afterDelay:0];
     if (_params && [_params objectForKey:@"preventWebviewShift"]) {
         // do nothing

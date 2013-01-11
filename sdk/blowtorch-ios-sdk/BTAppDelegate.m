@@ -425,18 +425,18 @@ static int uniqueId = 1;
                             [NSNumber numberWithFloat:image.size.height], @"height",
                             nil];
     [_mediaResponse respondWith:info];
-    [self performSelector:@selector(putWindowOverChrome) withObject:nil afterDelay:0.25];
+    [self performSelector:@selector(putWindowOverStatusBar) withObject:nil afterDelay:0.25];
 }
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
     [self.window.rootViewController dismissModalViewControllerAnimated: YES];
     [_mediaResponse respondWith:[NSDictionary dictionary]];
-    [self performSelector:@selector(putWindowOverChrome) withObject:nil afterDelay:0.25];
+    [self performSelector:@selector(putWindowOverStatusBar) withObject:nil afterDelay:0.25];
 }
 
 - (void)_createStatusBarOverlay {
     // Put a transparent view on top of the status bar in order to intercept touch 
-    [self putWindowOverChrome];
+    [self putWindowOverStatusBar];
     UIView* statusBarOverlay = [[UIView alloc] initWithFrame:[UIApplication sharedApplication].statusBarFrame];
     statusBarOverlay.backgroundColor = [UIColor clearColor];
     [statusBarOverlay addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onStatusBarTapped)]];
@@ -444,11 +444,14 @@ static int uniqueId = 1;
     [window addSubview:statusBarOverlay];
 }
 
-- (void)putWindowOverChrome {
-    // This is done for 2 reasons:
-    // 1) cause the keyboard (and its webview accessory - "prev/next/done" toolbar - to render underneath the webview)
-    // 2) cause the status bar overlay to intercept status bar touch events
-    window.windowLevel = UIWindowLevelStatusBar + 1;
+- (void)putWindowOverStatusBar {
+    // cause the status bar overlay to intercept status bar touch events
+    window.windowLevel = UIWindowLevelStatusBar + 0.1;
+}
+
+- (void)putWindowOverKeyboard {
+    // cause the keyboard (and its webview accessory - "prev/next/done" toolbar - to render underneath the webview)
+    window.windowLevel = UIWindowLevelStatusBar - 0.1;
 }
 
 - (void)putWindowUnderChrome {
