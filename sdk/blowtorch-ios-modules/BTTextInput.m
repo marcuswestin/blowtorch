@@ -221,7 +221,6 @@
     if (_params && [_params objectForKey:@"preventWebviewShift"]) {
         // do nothing
     } else {
-        [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent animated:YES];
         [self _shiftWebviewWithKeyboard:notification delay:0.02f speedup:0.02f];
     }
 }
@@ -230,7 +229,6 @@
     if (_params && [_params objectForKey:@"preventWebviewShift"]) {
         // do nothing
     } else {
-        [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackOpaque animated:YES];
         [self _shiftWebviewWithKeyboard:notification delay:0 speedup:0.05f];
     }
     _params = nil;

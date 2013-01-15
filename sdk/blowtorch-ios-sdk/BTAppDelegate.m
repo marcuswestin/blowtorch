@@ -266,11 +266,8 @@ static BTAppDelegate* instance;
     [self registerHandler:@"viewport.putOverKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
         [self putWindowOverKeyboard];
     }];
-    [self registerHandler:@"viewport.putOverStatusBar" handler:^(id data, BTResponseCallback responseCallback) {
-        [self putWindowOverStatusBar];
-    }];
-    [self registerHandler:@"viewport.putUnderChrome" handler:^(id data, BTResponseCallback responseCallback) {
-        [self putWindowUnderChrome];
+    [self registerHandler:@"viewport.putUnderKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
+        [self putWindowUnderKeyboard];
     }];
     
 //    // index.*
@@ -463,22 +460,17 @@ static int uniqueId = 1;
     [window addSubview:statusBarOverlay];
 }
 
-- (void)putWindowOverStatusBar {
-    // cause the status bar overlay to intercept status bar touch events
-    window.windowLevel = UIWindowLevelStatusBar + 0.1;
-}
-
 - (void)putWindowOverKeyboard {
     // cause the keyboard (and its webview accessory - "prev/next/done" toolbar - to render underneath the webview)
     window.windowLevel = UIWindowLevelStatusBar - 0.1;
 }
 
-- (void)putWindowUnderChrome {
+- (void)putWindowUnderKeyboard {
     window.windowLevel = UIWindowLevelNormal;
 }
 
 - (void) _expandViewport:(float)addHeight {
-    float normalHeight = [[UIScreen mainScreen] bounds].size.height - 20;
+    float normalHeight = [[UIScreen mainScreen] bounds].size.height;
     CGRect frame = webView.frame;
     CGRect newFrame = CGRectMake(frame.origin.x, frame.origin.y, frame.size.width, normalHeight + addHeight);
     webView.frame = newFrame;
@@ -553,7 +545,7 @@ static int uniqueId = 1;
     [window makeKeyAndVisible];
     window.rootViewController = [[BTViewController alloc] init];
     
-    screenBounds.size.height -= 20;
+    screenBounds.origin.y -= 20;
 #ifdef DEBUG
     webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
 #else
