@@ -427,7 +427,6 @@ static int uniqueId = 1;
     
     _mediaResponse = response;
 
-    [self putWindowUnderChrome];
     [self.window.rootViewController presentModalViewController: mediaUI animated: YES];
 }
 
@@ -441,18 +440,15 @@ static int uniqueId = 1;
                             [NSNumber numberWithFloat:image.size.height], @"height",
                             nil];
     [_mediaResponse respondWith:info];
-    [self performSelector:@selector(putWindowOverStatusBar) withObject:nil afterDelay:0.25];
 }
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
     [self.window.rootViewController dismissModalViewControllerAnimated: YES];
     [_mediaResponse respondWith:[NSDictionary dictionary]];
-    [self performSelector:@selector(putWindowOverStatusBar) withObject:nil afterDelay:0.25];
 }
 
 - (void)_createStatusBarOverlay {
     // Put a transparent view on top of the status bar in order to intercept touch 
-    [self putWindowOverStatusBar];
     UIView* statusBarOverlay = [[UIView alloc] initWithFrame:[UIApplication sharedApplication].statusBarFrame];
     statusBarOverlay.backgroundColor = [UIColor clearColor];
     [statusBarOverlay addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onStatusBarTapped)]];

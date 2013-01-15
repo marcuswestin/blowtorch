@@ -256,7 +256,7 @@
             }
         }
     }
-    [BTAppDelegate.instance putWindowUnderChrome];
+    [BTAppDelegate.instance putWindowUnderKeyboard];
 }
 
 - (void)_shiftWebviewWithKeyboard:(NSNotification *)notification delay:(float)delay speedup:(double)speedup {

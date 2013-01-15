@@ -51,9 +51,8 @@
  **********/
 - (void)keyboardWillShow:(NSNotification *)notification;
 - (void)keyboardWillHide:(NSNotification *)notification;
-- (void)putWindowOverStatusBar;
 - (void)putWindowOverKeyboard;
-- (void)putWindowUnderChrome;
+- (void)putWindowUnderKeyboard;
 
 /* Misc
  ******/
