@@ -88,11 +88,24 @@ static BTAppDelegate* instance;
         [WebViewProxy handleRequestsWithHost:self.serverHost path:@"appCss.css" handler:^(NSURLRequest *req, WVPResponse *res) {
             [self _respond:res fileName:@"appCss.css" mimeType:@"text/css"];
         }];
+        [self _renderDevTools];
     }
     
     [self setupBridgeHandlers];
     [self setupNetHandlers];
     [self setupModules];
+}
+
+-(void)_renderDevTools {
+    UILabel* reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-30,200,30,30)];
+    reloadView.userInteractionEnabled = YES;
+    reloadView.text = @"R";
+    reloadView.font = [UIFont fontWithName:@"Open Sans" size:20];
+    reloadView.textAlignment = NSTextAlignmentCenter;
+    reloadView.backgroundColor = [UIColor whiteColor];
+    reloadView.alpha = 0.5;
+    [reloadView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(startApp)]];
+    [window.rootViewController.view addSubview:reloadView];
 }
 
 -(void)startApp {
