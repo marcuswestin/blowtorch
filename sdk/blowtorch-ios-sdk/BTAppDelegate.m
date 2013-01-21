@@ -88,6 +88,7 @@ static BTAppDelegate* instance;
         [WebViewProxy handleRequestsWithHost:self.serverHost path:@"appCss.css" handler:^(NSURLRequest *req, WVPResponse *res) {
             [self _respond:res fileName:@"appCss.css" mimeType:@"text/css"];
         }];
+    } else {
         [self _renderDevTools];
     }
     
@@ -97,7 +98,7 @@ static BTAppDelegate* instance;
 }
 
 -(void)_renderDevTools {
-    UILabel* reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-30,200,30,30)];
+    UILabel* reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-30,260,30,30)];
     reloadView.userInteractionEnabled = YES;
     reloadView.text = @"R";
     reloadView.font = [UIFont fontWithName:@"Open Sans" size:20];
