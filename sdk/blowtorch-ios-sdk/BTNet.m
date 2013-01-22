@@ -66,7 +66,6 @@ static NSOperationQueue* queue;
     }
     
     [httpData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-    NSLog(@"SEND %@", [[NSString alloc] initWithData:httpData encoding:NSUTF8StringEncoding]);
     [BTNet request:url method:@"POST" headers:headers data:httpData responseCallback:responseCallback];
 }
 
