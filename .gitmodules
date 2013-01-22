@@ -13,3 +13,6 @@
 [submodule "dependencies/UIImage-Categories"]
 	path = dependencies/UIImage-Categories
 	url = git://github.com/mbcharbonneau/UIImage-Categories.git
+[submodule "dependencies/Base64"]
+	path = dependencies/Base64
+	url = git://github.com/nicklockwood/Base64.git

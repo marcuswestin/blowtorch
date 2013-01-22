@@ -15,46 +15,104 @@ static NSOperationQueue* queue;
     return self;
 }
 
-//static NSString* cacheBucket = @"__BTNet__";
-//- (void) cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(WVJBResponseCallback)responseCallback {
-//    if (!asUrl) { asUrl = url; }
-//    
-//    NSLog(@"Cache request %@ as %@", url, asUrl);
-//    
-//    if (!override && [BTAppDelegate.instance.cache has:cacheBucket key:[BTNet urlEncodeValue:asUrl]]) {
-//        NSLog(@"FOUND URL IN CACHE %@ %@", url, asUrl);
-//        responseCallback(nil, nil);
-//    } else {
-//        [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
-//            if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) {
-//                NSLog(@"ERROR GETTING URL %@", url);
-//                return responseCallback(@"Error getting url", nil);
-//            }
-//            [BTAppDelegate.instance.cache store:cacheBucket key:asUrl data:netData];
-//            NSLog(@"Cached %@ as %@", url, asUrl);
-//            responseCallback(nil, nil);
-//        }];
-//    }
-//}
++ (void)request:(NSDictionary *)data responseCallback:(BTResponseCallback)responseCallback {
+    NSString* url = [data objectForKey:@"url"];
+    NSString* method = [data objectForKey:@"method"];
+    NSDictionary* postParams = [data objectForKey:@"params"];
+    NSDictionary* headers = [data objectForKey:@"headers"];
+    
+    [BTNet request:url method:method headers:headers params:postParams responseCallback:responseCallback];
+}
 
++ (void)post:(NSString*)url json:(NSDictionary*)params data:(NSData*)data headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(id)responseCallback {
+    NSDictionary* jsonPart = [NSDictionary dictionaryWithObjectsAndKeys:
+                              @"attachment; name=\"multipartParams\"", @"Content-Disposition",
+                              @"application/json", @"Content-Type",
+                              [NSJSONSerialization dataWithJSONObject:params options:0 error:nil], @"data",
+                              nil];
+    
+    NSDictionary* dataPart = nil;
+    if (data) {
+        dataPart = [NSDictionary dictionaryWithObjectsAndKeys:
+                    @"form-data; name=\"data\" filename=\"data\"", @"Content-Disposition",
+                    @"application/octet-stream", @"Content-Type",
+                    data, @"data",
+                    nil];
+    }
+    
+    NSMutableArray* parts = [NSArray arrayWithObjects:jsonPart, dataPart, nil];
+    [BTNet postMultipart:url headers:headers parts:parts boundary:boundary responseCallback:responseCallback];
+}
+
++ (void)postMultipart:(NSString *)url headers:(NSDictionary *)headers parts:(NSArray *)parts boundary:(NSString*)boundary responseCallback:(BTResponseCallback)responseCallback {
+    
+    NSMutableDictionary* _headers = [NSMutableDictionary dictionaryWithDictionary:headers];
+    [_headers setObject:[NSString stringWithFormat:@"multipart/form-data; boundary=%@", boundary] forKey:@"Content-Type"];
+    headers = _headers;
+
+    NSMutableData* httpData = [NSMutableData data];
+    for (NSDictionary* part in parts) {
+        NSData* data = [part valueForKey:@"data"];
+        // BOUNDARY
+        [httpData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
+        // HEADERS
+        [httpData appendData:[[NSString stringWithFormat:@"Content-Disposition: %@\r\n", [part valueForKey:@"Content-Disposition"]] dataUsingEncoding:NSUTF8StringEncoding]];
+        [httpData appendData:[[NSString stringWithFormat:@"Content-Type: %@\r\n", [part valueForKey:@"Content-Type"]] dataUsingEncoding:NSUTF8StringEncoding]];
+        // EMPTY
+        [httpData appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
+        // CONTENT + newline
+        [httpData appendData:[NSData dataWithData:data]];
+        [httpData appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
+    }
+    
+    [httpData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
+    NSLog(@"SEND %@", [[NSString alloc] initWithData:httpData encoding:NSUTF8StringEncoding]);
+    [BTNet request:url method:@"POST" headers:headers data:httpData responseCallback:responseCallback];
+}
 
 + (void)request:(NSString *)url method:(NSString *)method headers:(NSDictionary *)headers params:(NSDictionary *)params responseCallback:(BTResponseCallback)responseCallback {
+    NSData* data = nil;
+    if (params) {
+        data = [NSJSONSerialization dataWithJSONObject:params options:0 error:nil];
+        NSMutableDictionary* _headers = [NSMutableDictionary dictionaryWithDictionary:headers];
+        [_headers setObject:@"application/json" forKey:@"Content-Type"];
+        headers = _headers;
+    }
+    [BTNet request:url method:method headers:headers data:data responseCallback:responseCallback];
+}
+
++ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary*)headers data:(NSData*)data responseCallback:(BTResponseCallback)responseCallback {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
     request.HTTPMethod = method;
+
+    if (data) {
+        request.HTTPBody = data;
+        NSMutableDictionary* _headers = [NSMutableDictionary dictionaryWithDictionary:headers];
+        [_headers setObject:[NSString stringWithFormat:@"%d", request.HTTPBody.length] forKey:@"Content-Length"];
+        headers = _headers;
+    }
+    
     for (NSString* headerName in headers) {
         [request setValue:[headers objectForKey:headerName] forHTTPHeaderField:headerName];
     }
-    if (params) {
-        NSData* data = [NSJSONSerialization dataWithJSONObject:params options:0 error:nil];
-        request.HTTPBody = data;
-        [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-        [request setValue:[NSString stringWithFormat:@"%d", data.length] forHTTPHeaderField:@"Content-Length"];
-    }
+
+    UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
+    bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+        [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
+    }];
+    
     [NSURLConnection sendAsynchronousRequest:request queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
+        [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
         if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) {
-            responseCallback(@"Could not load", nil);
+            NSString* errorMessage = netData ? [[NSString alloc] initWithData:netData encoding:NSUTF8StringEncoding] : @"Could not complete request";
+            responseCallback(errorMessage, nil);
         } else {
-            responseCallback(nil, netData);
+            // Should inspect response content type and not assume application/json.
+            NSDictionary* jsonData = nil;
+            if (netData && netData.length) {
+                jsonData = [NSJSONSerialization JSONObjectWithData:netData options:NSJSONReadingAllowFragments error:nil];
+            }
+            responseCallback(nil, jsonData);
         }
     }];
 }
