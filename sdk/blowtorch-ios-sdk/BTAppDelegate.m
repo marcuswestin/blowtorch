@@ -2,6 +2,7 @@
 #import "NSFileManager+Tar.h"
 #import "BTViewController.h"
 #import "BTIndex.h"
+#import "UIColor+Util.h"
 
 #ifdef DEBUG
 #import "DebugUIWebView.h"
@@ -466,7 +467,6 @@ static int uniqueId = 1;
     UIView* statusBarOverlay = [[UIView alloc] initWithFrame:[UIApplication sharedApplication].statusBarFrame];
     statusBarOverlay.backgroundColor = [UIColor clearColor];
     [statusBarOverlay addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onStatusBarTapped)]];
-    window.backgroundColor = [UIColor clearColor];
     [window addSubview:statusBarOverlay];
 }
 
@@ -551,7 +551,7 @@ static int uniqueId = 1;
 - (void)createWindowAndWebView {
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
     window = [[UIWindow alloc] initWithFrame:screenBounds];
-    window.backgroundColor = [UIColor clearColor];
+    window.backgroundColor = [UIColor r:146 g:153 b:163];
     [window makeKeyAndVisible];
     window.rootViewController = [[BTViewController alloc] init];
     
