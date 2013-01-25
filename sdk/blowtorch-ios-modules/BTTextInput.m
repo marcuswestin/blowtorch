@@ -264,9 +264,11 @@
     NSTimeInterval animationDuration;
     CGRect begin;
     CGRect end;
+    UIViewAnimationCurve animationCurve;
     [[userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey] getValue:&animationDuration];
     [[userInfo objectForKey:UIKeyboardFrameBeginUserInfoKey] getValue:&begin];
     [[userInfo objectForKey:UIKeyboardFrameEndUserInfoKey] getValue:&end];
+    [[userInfo objectForKey:UIKeyboardAnimationCurveUserInfoKey] getValue:&animationCurve];
     float delta = begin.origin.y-end.origin.y;
     delta = (delta > 0 ? delta - 44 : delta + 44); // take the webview top bar into account
     if (delta == 0.0) {
@@ -276,14 +278,7 @@
     CGRect frame = webView.frame;
     CGRect newFrame = CGRectMake(frame.origin.x, frame.origin.y-delta, frame.size.width, frame.size.height);
     animationDuration -= speedup;
-    if (delay > 0.0f) {
-        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
-        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-            [UIView animateWithDuration:animationDuration animations:^{ webView.frame = newFrame; }];
-        });
-    } else {
-        [UIView animateWithDuration:animationDuration animations:^{ webView.frame = newFrame; }];
-    }
+    [UIView animateWithDuration:animationDuration delay:delay options:animationCurve animations:^{ webView.frame = newFrame; } completion:nil];
 }
 
 @end
