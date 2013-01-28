@@ -99,13 +99,13 @@ static BTAppDelegate* instance;
 }
 
 -(void)_renderDevTools {
-    UILabel* reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-30,260,30,30)];
+    UILabel* reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-30,120,30,30)];
     reloadView.userInteractionEnabled = YES;
     reloadView.text = @"R";
     reloadView.font = [UIFont fontWithName:@"Open Sans" size:20];
     reloadView.textAlignment = NSTextAlignmentCenter;
     reloadView.backgroundColor = [UIColor whiteColor];
-    reloadView.alpha = 0.5;
+    reloadView.alpha = 0.25;
     [reloadView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(startApp)]];
     [window.rootViewController.view addSubview:reloadView];
 }
