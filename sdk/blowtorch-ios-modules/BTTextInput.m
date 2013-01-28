@@ -245,9 +245,14 @@
     }
     if (!keyboardWindow) { return; }
     for (UIView *possibleFormView in [keyboardWindow subviews]) {
-        if ([[possibleFormView description] rangeOfString:@"UIPeripheralHostView"].location != NSNotFound) {
+        if ([[possibleFormView description] rangeOfString:@"<UIPeripheralHostView:"].location != NSNotFound) {
             for (UIView *subviewWhichIsPossibleFormView in [possibleFormView subviews]) {
-                if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"UIImageView"].location != NSNotFound) {
+                if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"<UIKeyboardAutomatic:"].location != NSNotFound) {
+//                    UIView* view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 320, 2)];
+//                    view.backgroundColor = [UIColor colorWithRed:144/255.0 green:152/255.0 blue:163/255.0 alpha:1];
+//                    [subviewWhichIsPossibleFormView addSubview:view];
+
+                } else if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"<UIImageView:"].location != NSNotFound) {
                     // ios6 on retina phone adds a drop shadow to the UIWebFormAccessory. Hide it.
                     subviewWhichIsPossibleFormView.frame = CGRectMake(0,0,0,0);
                 } else if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"UIWebFormAccessory"].location != NSNotFound) {
