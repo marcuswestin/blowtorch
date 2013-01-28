@@ -8,11 +8,9 @@
 
 #import "BTImage.h"
 #import "UIImage+Resize.h"
+#import "UIImage+HHImages.h"
 
-@interface BTImage (hidden)
-- (void) fetchImage:(NSURLRequest*)req response:(WVPResponse*)res;
-- (void) respondWithData:(NSData*)data response:(WVPResponse*)res params:(NSDictionary*)params;
-@end
+static NSString* cacheBucket = @"__BTImage__";
 
 @implementation BTImage {
     NSOperationQueue* queue;
@@ -28,47 +26,96 @@
 
 - (void)setup:(BTAppDelegate *)app {
     [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage/fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
-        [self fetchImage:req response:res];
+        [self fetchImage:req.URL.absoluteString params:[req.URL.query parseQueryParams] response:res];
+    }];
+    [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage/collage" handler:^(NSURLRequest *req, WVPResponse *res) {
+        [self collage:req.URL.absoluteString params:[req.URL.query parseQueryParams] response:res];
     }];
 }
-@end
 
-static NSString* cacheBucket = @"__BTImage__";
+- (void)withResource:(NSString*)resourceUrl handler:(void(^)(id err, NSData* resource))handler {
+    if ([BTAppDelegate.instance.cache has:cacheBucket key:resourceUrl]) {
+        handler(nil, [BTAppDelegate.instance.cache get:cacheBucket key:resourceUrl]);
+    } else {
+        [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:resourceUrl]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
+            if (netErr || !netData) { return handler(@"Could not get image", nil); }
+            
+            [BTAppDelegate.instance.cache store:cacheBucket key:resourceUrl data:netData];
+            handler(nil, netData);
+        }];
+    }
+}
 
-@implementation BTImage (hidden)
+- (void)collage:(NSString*)requestUrl params:(NSDictionary*)params response:(WVPResponse*)res {
+    NSArray* rects = [params objectForKey:@"rects"];
+    NSArray* contents = [params objectForKey:@"contents"];
+    CGFloat alpha = [[params objectForKey:@"alpha"] floatValue];
+    
+    // Fetch images
+    [contents parallel:contents.count
+                map:^(NSString* resource, NSUInteger index, HHAsyncYieldResult yield) {
+                    if ([resource hasPrefix:@"http"]) {
+                        [self withResource:resource handler:^(id err, NSData *resourceData) {
+                            if (err) { return yield(err, nil); }
+                            UIImage* image = [UIImage imageWithData:resourceData];
+                            yield(nil, image ? image : nil);
+                        }];
+                    } else {
+                        yield(nil, resource);
+                    }
+                } finish:^(id error, NSMutableArray *results) {
+                    UIGraphicsBeginImageContextWithOptions(([[params objectForKey:@"size"] makeSize]), YES, 0.0);
+                    CGContextRef context = UIGraphicsGetCurrentContext();
+                    [rects enumerateObjectsUsingBlock:^(NSString* rectString, NSUInteger idx, BOOL *stop) {
+                        id content = [results objectAtIndex:idx];
+                        CGRect rect = [rectString makeRect];
+                        if ([content class] == [UIImage class]) {
+                            [[(UIImage*)content thumbnailSize:rect.size transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationHigh] drawAtPoint:rect.origin];
+                        } else {
+                            UIColor* color = [content makeRgbColor];
+                            CGContextSetFillColorWithColor(context, [color CGColor]);
+                            CGContextFillRect(context, [rectString makeRect]);
+                        }
+                    }];
+                    UIImage* collageImage = UIGraphicsGetImageFromCurrentImageContext();
+                    UIGraphicsEndImageContext();
+                    [res respondWithImage:[collageImage imageWithAlpha:alpha] mimeType:@"image/jpg"];
+                }
+     ];
+    
+}
 
-- (void)fetchImage:(NSURLRequest *)req response:(WVPResponse *)res {
-    NSDictionary* params = [self parseQueryParams:req.URL.query];
 
+- (void)fetchImage:(NSString *)requestUrl params:(NSDictionary*)params response:(WVPResponse *)res {
     bool useCache = !![params objectForKey:@"cache"];
+    
     if (useCache) {
 //        UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
 //        bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
 //            [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
 //        }];
-        if ([BTAppDelegate.instance.cache has:cacheBucket key:req.URL.absoluteString]) {
-            NSData* cachedProcessedData = [BTAppDelegate.instance.cache get:cacheBucket key:req.URL.absoluteString];
-            [self respondWithData:cachedProcessedData response:res params:params];
+        if ([BTAppDelegate.instance.cache has:cacheBucket key:requestUrl]) {
+            [self respondWithData:[BTAppDelegate.instance.cache get:cacheBucket key:requestUrl] response:res params:params];
         } else if ([BTAppDelegate.instance.cache has:cacheBucket key:[params objectForKey:@"url"]]) {
             NSData* cachedNetData = [BTAppDelegate.instance.cache get:cacheBucket key:[params objectForKey:@"url"]];
-            [self processData:cachedNetData request:req response:res params:params];
+            [self processData:cachedNetData requestUrl:requestUrl response:res params:params];
         } else {
-            [self fetchData:req response:res params:params];
+            [self fetchData:requestUrl response:res params:params];
         }
     } else {
-        [self fetchData:req response:res params:params];
+        [self fetchData:requestUrl response:res params:params];
     }
 }
 
-- (void)fetchData:(NSURLRequest *)req response:(WVPResponse*)res params:(NSDictionary*)params {
+- (void)fetchData:(NSString *)requestUrl response:(WVPResponse*)res params:(NSDictionary*)params {
     NSString* urlParam = [params objectForKey:@"url"];
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
-        [self processData:netData request:req response:res params:params];
+        [self processData:netData requestUrl:requestUrl response:res params:params];
     }];
 }
 
-- (void)processData:(NSData*)netData request:(NSURLRequest*)req response:(WVPResponse*)res params:(NSDictionary*)params {
+- (void)processData:(NSData*)netData requestUrl:(NSString*)requestUrl response:(WVPResponse*)res params:(NSDictionary*)params {
     bool useCache = !![params objectForKey:@"cache"];
     if (useCache) {
         [BTAppDelegate.instance.cache store:cacheBucket key:[params objectForKey:@"url"] data:netData];
@@ -87,7 +134,7 @@ static NSString* cacheBucket = @"__BTImage__";
         NSData* resizedData = UIImageJPEGRepresentation(image, 1.0);
 //        NSData* resizedData = UIImagePNGRepresentation(image);
         if (useCache) {
-            [BTAppDelegate.instance.cache store:cacheBucket key:req.URL.absoluteString data:resizedData];
+            [BTAppDelegate.instance.cache store:cacheBucket key:requestUrl data:resizedData];
         }
         [self respondWithData:resizedData response:res params:params];
     } else if (cropParam) {
@@ -98,7 +145,7 @@ static NSString* cacheBucket = @"__BTImage__";
         image = [image croppedImage:cropRect];
         NSData* croppedData = UIImageJPEGRepresentation(image, 1.0);
         if (useCache) {
-            [BTAppDelegate.instance.cache store:cacheBucket key:req.URL.absoluteString data:croppedData];
+            [BTAppDelegate.instance.cache store:cacheBucket key:requestUrl data:croppedData];
         }
         [self respondWithData:croppedData response:res params:params];
     } else {

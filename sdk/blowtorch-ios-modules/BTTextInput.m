@@ -221,7 +221,8 @@
     if (_params && [_params objectForKey:@"preventWebviewShift"]) {
         // do nothing
     } else {
-        [self _shiftWebviewWithKeyboard:notification delay:0.02f speedup:0.02f];
+        float delay = 0.02f; // 0.04f;
+        [self _shiftWebviewWithKeyboard:notification delay:delay speedup:delay];
     }
 }
 

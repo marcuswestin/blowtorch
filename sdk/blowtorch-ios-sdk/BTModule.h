@@ -8,12 +8,11 @@
 
 #import <Foundation/Foundation.h>
 #import "BTAppDelegate.h"
+#import "NSArray+HHFunctional.h"
+#import "NSArray+NSString+HHMakeStructs.h"
+#import "NSString+HHUriEncoding.h"
 
 @interface BTModule : NSObject
 + (void) setup:(BTAppDelegate*)app;
 - (void) setup:(BTAppDelegate*)app;
-// Utilities
-- (NSString*)encodeURIComponent:(NSString*)string;
-- (NSString*)decodeURIComponent:(NSString*)string;
-- (NSMutableDictionary*)parseQueryParams:(NSString*)queryString;
 @end

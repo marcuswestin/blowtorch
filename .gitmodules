@@ -16,3 +16,6 @@
 [submodule "dependencies/Base64"]
 	path = dependencies/Base64
 	url = git://github.com/nicklockwood/Base64.git
+[submodule "dependencies/HandyHelpers"]
+	path = dependencies/HandyHelpers
+	url = git@github.com:marcuswestin/HandyHelpers.git
