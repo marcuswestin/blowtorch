@@ -43,6 +43,19 @@
     //        case FBSessionStateClosed: {
     //            [FBSession.activeSession closeAndClearTokenInformation];
     
+    [app registerHandler:@"facebook.request" handler:^(id data, BTResponseCallback responseCallback) {
+        if (!FBSession.activeSession) {
+            return responseCallback(@"No active FB session", nil);
+        }
+        [[FBRequest requestForGraphPath:[data objectForKey:@"path"]] startWithCompletionHandler:^(FBRequestConnection *connection, id result, NSError *error) {
+            if (error) {
+                NSLog(@"Facebook graph request error %@", error);
+                return responseCallback(@"I was unable to connect to Facebook", nil);
+            }
+            responseCallback(nil, result);
+        }];
+    }];
+    
     [app registerHandler:@"facebook.dialog" handler:^(id data, BTResponseCallback responseCallback) {
         if (!FBSession.activeSession) {
             return responseCallback(@"No active FB session", nil);
