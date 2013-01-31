@@ -114,7 +114,7 @@ failedToParseSource:(NSString *)source
           @"Parse error - %@baseLineNumber: %d, fileLineNumber: %@\n%@",
           filename, baseLineNumber, fileLineNumber, sourceLog);
     
-    assert(false);
+//    assert(false);
 }
 
 - (void)webView:(WebView *)webView
