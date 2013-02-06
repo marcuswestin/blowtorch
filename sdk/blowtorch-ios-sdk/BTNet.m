@@ -24,19 +24,19 @@ static NSOperationQueue* queue;
     [BTNet request:url method:method headers:headers params:postParams responseCallback:responseCallback];
 }
 
-+ (void)post:(NSString*)url json:(NSDictionary*)params attachments:(NSDictionary*)attachments headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(BTResponseCallback)responseCallback {
++ (void)post:(NSString*)url json:(NSDictionary*)jsonParams attachments:(NSDictionary*)attachments headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(BTResponseCallback)responseCallback {
+    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:jsonParams options:0 error:nil];
     NSDictionary* jsonPart = [NSDictionary dictionaryWithObjectsAndKeys:
-                              @"attachment; name=\"multipartParams\"", @"Content-Disposition",
+                              @"attachment; name=\"jsonParams\"", @"Content-Disposition",
                               @"application/json", @"Content-Type",
-                              [NSJSONSerialization dataWithJSONObject:params options:0 error:nil], @"data",
+                              jsonData, @"data",
                               nil];
     
-    NSMutableArray* parts = [NSArray arrayWithObject:jsonPart];
-    for (NSString* attachmentName in attachments) {
-        NSData* attachmentData = [attachments objectForKey:attachmentName];
-        NSString* disposition = [NSString stringWithFormat:@"form-data; name=\"%@\" filename=\"%@\"", attachmentName, attachmentName];
+    NSMutableArray* parts = [NSMutableArray arrayWithObject:jsonPart];
+    for (NSString* name in attachments) {
+        NSData* attachmentData = [attachments objectForKey:name];
         [parts addObject:[NSDictionary dictionaryWithObjectsAndKeys:
-                          disposition, @"Content-Disposition" ,
+                          [NSString stringWithFormat:@"form-data; name=\"%@\" filename=\"%@\"", name, name], @"Content-Disposition" ,
                           @"application/octet-stream", @"Content-Type",
                           attachmentData, @"data",
                           nil]];
