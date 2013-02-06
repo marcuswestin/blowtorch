@@ -284,7 +284,20 @@
     CGRect frame = webView.frame;
     CGRect newFrame = CGRectMake(frame.origin.x, frame.origin.y-delta, frame.size.width, frame.size.height);
     animationDuration -= speedup;
-    [UIView animateWithDuration:animationDuration delay:delay options:animationCurve animations:^{ webView.frame = newFrame; } completion:nil];
+    [UIView animateWithDuration:animationDuration delay:delay options:animationOptionsWithCurve(animationCurve) animations:^{ webView.frame = newFrame; } completion:nil];
+}
+
+static inline UIViewAnimationOptions animationOptionsWithCurve(UIViewAnimationCurve curve) {
+    switch (curve) {
+        case UIViewAnimationCurveEaseInOut:
+            return UIViewAnimationOptionCurveEaseInOut;
+        case UIViewAnimationCurveEaseIn:
+            return UIViewAnimationOptionCurveEaseIn;
+        case UIViewAnimationCurveEaseOut:
+            return UIViewAnimationOptionCurveEaseOut;
+        case UIViewAnimationCurveLinear:
+            return UIViewAnimationOptionCurveLinear;
+    }
 }
 
 @end
