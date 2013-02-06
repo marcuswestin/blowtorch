@@ -10,7 +10,7 @@
 
 + (void)request:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback;
 
-+ (void)post:url json:params data:audioData headers:headers boundary:boundary responseCallback:responseCallback;
++ (void)post:(NSString*)url json:(NSDictionary*)params attachments:(NSDictionary*)attachments headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(BTResponseCallback)responseCallback;
 
 + (void)postMultipart:(NSString *)url headers:(NSDictionary *)headers parts:(NSArray *)parts boundary:(NSString*)boundary responseCallback:(BTResponseCallback)responseCallback;
 

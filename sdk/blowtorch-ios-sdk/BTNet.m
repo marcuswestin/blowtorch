@@ -24,23 +24,24 @@ static NSOperationQueue* queue;
     [BTNet request:url method:method headers:headers params:postParams responseCallback:responseCallback];
 }
 
-+ (void)post:(NSString*)url json:(NSDictionary*)params data:(NSData*)data headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(id)responseCallback {
++ (void)post:(NSString*)url json:(NSDictionary*)params attachments:(NSDictionary*)attachments headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(BTResponseCallback)responseCallback {
     NSDictionary* jsonPart = [NSDictionary dictionaryWithObjectsAndKeys:
                               @"attachment; name=\"multipartParams\"", @"Content-Disposition",
                               @"application/json", @"Content-Type",
                               [NSJSONSerialization dataWithJSONObject:params options:0 error:nil], @"data",
                               nil];
     
-    NSDictionary* dataPart = nil;
-    if (data) {
-        dataPart = [NSDictionary dictionaryWithObjectsAndKeys:
-                    @"form-data; name=\"data\" filename=\"data\"", @"Content-Disposition",
-                    @"application/octet-stream", @"Content-Type",
-                    data, @"data",
-                    nil];
+    NSMutableArray* parts = [NSArray arrayWithObject:jsonPart];
+    for (NSString* attachmentName in attachments) {
+        NSData* attachmentData = [attachments objectForKey:attachmentName];
+        NSString* disposition = [NSString stringWithFormat:@"form-data; name=\"%@\" filename=\"%@\"", attachmentName, attachmentName];
+        [parts addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+                          disposition, @"Content-Disposition" ,
+                          @"application/octet-stream", @"Content-Type",
+                          attachmentData, @"data",
+                          nil]];
     }
     
-    NSMutableArray* parts = [NSArray arrayWithObjects:jsonPart, dataPart, nil];
     [BTNet postMultipart:url headers:headers parts:parts boundary:boundary responseCallback:responseCallback];
 }
 
