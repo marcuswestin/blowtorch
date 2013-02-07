@@ -75,6 +75,7 @@
 }
 
 + (BOOL)handleOpenURL:(NSURL *)url {
+    if (!FBSession.activeSession) { return NO; }
     return [FBSession.activeSession handleOpenURL:url];
 }
 
