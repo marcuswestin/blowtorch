@@ -267,6 +267,9 @@ static BTAppDelegate* instance;
     [self registerHandler:@"media.pick" handler:^(id data, BTResponseCallback responseCallback) {
         [self pickMedia:data response:[BTResponse responseWithCallback:responseCallback]];
     }];
+    [self registerHandler:@"media.upload" handler:^(id data, BTResponseCallback responseCallback) {
+        [self uploadMedia:data responseCallback:responseCallback];
+    }];
     
     // menu.*
     [self registerHandler:@"menu.show" handler:^(id data, BTResponseCallback responseCallback) {
@@ -474,6 +477,16 @@ static int uniqueId = 1;
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
     [self.window.rootViewController dismissModalViewControllerAnimated: YES];
     [_mediaResponse respondWith:[NSDictionary dictionary]];
+}
+
+- (void)uploadMedia:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+    NSDictionary* mediaParts = [data objectForKey:@"parts"];
+    NSMutableDictionary* attachments = [NSMutableDictionary dictionaryWithCapacity:mediaParts.count];
+    for (NSString* name in mediaParts) {
+        UIImage* image = [_mediaCache objectForKey:[mediaParts objectForKey:name]];
+        [attachments setObject:UIImagePNGRepresentation(image) forKey:name];
+    }
+    [BTNet post:[data objectForKey:@"url"] json:[data objectForKey:@"jsonParams"] attachments:attachments headers:[data objectForKey:@"headers"] boundary:[data objectForKey:@"boundary"] responseCallback:responseCallback];
 }
 
 - (void)_createStatusBarOverlay {
