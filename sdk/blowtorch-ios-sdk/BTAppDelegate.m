@@ -25,6 +25,7 @@ static BTAppDelegate* instance;
     NSString* _serverScheme;
     NSString* _serverHost;
     NSString* _serverPort;
+    UILabel* reloadView;
 }
 
 @synthesize window, webView, javascriptBridge=_bridge, state, net, overlay, config, launchNotification,
@@ -99,15 +100,23 @@ static BTAppDelegate* instance;
 }
 
 -(void)_renderDevTools {
-    UILabel* reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-30,120,30,30)];
+    reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-40,120,40,40)];
     reloadView.userInteractionEnabled = YES;
     reloadView.text = @"R";
     reloadView.font = [UIFont fontWithName:@"Open Sans" size:20];
     reloadView.textAlignment = NSTextAlignmentCenter;
     reloadView.backgroundColor = [UIColor whiteColor];
     reloadView.alpha = 0.25;
-    [reloadView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(startApp)]];
+    [reloadView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(_reloadTap)]];
     [window.rootViewController.view addSubview:reloadView];
+}
+-(void)_reloadTap {
+    [self startApp];
+    reloadView.backgroundColor = [UIColor blueColor];
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+        reloadView.backgroundColor = [UIColor whiteColor];
+    });
 }
 
 -(void)startApp {
