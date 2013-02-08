@@ -437,6 +437,11 @@ static int uniqueId = 1;
         mediaUI.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
     } else if ([source isEqualToString:@"camera"]) {
         mediaUI.sourceType = UIImagePickerControllerSourceTypeCamera;
+        if ([@"front" isEqualToString:[data objectForKey:@"cameraDevice"]]) {
+            if ([UIImagePickerController isCameraDeviceAvailable:UIImagePickerControllerCameraDeviceFront]) {
+                mediaUI.cameraDevice = UIImagePickerControllerCameraDeviceFront;
+            }
+        }
     } else {
         return [response respondWithError:@"Unknown source"];
     }
