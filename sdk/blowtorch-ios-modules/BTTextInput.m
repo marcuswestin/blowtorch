@@ -275,16 +275,19 @@
     [[userInfo objectForKey:UIKeyboardFrameBeginUserInfoKey] getValue:&begin];
     [[userInfo objectForKey:UIKeyboardFrameEndUserInfoKey] getValue:&end];
     [[userInfo objectForKey:UIKeyboardAnimationCurveUserInfoKey] getValue:&animationCurve];
-    float delta = begin.origin.y-end.origin.y;
-    delta = (delta > 0 ? delta - 44 : delta + 44); // take the webview top bar into account
-    if (delta == 0.0) {
-        return;
-    }
+    float keyboardHeight = end.size.height;
+    float target = end.origin.y;
+    float newY = (target >= [[UIScreen mainScreen] bounds].size.height
+                  ? -20 // keyboard hiding - 44 for the webview keyboard accessory
+                  : -(keyboardHeight-44) // keyboard showing
+                  );
     UIWebView* webView = BTAppDelegate.instance.webView;
     CGRect frame = webView.frame;
-    CGRect newFrame = CGRectMake(frame.origin.x, frame.origin.y-delta, frame.size.width, frame.size.height);
+    if (frame.origin.y == newY) { return; }
+    CGRect newFrame = CGRectMake(frame.origin.x, newY, frame.size.width, frame.size.height);
     animationDuration -= speedup;
-    [UIView animateWithDuration:animationDuration delay:delay options:animationOptionsWithCurve(animationCurve) animations:^{ webView.frame = newFrame; } completion:nil];
+    UIViewAnimationOptions options = UIViewAnimationOptionBeginFromCurrentState | animationOptionsWithCurve(animationCurve);
+    [UIView animateWithDuration:animationDuration delay:delay options:options animations:^{ webView.frame = newFrame; } completion:nil];
 }
 
 static inline UIViewAnimationOptions animationOptionsWithCurve(UIViewAnimationCurve curve) {
