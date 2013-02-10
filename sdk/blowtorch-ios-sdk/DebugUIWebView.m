@@ -34,15 +34,13 @@ static NSString* const kSourceIDMapSourceKey = @"source";
     return self;
 }
 
-+ (NSString*)filenameForURL:(NSURL*)url
-{
++ (NSString*)filenameForURL:(NSURL*)url {
     NSString* pathString = [url path];
     NSArray* pathComponents = [pathString pathComponents];
     return [pathComponents objectAtIndex:([pathComponents count] - 1)];
 }
 
-+ (NSString*)formatSource:(NSString*)source
-{
++ (NSString*)formatSource:(NSString*)source {
     NSMutableString* formattedSource = [NSMutableString stringWithCapacity:100];
     [formattedSource appendString:@"Source:\n"];
     int* lineNumber = malloc(sizeof(int));
@@ -57,21 +55,12 @@ static NSString* const kSourceIDMapSourceKey = @"source";
     return formattedSource;
 }
 
-- (void)webView:(WebView*)webView
-didClearWindowObject:(id)windowObject
-       forFrame:(WebFrame*)frame
-{
+- (void)webView:(WebView*)webView didClearWindowObject:(id)windowObject forFrame:(WebFrame*)frame {
     [webView setScriptDebugDelegate:self];
 }
 
 
-- (void) webView:(WebView*)webView
-  didParseSource:(NSString*)source
-  baseLineNumber:(unsigned int)baseLineNumber
-         fromURL:(NSURL*)url
-        sourceId:(int)sourceID
-     forWebFrame:(WebFrame*)webFrame
-{
+- (void) webView:(WebView*)webView didParseSource:(NSString*)source baseLineNumber:(unsigned int)baseLineNumber fromURL:(NSURL*)url sourceId:(int)sourceID forWebFrame:(WebFrame*)webFrame {
     NSString* filename = nil;
     if (url) {
         filename = [DebugUIWebView filenameForURL:url];
@@ -79,53 +68,34 @@ didClearWindowObject:(id)windowObject
     
     // Save the sourceID -> source and filename mapping for identifying
     // exceptions later.
-    NSMutableDictionary* mapEntry = 
-    [NSMutableDictionary 
-     dictionaryWithObject:source forKey:kSourceIDMapSourceKey];
+    NSMutableDictionary* mapEntry = [NSMutableDictionary dictionaryWithObject:source forKey:kSourceIDMapSourceKey];
     if (filename) {
         [mapEntry setObject:filename forKey:kSourceIDMapFilenameKey];
     }
-    [self.sourceIDMap setObject:mapEntry
-                         forKey:[NSNumber numberWithInt:sourceID]];
+    [self.sourceIDMap setObject:mapEntry forKey:[NSNumber numberWithInt:sourceID]];
     //NSLog(@"%@", [source substringToIndex:MIN(300, [source length])]);
 }
 
 
-- (void)webView:(WebView *)webView
-failedToParseSource:(NSString *)source
- baseLineNumber:(unsigned int)baseLineNumber
-        fromURL:(NSURL *)url
-      withError:(NSError *)error
-    forWebFrame:(WebFrame *)webFrame
-{
+- (void)webView:(WebView *)webView failedToParseSource:(NSString *)source baseLineNumber:(unsigned int)baseLineNumber fromURL:(NSURL *)url withError:(NSError *)error forWebFrame:(WebFrame *)webFrame {
     NSDictionary* userInfo = [error userInfo];
     NSNumber* fileLineNumber = [userInfo objectForKey:@"WebScriptErrorLineNumber"];
     
     NSString* filename = @"";
     NSMutableString* sourceLog = [NSMutableString stringWithCapacity:100];
     if (url) {
-        filename = 
-        [NSString stringWithFormat:@"filename: %@, ",
-         [DebugUIWebView filenameForURL:url]];
+        filename = [NSString stringWithFormat:@"filename: %@, ", [DebugUIWebView filenameForURL:url]];
     } else {
         [sourceLog appendString:[[self class] formatSource:source]];
     }
-    NSLog(
-          @"Parse error - %@baseLineNumber: %d, fileLineNumber: %@\n%@",
-          filename, baseLineNumber, fileLineNumber, sourceLog);
+    NSLog(@"Parse error - %@baseLineNumber: %d, fileLineNumber: %@\n%@", filename, baseLineNumber, fileLineNumber, sourceLog);
     
 //    assert(false);
 }
 
-- (void)webView:(WebView *)webView
-exceptionWasRaised:(WebScriptCallFrame *)frame
-       sourceId:(int)sourceID
-           line:(int)lineNumber
-    forWebFrame:(WebFrame *)webFrame
-{
+- (void)webView:(WebView *)webView exceptionWasRaised:(WebScriptCallFrame *)frame sourceId:(int)sourceID line:(int)lineNumber forWebFrame:(WebFrame *)webFrame {
     // Lookup the sourceID and pull out the fields.
-    NSDictionary* sourceLookup = 
-    [self.sourceIDMap objectForKey:[NSNumber numberWithInt:sourceID]];
+    NSDictionary* sourceLookup = [self.sourceIDMap objectForKey:[NSNumber numberWithInt:sourceID]];
     assert(sourceLookup);
     NSString* filename = [sourceLookup objectForKey:kSourceIDMapFilenameKey];
     NSString* source = [sourceLookup objectForKey:kSourceIDMapSourceKey];
@@ -139,8 +109,7 @@ exceptionWasRaised:(WebScriptCallFrame *)frame
         [message appendFormat:@", filename: %@", filename];
     }
     
-    [message appendFormat:@"\nMessage: %@\n\n", 
-     [exception valueForKey:@"message"]];
+    [message appendFormat:@"\nMessage: %@\n\n", [exception valueForKey:@"message"]];
     
     if (!filename) {
         [message appendString:[[self class] formatSource:source]];
@@ -149,10 +118,8 @@ exceptionWasRaised:(WebScriptCallFrame *)frame
     NSArray* sourceLines = [source componentsSeparatedByString:@"\n"];
     NSString* sourceLine = [sourceLines objectAtIndex:(lineNumber - 1)];
     if ([sourceLine length] > 200) {
-        sourceLine = [sourceLine substringToIndex:200];
-        sourceLine = [NSString stringWithFormat:@"%@...", sourceLine];
+        sourceLine = [[sourceLine substringToIndex:200] stringByAppendingString:@"..."];
     }
-    
     
     NSString* firstLine = [sourceLines objectAtIndex:0];
     firstLine = [firstLine stringByReplacingOccurrencesOfString:@";(function() {var module = {exports:{}}; var exports = module.exports;var " withString:@""];
@@ -163,9 +130,7 @@ exceptionWasRaised:(WebScriptCallFrame *)frame
     
     // Build the call stack.
     [message appendString:@"\nCall stack:\n"];
-    for (WebScriptCallFrame* currentFrame = frame;
-         currentFrame;
-         currentFrame = [currentFrame caller]) {
+    for (WebScriptCallFrame* currentFrame = frame; currentFrame; currentFrame = [currentFrame caller]) {
         [message appendFormat:@"  %@\n", [currentFrame functionName]];
     }
     
