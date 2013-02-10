@@ -1,6 +1,7 @@
 //https://gist.github.com/1184827
 
 #import "DebugUIWebView.h"
+#import "BTAppDelegate.h"
 
 @class WebFrame;
 
@@ -103,7 +104,8 @@ static NSString* const kSourceIDMapSourceKey = @"source";
     NSMutableString *message = [NSMutableString stringWithCapacity:100];
     
     WebScriptObject* exception = [frame exception];
-    [message appendFormat:@"Exception\n\nERROR Name: %@", [exception valueForKey:@"name"]];
+    
+    [message appendFormat:@"Exception\n\nName: %@", [exception valueForKey:@"name"]];
     
     if (filename) {
         [message appendFormat:@", filename: %@", filename];
@@ -121,12 +123,12 @@ static NSString* const kSourceIDMapSourceKey = @"source";
         sourceLine = [[sourceLine substringToIndex:200] stringByAppendingString:@"..."];
     }
     
-    NSString* firstLine = [sourceLines objectAtIndex:0];
-    firstLine = [firstLine stringByReplacingOccurrencesOfString:@";(function() {var module = {exports:{}}; var exports = module.exports;var " withString:@""];
+//    NSString* firstLine = [sourceLines objectAtIndex:0];
+//    firstLine = [firstLine stringByReplacingOccurrencesOfString:@";(function() {var module = {exports:{}}; var exports = module.exports;var " withString:@""];
 
     [message appendString:@"Offending function:\n"];
     [message appendFormat:@"  %d: %@\n", lineNumber, sourceLine];
-    [message appendFormat:@"file: %@\n", firstLine];
+//    [message appendFormat:@"file: %@\n", firstLine];
     
     // Build the call stack.
     [message appendString:@"\nCall stack:\n"];
@@ -135,6 +137,22 @@ static NSString* const kSourceIDMapSourceKey = @"source";
     }
     
     NSLog(@"%@", message);
+    
+    NSDictionary* info = [NSDictionary dictionaryWithObjectsAndKeys:message, @"message", nil];
+    double delayInSeconds = 0.1;
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+        [[BTAppDelegate instance] notify:@"app.error" info:info];
+    });
 }
+
+// just entered a stack frame (i.e. called a function, or started global scope)
+//- (void)webView:(WebView *)webView didEnterCallFrame:(WebScriptCallFrame *)frame sourceId:(int)sid line:(int)lineno forWebFrame:(WebFrame *)webFrame {}
+
+// about to execute some code
+//- (void)webView:(WebView *)webView willExecuteStatement:(WebScriptCallFrame *)frame sourceId:(int)sid line:(int)lineno forWebFrame:(WebFrame *)webFrame;
+
+// about to leave a stack frame (i.e. return from a function)
+//- (void)webView:(WebView *)webView willLeaveCallFrame:(WebScriptCallFrame *)frame sourceId:(int)sid line:(int)lineno forWebFrame:(WebFrame *)webFrame;
 
 @end
