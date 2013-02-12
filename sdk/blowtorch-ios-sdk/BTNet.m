@@ -33,13 +33,15 @@ static NSOperationQueue* queue;
                               nil];
     
     NSMutableArray* parts = [NSMutableArray arrayWithObject:jsonPart];
-    for (NSString* name in attachments) {
-        NSData* attachmentData = [attachments objectForKey:name];
-        [parts addObject:[NSDictionary dictionaryWithObjectsAndKeys:
-                          [NSString stringWithFormat:@"form-data; name=\"%@\" filename=\"%@\"", name, name], @"Content-Disposition" ,
-                          @"application/octet-stream", @"Content-Type",
-                          attachmentData, @"data",
-                          nil]];
+    if (attachments) {
+        for (NSString* name in attachments) {
+            NSData* attachmentData = [attachments objectForKey:name];
+            [parts addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+                              [NSString stringWithFormat:@"form-data; name=\"%@\" filename=\"%@\"", name, name], @"Content-Disposition" ,
+                              @"application/octet-stream", @"Content-Type",
+                              attachmentData, @"data",
+                              nil]];
+        }
     }
     
     [BTNet postMultipart:url headers:headers parts:parts boundary:boundary responseCallback:responseCallback];
