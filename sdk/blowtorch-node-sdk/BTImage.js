@@ -14,12 +14,12 @@ function setup(app) {
 	app.get('/BTImage/fetchImage', function(req, res) {
 		var params = parseUrl(req.url, true).query
 		if (cache[params.url]) {
-			console.log("BTImage.fetchImage found in cache", params.url)
+			// console.log("BTImage.fetchImage found in cache", params.url)
 			send(res, params, cache[params.url])
 		} else {
 			delete req.headers.host
 			var headers = scrubHeaders(req.headers)
-			console.log("BTImage.fetchImage", params.url)
+			// console.log("BTImage.fetchImage", params.url)
 			request({ url:params.url, headers:headers, method:req.method, timeout:5000, encoding:null }, function(err, response, data) {
 				if (err || response.statusCode >= 300) {
 					console.log("BTImage.fetchImage error", params, response && response.statusCode, err, data && data.toString())
