@@ -111,6 +111,7 @@ static BTAppDelegate* instance;
     [window.rootViewController.view addSubview:reloadView];
 }
 -(void)_reloadTap {
+    NSLog(@"\n\n\nRELOAD APP\n\n\n");
     [self startApp];
     reloadView.backgroundColor = [UIColor blueColor];
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
