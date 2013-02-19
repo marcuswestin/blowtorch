@@ -9,12 +9,13 @@
 #import "BTImage.h"
 #import "UIImage+Resize.h"
 #import "UIImage+HHImages.h"
-
-static NSString* cacheBucket = @"__BTImage__";
+#import "BTCache.h"
 
 @implementation BTImage {
     NSOperationQueue* queue;
 }
+
++ (BTImage*) instance { return (BTImage*) [super instance]; }
 
 - (id)init {
     if (self = [super init]) {
@@ -34,13 +35,13 @@ static NSString* cacheBucket = @"__BTImage__";
 }
 
 - (void)withResource:(NSString*)resourceUrl handler:(void(^)(id err, NSData* resource))handler {
-    if ([BTAppDelegate.instance.cache has:cacheBucket key:resourceUrl]) {
-        handler(nil, [BTAppDelegate.instance.cache get:cacheBucket key:resourceUrl]);
+    if ([BTCache has:resourceUrl]) {
+        handler(nil, [BTCache get:resourceUrl]);
     } else {
         [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:resourceUrl]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
             if (netErr || !netData) { return handler(@"Could not get image", nil); }
             
-            [BTAppDelegate.instance.cache store:cacheBucket key:resourceUrl data:netData];
+            [BTCache store:resourceUrl data:netData];
             handler(nil, netData);
         }];
     }
@@ -94,10 +95,10 @@ static NSString* cacheBucket = @"__BTImage__";
 //        bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
 //            [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
 //        }];
-        if ([BTAppDelegate.instance.cache has:cacheBucket key:requestUrl]) {
-            [self respondWithData:[BTAppDelegate.instance.cache get:cacheBucket key:requestUrl] response:res params:params];
-        } else if ([BTAppDelegate.instance.cache has:cacheBucket key:[params objectForKey:@"url"]]) {
-            NSData* cachedNetData = [BTAppDelegate.instance.cache get:cacheBucket key:[params objectForKey:@"url"]];
+        if ([BTCache has:requestUrl]) {
+            [self respondWithData:[BTCache get:requestUrl] response:res params:params];
+        } else if ([BTCache has:[params objectForKey:@"url"]]) {
+            NSData* cachedNetData = [BTCache get:[params objectForKey:@"url"]];
             [self processData:cachedNetData requestUrl:requestUrl response:res params:params];
         } else {
             [self fetchData:requestUrl response:res params:params];
@@ -118,7 +119,7 @@ static NSString* cacheBucket = @"__BTImage__";
 - (void)processData:(NSData*)netData requestUrl:(NSString*)requestUrl response:(WVPResponse*)res params:(NSDictionary*)params {
     bool useCache = !![params objectForKey:@"cache"];
     if (useCache) {
-        [BTAppDelegate.instance.cache store:cacheBucket key:[params objectForKey:@"url"] data:netData];
+        [BTCache store:[params objectForKey:@"url"] data:netData];
     }
     
     NSString* resizeParam = [params objectForKey:@"resize"];
@@ -134,7 +135,7 @@ static NSString* cacheBucket = @"__BTImage__";
         NSData* resizedData = UIImageJPEGRepresentation(image, 1.0);
 //        NSData* resizedData = UIImagePNGRepresentation(image);
         if (useCache) {
-            [BTAppDelegate.instance.cache store:cacheBucket key:requestUrl data:resizedData];
+            [BTCache store:requestUrl data:resizedData];
         }
         [self respondWithData:resizedData response:res params:params];
     } else if (cropParam) {
@@ -145,7 +146,7 @@ static NSString* cacheBucket = @"__BTImage__";
         image = [image croppedImage:cropRect];
         NSData* croppedData = UIImageJPEGRepresentation(image, 1.0);
         if (useCache) {
-            [BTAppDelegate.instance.cache store:cacheBucket key:requestUrl data:croppedData];
+            [BTCache store:requestUrl data:croppedData];
         }
         [self respondWithData:croppedData response:res params:params];
     } else {

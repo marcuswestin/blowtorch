@@ -16,7 +16,10 @@
     UIWebView* _webView;
 }
 
++ (BTTextInput*) instance { return (BTTextInput*) [BTModule instance]; }
+
 - (void) setup:(BTAppDelegate*)app {
+    
     [app.javascriptBridge registerHandler:@"textInput.show" handler:^(id data, WVJBResponseCallback responseCallback) {
         [self show:data webView:app.webView];
     }];

@@ -8,10 +8,15 @@
 
 #import "BTModule.h"
 
+static BTModule* instance;
+
 @implementation BTModule
+
++ (BTModule*)instance { return instance; }
 
 + (void) setup:(BTAppDelegate*)app {
     BTModule* module = [[self alloc] init];
+    instance = module;
     [module setup:app];
 }
 // override this in module instances

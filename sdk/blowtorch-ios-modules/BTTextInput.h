@@ -11,4 +11,6 @@
 
 @interface BTTextInput : BTModule <UITextViewDelegate>
 @property (strong,nonatomic,readonly) UITextView* textInput;
+
++ (BTTextInput*) instance;
 @end

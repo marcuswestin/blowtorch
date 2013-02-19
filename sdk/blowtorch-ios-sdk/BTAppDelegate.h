@@ -4,7 +4,6 @@
 #import "BTNet.h"
 #import "BTState.h"
 #import <AudioToolbox/AudioServices.h>
-#import "BTCache.h"
 #import "BTResponse.h"
 
 #import "NSString+Util.h"
@@ -18,8 +17,6 @@
 @property (atomic, strong) BTState* state;
 @property (atomic, strong) BTNet* net;
 @property (strong, atomic) NSMutableDictionary* config;
-@property (strong, nonatomic) BTCache* cache;
-@property (strong, nonatomic) BTCache* documents;
 
 - (NSString*) serverUrl;
 - (NSString*) serverHost;

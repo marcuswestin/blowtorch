@@ -28,8 +28,7 @@ static BTAppDelegate* instance;
     UILabel* reloadView;
 }
 
-@synthesize window, webView, javascriptBridge=_bridge, state, net, overlay, config, launchNotification,
-    cache=_cache, documents=_documents;
+@synthesize window, webView, javascriptBridge=_bridge, state, net, overlay, config, launchNotification;
 
 + (BTAppDelegate *)instance { return instance; }
 
@@ -42,8 +41,6 @@ static BTAppDelegate* instance;
     state = [[BTState alloc] init];
     net = [[BTNet alloc] init];
     config = [NSMutableDictionary dictionary];
-    _documents = [[BTCache alloc] initWithDirectory:NSDocumentDirectory];
-    _cache = [[BTCache alloc] initWithDirectory:NSCachesDirectory];
     [self createWindowAndWebView];
     [self showLoadingOverlay];
     
@@ -539,6 +536,9 @@ static int uniqueId = 1;
     [self.javascriptBridge registerHandler:handlerName handler:^(id data, WVJBResponseCallback responseCallback) {
         handler(data, ^(id err, id responseData) {
             if (err) {
+                if ([err isKindOfClass:[NSError class]]) {
+                    err = [NSDictionary dictionaryWithObjectsAndKeys:[err localizedDescription], @"message", nil];
+                }
                 responseCallback([NSDictionary dictionaryWithObject:err forKey:@"error"]);
             } else if (responseData) {
                 responseCallback([NSDictionary dictionaryWithObject:responseData forKey:@"responseData"]);

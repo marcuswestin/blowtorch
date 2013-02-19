@@ -4,6 +4,8 @@
     Facebook* _facebook;
 }
 
++ (BTFacebook *)instance { return (BTFacebook*) [super instance]; }
+
 - (id)init {
     if (self = [super init]) {
         _facebook = [[Facebook alloc] initWithAppId:FBSession.defaultAppID andDelegate:nil];
