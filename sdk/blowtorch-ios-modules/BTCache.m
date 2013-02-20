@@ -21,7 +21,7 @@
 + (NSData*)get:(NSString*)key {
     return [[self instance] get:key];
 }
-+ (bool)key:(NSString*)key {
++ (bool)has:(NSString*)key {
     return [[self instance] has:key];
 }
 
