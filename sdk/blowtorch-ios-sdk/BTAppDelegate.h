@@ -25,8 +25,8 @@
 /* Lifecycle API
  ***************/
 - (void)setupModules;
-- (void)setupApp:(BOOL)devMode;
 - (void)startApp;
+- (void)setupApp:(BOOL)useLocalBuild;
 - (void)setAppInfo:(NSString*)key value:(NSString*)value;
 - (NSString*)getAppInfo:(NSString*)key;
 
@@ -36,8 +36,8 @@
 + (void) notify:(NSString*)name;
 - (void) notify:(NSString*)name info:(NSDictionary*)info;
 - (void) notify:(NSString*)name;
-- (void) setupBridgeHandlers;
-- (void) setupNetHandlers;
+- (void) setupBridgeHandlers:(BOOL)useLocalBuild;
+- (void) setupNetHandlers:(BOOL)useLocalBuild;
 
 /* Upgrade API
  *************/

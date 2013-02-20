@@ -10,7 +10,6 @@
 
 @interface BTFiles : BTModule
 
-+ (BTFiles*) instance;
 + (NSData*)readDocument:(NSString*)filename;
 + (NSData*)readCache:(NSString*)filename;
 + (BOOL)writeDocument:(NSString*)filename data:(NSData*)data;

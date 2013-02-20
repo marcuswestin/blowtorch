@@ -13,7 +13,6 @@
 #import "BTAppDelegate.h"
 
 @interface BTModule : NSObject
-+ (BTModule*) instance;
 + (void) setup:(BTAppDelegate*)app;
 - (void) setup:(BTAppDelegate*)app;
 @end

@@ -13,19 +13,20 @@
     NSMutableDictionary* _cacheInfo;
 }
 
-+ (BTCache*)instance { return (BTCache*) [super instance]; }
+static BTCache* instance;
 
 + (void)store:(NSString*)key data:(NSData*)data {
-    return [[self instance] store:key data:data];
+    return [instance store:key data:data];
 }
 + (NSData*)get:(NSString*)key {
-    return [[self instance] get:key];
+    return [instance get:key];
 }
 + (bool)has:(NSString*)key {
-    return [[self instance] has:key];
+    return [instance has:key];
 }
 
 - (void)setup:(BTAppDelegate *)app {
+    instance = self;
     _cacheInfo = [NSMutableDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:@"BTCache._cacheInfo"]];
 }
 

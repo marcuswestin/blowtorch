@@ -4,7 +4,7 @@
     Facebook* _facebook;
 }
 
-+ (BTFacebook *)instance { return (BTFacebook*) [super instance]; }
+static BTFacebook* instance;
 
 - (id)init {
     if (self = [super init]) {
@@ -15,6 +15,7 @@
 }
 
 - (void)setup:(BTAppDelegate *)app {
+    instance = self;
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
     [center addObserver:self selector:@selector(appDidBecomeActive) name:@"app.didBecomeActive" object:nil];
     [center addObserver:self selector:@selector(appWillTerminate) name:@"app.willTerminate" object:nil];

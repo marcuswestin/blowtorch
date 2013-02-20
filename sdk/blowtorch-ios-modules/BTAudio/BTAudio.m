@@ -15,7 +15,11 @@
     AUGraph* _graph;
 }
 
+static BTAudio* instance;
+
 - (void)setup:(BTAppDelegate *)app {
+    if (instance) { return; }
+    instance = self;
     
     [app registerHandler:@"audio.filter" handler:^(id data, BTResponseCallback responseCallback) {
         NSString* effect = [data objectForKey:@"effect"];

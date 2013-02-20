@@ -15,7 +15,7 @@
     NSOperationQueue* queue;
 }
 
-+ (BTImage*) instance { return (BTImage*) [super instance]; }
+static BTImage* instance;
 
 - (id)init {
     if (self = [super init]) {
@@ -26,6 +26,8 @@
 }
 
 - (void)setup:(BTAppDelegate *)app {
+    if (instance) { return; }
+    instance = self;
     [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage/fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
         [self fetchImage:req.URL.absoluteString params:[req.URL.query parseQueryParams] response:res];
     }];

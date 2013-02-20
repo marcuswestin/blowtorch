@@ -91,8 +91,8 @@ static BTAppDelegate* instance;
         [self _renderDevTools];
     }
     
-    [self setupBridgeHandlers];
-    [self setupNetHandlers];
+    [self setupBridgeHandlers:useLocalBuild];
+    [self setupNetHandlers:useLocalBuild];
     [self setupModules];
 }
 
@@ -217,7 +217,7 @@ static BTAppDelegate* instance;
 
 /* WebView <-> Native API
  ************************/
-- (void)setupBridgeHandlers {
+- (void)setupBridgeHandlers:(BOOL)useLocalBuild {
     // app.*
     [self registerHandler:@"app.restart" handler:^(id data, BTResponseCallback responseCallback) {
         [self startApp];
@@ -319,7 +319,7 @@ static BTAppDelegate* instance;
 
 /* Net API
  *********/
-- (void)setupNetHandlers {
+- (void)setupNetHandlers:(BOOL)useLocalBuild {
     NSString* mediaPrefix = @"/blowtorch/media/";
     [WebViewProxy handleRequestsWithHost:self.serverHost pathPrefix:mediaPrefix handler:^(NSURLRequest *req, WVPResponse *res) {
         NSString* file = [req.URL.path substringFromIndex:mediaPrefix.length];

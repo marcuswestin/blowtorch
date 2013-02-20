@@ -13,26 +13,27 @@
     NSString* _cachesDirectory;
 }
 
-+ (BTFiles*) instance { return (BTFiles*) [super instance]; }
+static BTFiles* instance;
 
 + (NSData*)readDocument:(NSString*)filename {
-    return [[self instance] readDocument:filename];
+    return [instance readDocument:filename];
 }
 + (NSData*)readCache:(NSString*)filename {
-    return [[self instance] readCache:filename];
+    return [instance readCache:filename];
 }
 + (BOOL)writeDocument:(NSString*)filename data:(NSData*)data {
-    return [[self instance] writeDocument:filename data:data];
+    return [instance writeDocument:filename data:data];
 }
 + (BOOL)writeCache:(NSString*)filename data:(NSData*)data {
-    return [[self instance] writeCache:filename data:data];
+    return [instance writeCache:filename data:data];
 }
 + (NSString*)cachePath:(NSString*)filename {
-    return [[self instance] _cachePath:filename];
+    return [instance _cachePath:filename];
 }
 
 - (void) setup:(BTAppDelegate*)app {
-    
+    if (instance) { return; }
+    instance = self;
     _documentsDirectory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
     _cachesDirectory = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0];
 
