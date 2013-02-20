@@ -95,6 +95,12 @@ static NSString* const kSourceIDMapSourceKey = @"source";
 }
 
 - (void)webView:(WebView *)webView exceptionWasRaised:(WebScriptCallFrame *)frame sourceId:(int)sourceID line:(int)lineNumber forWebFrame:(WebFrame *)webFrame {
+    WebScriptObject* exception = [frame exception];
+    if ([[exception valueForKey:@"message"] rangeOfString:@"SYNTAX_ERR: DOM Exception 12"].location != NSNotFound) {
+        // jquery test on startup
+        return;
+    }
+        
     // Lookup the sourceID and pull out the fields.
     NSDictionary* sourceLookup = [self.sourceIDMap objectForKey:[NSNumber numberWithInt:sourceID]];
     assert(sourceLookup);
@@ -102,8 +108,6 @@ static NSString* const kSourceIDMapSourceKey = @"source";
     NSString* source = [sourceLookup objectForKey:kSourceIDMapSourceKey];
     
     NSMutableString *message = [NSMutableString stringWithCapacity:100];
-    
-    WebScriptObject* exception = [frame exception];
     
     [message appendFormat:@"Exception\n\nName: %@", [exception valueForKey:@"name"]];
     
