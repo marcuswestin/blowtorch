@@ -67,8 +67,8 @@
     NSError* jsonErr;
     NSData* jsonData = [NSJSONSerialization dataWithJSONObject:jsonValue options:0 error:&jsonErr];
     if (jsonErr) { return responseCallback(jsonErr, nil); }
-    BOOL writeErr = [jsonData writeToFile:path atomically:YES];
-    responseCallback(writeErr ? @"Error writing json document" : nil, nil);
+    BOOL success = [jsonData writeToFile:path atomically:YES];
+    responseCallback(success ? nil : @"Error writing json document", nil);
 }
 - (void)_readJson:(NSString*)path andRespond:(BTResponseCallback)responseCallback {
     NSData* documentData = [NSData dataWithContentsOfFile:path];
