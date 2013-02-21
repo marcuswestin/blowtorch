@@ -295,6 +295,11 @@ static BTAppDelegate* instance;
         [self putWindowUnderKeyboard];
     }];
     
+    
+    [self registerHandler:@"BTLocale.getCountryCode" handler:^(id data, BTResponseCallback responseCallback) {
+        responseCallback(nil, [[NSLocale currentLocale] objectForKey:NSLocaleCountryCode]);
+    }];
+    
 //    // index.*
 //    [_bridge registerHandler:@"index.build" handler:^(id data, WVJBResponseCallback responseCallback) {
 //        [BTIndex buildIndex:[data objectForKey:@"name"] payloadToStrings:[data objectForKey:@"payloadToStrings"]];
