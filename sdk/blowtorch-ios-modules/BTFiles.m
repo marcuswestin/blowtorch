@@ -49,6 +49,30 @@ static BTFiles* instance;
     [app registerHandler:@"BTFiles.readJsonCache" handler:^(id data, BTResponseCallback responseCallback) {
         [self _readJson:[self _cachePath:[data objectForKey:@"filename"]] andRespond:responseCallback];
     }];
+    [app registerHandler:@"BTFiles.clearAll" handler:^(id data, BTResponseCallback responseCallback) {
+        [self _clearAll:data responseCallback:responseCallback];
+    }];
+}
+
+- (void)_clearAll:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+    NSError *docsErr = [self _clearDirectory:_documentsDirectory];
+    if (docsErr) { return responseCallback(docsErr, nil); }
+    NSError* cacheErr = [self _clearDirectory:_cachesDirectory];
+    if (cacheErr) { return responseCallback(cacheErr, nil); }
+    responseCallback(nil, nil);
+}
+
+- (NSError*) _clearDirectory:(NSString*)directory {
+    NSFileManager *fileMgr = [[NSFileManager alloc] init];
+    NSError* err;
+    NSArray *directoryContents = [fileMgr contentsOfDirectoryAtPath:directory error:&err];
+    if (err) { return err; }
+    for (NSString *path in directoryContents) {
+        NSString *fullPath = [directory stringByAppendingPathComponent:path];
+        [fileMgr removeItemAtPath:fullPath error:&err];
+        if (err) { return err; }
+    }
+    return nil;
 }
 
 - (NSData*)readDocument:(NSString*)filename {
