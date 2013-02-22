@@ -603,6 +603,8 @@ static int uniqueId = 1;
     webView.scrollView.scrollsToTop = NO;
     webView.scrollView.clipsToBounds = YES;
     webView.scrollView.scrollEnabled = NO;
+    webView.opaque = NO;
+    webView.backgroundColor = [UIColor clearColor];
     [window.rootViewController.view addSubview:webView];
     _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Received unknown message %@", data);
