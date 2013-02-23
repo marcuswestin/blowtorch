@@ -11,6 +11,6 @@
 
 @interface BTAudio : BTModule <AVAudioRecorderDelegate, AVAudioPlayerDelegate>
 
-+ (NSURL*)getFileLocation;
+//+ (NSURL*)getFileLocation;
 
 @end
