@@ -41,7 +41,7 @@ static BTAddressBook* instance;
     if (!addressBook) { return responseCallback(@"Could not open address book", nil); }
     ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error) {
         if (!granted) { return responseCallback(@"Give Dogo access to your address book in Settings -> Privacy -> Contacts", nil); }
-        if (error) { return responseCallback(CFBridgingRelease(error), nil); }
+        if (error) { return responseCallback((__bridge id)(error), nil); }
         CFArrayRef allPeople = ABAddressBookCopyArrayOfAllPeople(addressBook);
         CFIndex numPeople = ABAddressBookGetPersonCount(addressBook);
         NSMutableArray* entries = [NSMutableArray arrayWithCapacity:numPeople];
