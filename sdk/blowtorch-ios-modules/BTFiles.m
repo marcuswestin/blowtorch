@@ -30,6 +30,9 @@ static BTFiles* instance;
 + (NSString*)cachePath:(NSString*)filename {
     return [instance _cachePath:filename];
 }
++ (NSString*)documentPath:(NSString*)filename {
+    return [instance _documentPath:filename];
+}
 
 - (void) setup:(BTAppDelegate*)app {
     if (instance) { return; }
