@@ -79,13 +79,6 @@ AudioUnitParameterValue getParameter(AudioUnit unit, AudioUnitPropertyID propert
 }
 
 - (void) playFromFile {
-    NSArray  *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
-    NSString *recordFile = [documentsDirectory stringByAppendingPathComponent: @"audio.m4a"];
-    NSLog(@"PLAY FILE %@", recordFile);
-    
-    NSURL* fileUrl = [NSURL URLWithString:recordFile];
-
     {
         //create a new AUGraph
         CheckError(NewAUGraph(&_graph), "NewAUGraph failed");
@@ -130,8 +123,7 @@ AudioUnitParameterValue getParameter(AudioUnit unit, AudioUnitPropertyID propert
         AudioFileID inputFile; // reference to your input file
         
         // open the input audio file and store the AU ref in _player
-        CFURLRef songURL = (__bridge CFURLRef)fileUrl;
-        CheckError(AudioFileOpenURL(songURL, kAudioFileReadPermission, 0, &inputFile), "AudioFileOpenURL failed");
+        CheckError(AudioFileOpenURL(getFileUrl(@"audio.m4a"), kAudioFileReadPermission, 0, &inputFile), "AudioFileOpenURL failed");
         
         //create an empty MyAUGraphPlayer struct
         AudioUnit fileAU;
@@ -214,18 +206,8 @@ static BOOL RECORD = NO;
         
         OSStatus result;
         
-        NSArray  *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString *documentsDirectory = [paths objectAtIndex:0];
-        NSString *recordFile = [documentsDirectory stringByAppendingPathComponent: @"audio.m4a"];
-        NSLog(@"RECORD FILE %@", recordFile);
-        
-        CFURLRef destinationURL = CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-                                                                (__bridge   CFStringRef)recordFile,
-                                                                kCFURLPOSIXPathStyle,
-                                                                false);
-
         AudioStreamBasicDescription fileFormat = [self getFileFormat];
-        result = ExtAudioFileCreateWithURL(destinationURL, kAudioFileM4AType, &fileFormat, NULL, kAudioFileFlags_EraseFile, &extAudioFileRef);
+        result = ExtAudioFileCreateWithURL(getFileUrl(@"audio.m4a"), kAudioFileM4AType, &fileFormat, NULL, kAudioFileFlags_EraseFile, &extAudioFileRef);
         if(result) printf("ExtAudioFileCreateWithURL %ld \n", result);
         
         // specify codec
@@ -251,6 +233,10 @@ static BOOL RECORD = NO;
     
     checkError(AUGraphInitialize(_graph), @"Initialize graph");
     [self startGraph]; // Finally, recording!
+}
+
+CFURLRef getFileUrl(NSString* filename) {
+    return CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge   CFStringRef)[BTFiles documentPath:filename], kCFURLPOSIXPathStyle, false);
 }
 
 - (AudioStreamBasicDescription) getFileFormat {
