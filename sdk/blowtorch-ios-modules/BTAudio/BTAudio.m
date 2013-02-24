@@ -92,20 +92,30 @@ AudioComponentDescription getComponentDescription(OSType type, OSType subType) {
     iOUnitDescription.componentFlagsMask = 0;
     return iOUnitDescription;
 }
-
+AVAudioSession* createAudioSession(NSString* category) {
+    NSError* err;
+    AVAudioSession* session = [AVAudioSession sharedInstance];
+    [session setCategory:AVAudioSessionCategoryPlayAndRecord error:&err];
+    if (err) { NSLog(@"ERROR setCategory:withOptions: %@", err); return nil; }
+    [session setActive:YES error:&err];
+    if (err) { NSLog(@"ERROR setActive: %@", err); return nil; }
+    return session;
+}
 
 
 
 
 @interface BTAudioGraph : NSObject
-@property (nonatomic,assign) AUNode ioNode;
+@property (nonatomic,assign,readonly) AUNode ioNode;
+@property (nonatomic,assign,readonly) AudioUnit ioUnit;
 - (void) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus;
 @end
 
 @implementation BTAudioGraph {
     AUGraph _graph;
+    ExtAudioFileRef _recordToAudioExtFileRef;
 }
-@synthesize ioNode=_ioNode;
+@synthesize ioNode=_ioNode, ioUnit=_ioUnit;
 /* Initialize
  ************/
 - (id) init {
@@ -116,18 +126,80 @@ AudioComponentDescription getComponentDescription(OSType type, OSType subType) {
     }
     return self;
 }
-- (id) initWithMicrophoneIO {
-    if ([self init]) { self.ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_RemoteIO]; }
+- (id) initWithSpeaker {
+    if ([self init]) {
+        _ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_RemoteIO];
+        _ioUnit = [self getUnit:_ioNode];
+    }
     return self;
 }
-- (id) initWithVoiceIO {
-    if ([self init]) { self.ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_VoiceProcessingIO]; }
+- (id) initWithSpeakerAndMicrophoneInput { // use voice for iPhone later
+    if ([self init]) {
+        _ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_RemoteIO];
+        _ioUnit = [self getUnit:_ioNode];
+        check(@"Enable mic input", setInputPropertyInt([self getUnit:_ioNode], kAudioOutputUnitProperty_EnableIO, RIOInputFromMic, 1));
+    }
+    return self;
+}
+- (id) initWithSpearkAndVoiceInput {
+    if ([self init]) {
+        _ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_VoiceProcessingIO];
+        _ioUnit = [self getUnit:_ioNode];
+        check(@"Enable mic input", setInputPropertyInt([self getUnit:_ioNode], kAudioOutputUnitProperty_EnableIO, RIOInputFromMic, 1));
+    }
     return self;
 }
 - (id) initWithOfflineIO {
-    if ([self init]) { self.ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_GenericOutput]; }
+    if ([self init]) {
+        _ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_GenericOutput];
+        _ioUnit = [self getUnit:_ioNode];
+    }
     return self;
 }
+
+- (void)recordFromUnit:(AudioUnit)unit bus:(AudioUnitElement)bus toFile:(NSString *)filepath {
+    AudioStreamBasicDescription destinationFormat;
+    memset(&destinationFormat, 0, sizeof(destinationFormat));
+    destinationFormat.mFormatID = kAudioFormatMPEG4AAC;
+    destinationFormat.mChannelsPerFrame = 2;
+    destinationFormat.mSampleRate = 16000.0;
+    UInt32 size = sizeof(destinationFormat);
+    OSStatus result = AudioFormatGetProperty(kAudioFormatProperty_FormatInfo, 0, NULL, &size, &destinationFormat);
+    if(result) printf("AudioFormatGetProperty %ld \n", result);
+
+    AudioStreamBasicDescription fileFormat = destinationFormat;
+    check(@"ExtAudioFileCreateWithURL",
+          ExtAudioFileCreateWithURL(getFileUrl(filepath), kAudioFileM4AType, &fileFormat, NULL, kAudioFileFlags_EraseFile, &_recordToAudioExtFileRef));
+    
+    UInt32 codec = kAppleHardwareAudioCodecManufacturer;
+    check(@"Set codec", ExtAudioFileSetProperty(_recordToAudioExtFileRef, kExtAudioFileProperty_CodecManufacturer, sizeof(codec), &codec));
+    
+    AudioStreamBasicDescription unitFormat = getInputStreamFormat(unit, bus);
+    check(@"Set format", ExtAudioFileSetProperty(_recordToAudioExtFileRef, kExtAudioFileProperty_ClientDataFormat, sizeof(unitFormat), &unitFormat));
+    
+    check(@"Erase file with first write", ExtAudioFileWriteAsync(_recordToAudioExtFileRef, 0, NULL));
+
+    check(@"Set recording callback", AudioUnitAddRenderNotify(unit, recordFromUnitToFile, (__bridge void*)self));
+}
+static int count = 0;
+static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
+    if (*ioActionFlags != kAudioUnitRenderAction_PostRender) { return noErr; }
+    
+    OSStatus result;
+    BTAudioGraph* THIS = (__bridge BTAudioGraph *)inRefCon;
+    if (count < 200) {
+        result =  ExtAudioFileWriteAsync(THIS->_recordToAudioExtFileRef, inNumberFrames, ioData);
+        if(result) printf("ExtAudioFileWriteAsync %ld \n", result);
+    }
+    count += 1;
+    if (count == 200) {
+        result = ExtAudioFileDispose(THIS->_recordToAudioExtFileRef);
+        if (result) printf("ExtAudioFileDispose %ld \n", result);
+        printf("Closed file");
+    }
+    return noErr;
+}
+
 
 - (void) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus {
     AUNode filePlayerNode = [self addNodeOfType:kAudioUnitType_Generator subType:kAudioUnitSubType_AudioFilePlayer];
@@ -135,21 +207,17 @@ AudioComponentDescription getComponentDescription(OSType type, OSType subType) {
     AudioUnit fileAU = [self getUnit:filePlayerNode];
     
     AudioFileID inputFile;
-    check(@"Open audio file",
-          AudioFileOpenURL(getFileUrl([BTFiles documentPath:@"audio.m4a"]), kAudioFileReadPermission, 0, &inputFile));
+    check(@"Open audio file", AudioFileOpenURL(getFileUrl([BTFiles documentPath:@"audio.m4a"]), kAudioFileReadPermission, 0, &inputFile));
     
     AudioStreamBasicDescription inputFormat;
     UInt32 propSize = sizeof(inputFormat);
-    check(@"Get audio file format",
-          AudioFileGetProperty(inputFile, kAudioFilePropertyDataFormat, &propSize, &inputFormat));
+    check(@"Get audio file format", AudioFileGetProperty(inputFile, kAudioFilePropertyDataFormat, &propSize, &inputFormat));
     
-    check(@"Set file player file id",
-          AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFileIDs, kAudioUnitScope_Global, 0, &(inputFile), sizeof((inputFile))));
+    check(@"Set file player file id", AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFileIDs, kAudioUnitScope_Global, 0, &(inputFile), sizeof((inputFile))));
     
     UInt64 nPackets;
     UInt32 propsize = sizeof(nPackets);
-    check(@"Get file audio packet count",
-          AudioFileGetProperty(inputFile, kAudioFilePropertyAudioDataPacketCount, &propsize, &nPackets));
+    check(@"Get file audio packet count", AudioFileGetProperty(inputFile, kAudioFilePropertyAudioDataPacketCount, &propsize, &nPackets));
     
     // tell the file player AU to play the entire file
     ScheduledAudioFileRegion rgn;
@@ -214,6 +282,7 @@ AudioComponentDescription getComponentDescription(OSType type, OSType subType) {
     AUGraph _graph;
     AVAudioSession* _session;
     ExtAudioFileRef extAudioFileRef;
+    BTAudioGraph* _audioGraph;
 }
 
 static BTAudio* instance;
@@ -230,14 +299,12 @@ static BTAudio* instance;
     // Task 3: Read audio from file, apply filter, output to file
     // Task 4: Visualize audio in task 1 & 2
     
-    [self createAndOpenAndInitializeGraph];
-
     if (RECORD) { [self recordToFile]; }
     else { [self playFromFile]; }
 }
 
 - (void) playFromFile {
-    BTAudioGraph* graph = [[BTAudioGraph alloc] initWithMicrophoneIO];
+    BTAudioGraph* graph = [[BTAudioGraph alloc] initWithSpeaker];
     [graph readFile:[BTFiles documentPath:@"audio.m4a"] toNode:graph.ioNode bus:RIOInputFromApp];
     [graph start];
 }
@@ -245,146 +312,27 @@ static BTAudio* instance;
 static BOOL RECORD = NO;
 
 - (void) recordToFile {
-    [self createSessionForPlayAndRecord];
+    _session = createAudioSession(AVAudioSessionCategoryPlayAndRecord);
     if (!_session.inputAvailable) { NSLog(@"WARNING Requested input is not available");}
-
-    AUNode rioNode = [self setMicrophoneIoNode]; // setVoiceIoNode for iPhone
-    AudioUnit rioUnit = [self getUnit:rioNode];
-    check(@"Enable mic input",
-          setInputPropertyInt(rioUnit, kAudioOutputUnitProperty_EnableIO, RIOInputFromMic, 1));
     
-    AUNode pitchNode = [self addNodeOfType:kAudioUnitType_FormatConverter subType:kAudioUnitSubType_NewTimePitch];
-    AudioUnit pitchUnit = [self getUnit:pitchNode];
-    check(@"Set pitch",
-          AudioUnitSetParameter(pitchUnit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, 800, 0)); // -2400 to 2400
+    BTAudioGraph* graph = _audioGraph = [[BTAudioGraph alloc] initWithSpeakerAndMicrophoneInput];
+    
+    AUNode pitchNode = [graph addNodeOfType:kAudioUnitType_FormatConverter subType:kAudioUnitSubType_NewTimePitch];
+    AudioUnit pitchUnit = [graph getUnit:pitchNode];
+    check(@"Set pitch", AudioUnitSetParameter(pitchUnit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, 800, 0)); // -2400 to 2400
     
     AudioStreamBasicDescription pitchStreamFormat = getInputStreamFormat(pitchUnit, 0);
-    
     // Microphone -> Pitchshift
-    setOutputStreamFormat(rioUnit, RIOOutputToApp, pitchStreamFormat);
-    [self connectNode:rioNode bus:RIOOutputToApp toNode:pitchNode bus:0];
-
+    setOutputStreamFormat(graph.ioUnit, RIOOutputToApp, pitchStreamFormat);
+    [graph connectNode:graph.ioNode bus:RIOOutputToApp toNode:pitchNode bus:0];
+    
     // Pitchshift -> Speaker
-    setInputStreamFormat(rioUnit, RIOInputFromApp, pitchStreamFormat);
-    [self connectNode:pitchNode bus:0 toNode:rioNode bus:RIOInputFromApp];
+    setInputStreamFormat(graph.ioUnit, RIOInputFromApp, pitchStreamFormat);
+    [graph connectNode:pitchNode bus:0 toNode:graph.ioNode bus:RIOInputFromApp];
     
-    {
-        AudioStreamBasicDescription fileFormat = getFileFormat();
-        check(@"ExtAudioFileCreateWithURL",
-              ExtAudioFileCreateWithURL(getFileUrl([BTFiles documentPath:@"audio.m4a"]), kAudioFileM4AType, &fileFormat, NULL, kAudioFileFlags_EraseFile, &extAudioFileRef));
-        
-        // specify codec
-        UInt32 codec = kAppleHardwareAudioCodecManufacturer;
-        check(@"ExtAudioFileSetProperty",
-              ExtAudioFileSetProperty(extAudioFileRef, kExtAudioFileProperty_CodecManufacturer, sizeof(codec), &codec));
-        
-        check(@"ExtAudioFileSetProperty",
-              ExtAudioFileSetProperty(extAudioFileRef, kExtAudioFileProperty_ClientDataFormat, sizeof(pitchStreamFormat), &pitchStreamFormat));
-        
-        check(@"ExtAudioFileWriteAsync",
-              ExtAudioFileWriteAsync(extAudioFileRef, 0, NULL));
-        
-        check(@"AudioUnitAddRenderNotify",
-              AudioUnitAddRenderNotify(pitchUnit, recordToFileCallback, (__bridge void*)self));
-    }
+    [graph recordFromUnit:pitchUnit bus:0 toFile:[BTFiles documentPath:@"audio.m4a"]];
 
-    [self startGraph];
-}
-
-AudioStreamBasicDescription getFileFormat() {
-    AudioStreamBasicDescription destinationFormat;
-    memset(&destinationFormat, 0, sizeof(destinationFormat));
-    destinationFormat.mFormatID = kAudioFormatMPEG4AAC;
-    destinationFormat.mChannelsPerFrame = 2;
-    destinationFormat.mSampleRate = 16000.0;
-    UInt32 size = sizeof(destinationFormat);
-    OSStatus result = AudioFormatGetProperty(kAudioFormatProperty_FormatInfo, 0, NULL, &size, &destinationFormat);
-    if(result) printf("AudioFormatGetProperty %ld \n", result);
-    return destinationFormat;
-}
-
-static int count = 0;
-static OSStatus recordToFileCallback (void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
-    if (*ioActionFlags != kAudioUnitRenderAction_PostRender) { return noErr; }
-    
-    OSStatus result;
-    BTAudio* THIS = (__bridge BTAudio *)inRefCon;
-    if (count < 200) {
-        result =  ExtAudioFileWriteAsync(THIS->extAudioFileRef, inNumberFrames, ioData);
-        if(result) printf("ExtAudioFileWriteAsync %ld \n", result);
-    }
-    count += 1;
-    if (count == 200) {
-        result = ExtAudioFileDispose(THIS->extAudioFileRef);
-        if (result) printf("ExtAudioFileDispose %ld \n", result);
-        printf("Closed file");
-    }
-    return noErr;
-}
-
-
-
-
-
-/* Graph creation & configuration
- ********************************/
-// 0) Create an audio session
-- (BOOL) createSessionForSilencableSounds { return [self _createSession:AVAudioSessionCategorySoloAmbient]; }
-- (BOOL) createSessionForContinuousPlayback { return [self _createSession:AVAudioSessionCategoryPlayback]; }
-- (BOOL) createSessionForRecording { return [self _createSession:AVAudioSessionCategoryRecord]; }
-- (BOOL) createSessionForPlayAndRecord { return [self _createSession:AVAudioSessionCategoryPlayAndRecord]; }
-- (BOOL) _createSession:(NSString*)category {
-    NSError* err;
-    _session = [AVAudioSession sharedInstance];
-    [_session setCategory:AVAudioSessionCategoryPlayAndRecord error:&err];
-    if (err) { NSLog(@"ERROR setCategory:withOptions: %@", err); return NO; }
-    [_session setActive:YES error:&err];
-    if (err) { NSLog(@"ERROR setActive: %@", err); return NO; }
-    return !!_session;
-}
-
-// 1) Create graph
-- (BOOL) createAndOpenAndInitializeGraph {
-    return check(@"Create graph", NewAUGraph(&_graph)) && check(@"Open graph", AUGraphOpen(_graph)) && check(@"Init graph", AUGraphInitialize(_graph));
-}
-
-// 2) Create IO node
-- (AUNode) setMicrophoneIoNode {
-    return [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_RemoteIO];
-}
-- (AUNode) setVoiceIoNode {
-    return [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_VoiceProcessingIO];
-}
-
-// 3) Create other nodes
-- (AUNode) addNodeOfType:(OSType)type subType:(OSType)subType {
-    AUNode node;
-    AudioComponentDescription componentDescription = getComponentDescription(type, subType);
-    if (!check(@"Add node", AUGraphAddNode(_graph, &componentDescription, &node))) { return 0; }
-    return node;
-}
-
-// 4) Configure node audio units
-- (AudioUnit) getUnit:(AUNode)node {
-    AudioUnit unit;
-    if (!check(@"Get audio unit", AUGraphNodeInfo(_graph, node, NULL, &unit))) { return NULL; }
-    return unit;
-}
-
-// 5) Connect nodes in the graph
-- (BOOL) connectNode:(AUNode)nodeA bus:(UInt32)busA toNode:(AUNode)nodeB bus:(UInt32)busB {
-    return check(@"Connect nodes", AUGraphConnectNodeInput(_graph, nodeA, busA, nodeB, busB));
-}
-
-
-// 6) Start and stop audio flow
-- (BOOL) startGraph {
-    return check(@"Start graph", AUGraphStart(_graph));
-}
-- (BOOL) stopGraph {
-    Boolean isRunning = false;
-    if (!check(@"Check if graph is running", AUGraphIsRunning(_graph, &isRunning))) { return NO; }
-    return isRunning ? check(@"Stop graph", AUGraphStop(_graph)) : YES;
+    [graph start];
 }
 @end
 
