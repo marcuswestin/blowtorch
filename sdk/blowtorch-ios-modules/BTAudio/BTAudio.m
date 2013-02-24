@@ -54,22 +54,22 @@ AudioStreamBasicDescription getStreamFormat(AudioUnit unit, AudioUnitScope scope
     return streamFormat;
 }
 
-BOOL setGlobalPropertyInt(AudioUnit unit ,AudioUnitPropertyID propertyId, UInt32 data) {
+OSStatus setGlobalPropertyInt(AudioUnit unit ,AudioUnitPropertyID propertyId, UInt32 data) {
     return setPropertyInt(unit, propertyId, kAudioUnitScope_Global, 0, data);
 }
-// The input and output scopes move audio streams through the audio unit: audio enters at the input scope and leaves at the output scope.
-BOOL setInputPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitElement element, UInt32 data) {
+OSStatus setInputPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitElement element, UInt32 data) {
     return setPropertyInt(unit, propertyId, kAudioUnitScope_Input, element, data);
 }
-BOOL setOutputPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitElement element, UInt32 data) {
+OSStatus setOutputPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitElement element, UInt32 data) {
     return setPropertyInt(unit, propertyId, kAudioUnitScope_Output, element, data);
 }
 // Properties: http://developer.apple.com/library/ios/#documentation/AudioUnit/Reference/AudioUnitPropertiesReference/Reference/reference.html
 // Scopes: kAudioUnitScope_* (Global, Input, Output, Group, Part, Note)
 // Input scope is audio coming into the AU, output is going out of the unit, and global is for properties that affect the whole unit
-BOOL setPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitScope scope, AudioUnitElement element, UInt32 data) {
+OSStatus setPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitScope scope, AudioUnitElement element, UInt32 data) {
     OSStatus status = AudioUnitSetProperty(unit, propertyId, scope, element, &data, sizeof(data));
-    return checkError(status, @"Setting property");
+    check(@"setPropertyInt", status);
+    return status;
 }
 AudioUnitParameterValue getParameter(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitScope scope, AudioUnitElement element) {
     AudioUnitParameterValue value;
@@ -114,32 +114,28 @@ AudioUnitParameterValue getParameter(AudioUnit unit, AudioUnitPropertyID propert
     }
     
     
-    
-    // configure the file player
-    // tell the file player unit to load the file we want to play
     {
-        //?????
-        AudioStreamBasicDescription inputFormat; // input file's data stream description
         AudioFileID inputFile; // reference to your input file
         
         // open the input audio file and store the AU ref in _player
-        CheckError(AudioFileOpenURL(getFileUrl(@"audio.m4a"), kAudioFileReadPermission, 0, &inputFile), "AudioFileOpenURL failed");
-        
-        //create an empty MyAUGraphPlayer struct
-        AudioUnit fileAU;
+        check(@"Open audio file",
+              AudioFileOpenURL(getFileUrl(@"audio.m4a"), kAudioFileReadPermission, 0, &inputFile));
         
         // get the reference to the AudioUnit object for the file player graph node
-        CheckError(AUGraphNodeInfo(_graph, filePlayerNode, NULL, &fileAU), "AUGraphNodeInfo failed");
-        
-        // get and store the audio data format from the file
+        AudioUnit fileAU = [self getUnit:filePlayerNode];
+
+        AudioStreamBasicDescription inputFormat;
         UInt32 propSize = sizeof(inputFormat);
-        CheckError(AudioFileGetProperty(inputFile, kAudioFilePropertyDataFormat, &propSize, &inputFormat), "couldn't get file's data format");
+        check(@"Get audio file format",
+              AudioFileGetProperty(inputFile, kAudioFilePropertyDataFormat, &propSize, &inputFormat));
         
-        CheckError(AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFileIDs, kAudioUnitScope_Global, 0, &(inputFile), sizeof((inputFile))), "AudioUnitSetProperty[kAudioUnitProperty_ScheduledFileIDs] failed");
+        check(@"Set file player file id",
+              AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFileIDs, kAudioUnitScope_Global, 0, &(inputFile), sizeof((inputFile))));
         
         UInt64 nPackets;
         UInt32 propsize = sizeof(nPackets);
-        CheckError(AudioFileGetProperty(inputFile, kAudioFilePropertyAudioDataPacketCount, &propsize, &nPackets), "AudioFileGetProperty[kAudioFilePropertyAudioDataPacketCount] failed");
+        check(@"Get file audio packet count",
+              AudioFileGetProperty(inputFile, kAudioFilePropertyAudioDataPacketCount, &propsize, &nPackets));
         
         // tell the file player AU to play the entire file
         ScheduledAudioFileRegion rgn;
@@ -153,24 +149,27 @@ AudioUnitParameterValue getParameter(AudioUnit unit, AudioUnitPropertyID propert
         rgn.mStartFrame = 0;
         rgn.mFramesToPlay = nPackets * inputFormat.mFramesPerPacket;
         
-        CheckError(AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFileRegion, kAudioUnitScope_Global, 0,&rgn, sizeof(rgn)), "AudioUnitSetProperty[kAudioUnitProperty_ScheduledFileRegion] failed");
+        check(@"Set audio player file region",
+              AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFileRegion, kAudioUnitScope_Global, 0,&rgn, sizeof(rgn)));
         
         // prime the file player AU with default values
         UInt32 defaultVal = 0;
-        CheckError(AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFilePrime, kAudioUnitScope_Global, 0, &defaultVal, sizeof(defaultVal)), "AudioUnitSetProperty[kAudioUnitProperty_ScheduledFilePrime] failed");
+        check(@"Prime the file player unit (???)",
+              AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFilePrime, kAudioUnitScope_Global, 0, &defaultVal, sizeof(defaultVal)));
         
         // tell the file player AU when to start playing (-1 sample time means next render cycle)
         AudioTimeStamp startTime;
         memset (&startTime, 0, sizeof(startTime));
         startTime.mFlags = kAudioTimeStampSampleTimeValid;
         startTime.mSampleTime = -1;
-        CheckError(AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduleStartTimeStamp, kAudioUnitScope_Global, 0, &startTime, sizeof(startTime)), "AudioUnitSetProperty[kAudioUnitProperty_ScheduleStartTimeStamp]");
+        check(@"Set audio player file start timestamp",
+              AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduleStartTimeStamp, kAudioUnitScope_Global, 0, &startTime, sizeof(startTime)));
         
         // file duration
         //double duration = (nPackets * _player.inputFormat.mFramesPerPacket) / _player.inputFormat.mSampleRate;
     }
     
-    checkError(AUGraphInitialize(_graph), @"Initialize graph");
+    [self initializeGraph];
     [self startGraph];
 }
 
@@ -181,69 +180,60 @@ static BOOL RECORD = NO;
     [self createAndOpenGraph];
     if (!_session.inputAvailable) { NSLog(@"WARNING Requested input is not available");}
 
-    AUNode rioNode = [self setVoiceIoNode];
+    AUNode rioNode = [self setMicrophoneIoNode]; // setVoiceIoNode for iPhone
     AudioUnit rioUnit = [self getUnit:rioNode];
+    check(@"Enable mic input",
+          setInputPropertyInt(rioUnit, kAudioOutputUnitProperty_EnableIO, RIOInputFromMic, 1));
+    
+    AUNode pitchNode = [self addNodeOfType:kAudioUnitType_FormatConverter subType:kAudioUnitSubType_NewTimePitch];
+    AudioUnit pitchUnit = [self getUnit:pitchNode];
+    check(@"Set pitch",
+          AudioUnitSetParameter(pitchUnit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, 800, 0)); // -2400 to 2400
+    
+    AudioStreamBasicDescription pitchStreamFormat = getStreamFormat(pitchUnit, kAudioUnitScope_Input, 0);
+    
+    // Microphone -> Pitchshift
+    setOutputStreamFormat(rioUnit, RIOOutputToApp, pitchStreamFormat);
+    [self connectNode:rioNode bus:RIOOutputToApp toNode:pitchNode bus:0];
 
-    [self connectNode:rioNode bus:RIOOutputToApp toNode:rioNode bus:RIOInputFromApp];
-    setInputPropertyInt(rioUnit, kAudioOutputUnitProperty_EnableIO, RIOInputFromMic, 1);
-    
-    // Describe format - - - - - - - - - -
-    AudioStreamBasicDescription audioFormat;
-    memset(&audioFormat, 0, sizeof(audioFormat));
-    audioFormat.mSampleRate   = 44100.00;
-    audioFormat.mFormatID     = kAudioFormatLinearPCM;
-    audioFormat.mFormatFlags    = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
-    audioFormat.mFramesPerPacket = 1;
-    audioFormat.mChannelsPerFrame = 1;
-    audioFormat.mBitsPerChannel   = 16;
-    audioFormat.mBytesPerPacket   = 2;
-    audioFormat.mBytesPerFrame    = 2;
-    
-    setOutputStreamFormat(rioUnit, RIOOutputToApp, audioFormat);
-    setInputStreamFormat(rioUnit, RIOInputFromApp, audioFormat);
+    // Pitchshift -> Speaker
+    setInputStreamFormat(rioUnit, RIOInputFromApp, pitchStreamFormat);
+    [self connectNode:pitchNode bus:0 toNode:rioNode bus:RIOInputFromApp];
     
     {
-        
-        OSStatus result;
-        
-        AudioStreamBasicDescription fileFormat = [self getFileFormat];
-        result = ExtAudioFileCreateWithURL(getFileUrl(@"audio.m4a"), kAudioFileM4AType, &fileFormat, NULL, kAudioFileFlags_EraseFile, &extAudioFileRef);
-        if(result) printf("ExtAudioFileCreateWithURL %ld \n", result);
+        AudioStreamBasicDescription fileFormat = getFileFormat();
+        check(@"ExtAudioFileCreateWithURL",
+              ExtAudioFileCreateWithURL(getFileUrl(@"audio.m4a"), kAudioFileM4AType, &fileFormat, NULL, kAudioFileFlags_EraseFile, &extAudioFileRef));
         
         // specify codec
         UInt32 codec = kAppleHardwareAudioCodecManufacturer;
-        result = ExtAudioFileSetProperty(extAudioFileRef, kExtAudioFileProperty_CodecManufacturer, sizeof(codec), &codec);
-        if(result) printf("ExtAudioFileSetProperty 1 %ld \n", result);
+        check(@"ExtAudioFileSetProperty",
+              ExtAudioFileSetProperty(extAudioFileRef, kExtAudioFileProperty_CodecManufacturer, sizeof(codec), &codec));
         
-        AudioStreamBasicDescription clientFormat;
-        UInt32 clientFormatSize = sizeof(clientFormat);
-        memset(&clientFormat, 0, clientFormatSize);
-        result = AudioUnitGetProperty(rioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1, &clientFormat, &clientFormatSize);
-        if(result) printf("AudioUnitGetProperty %ld \n", result);
+        check(@"ExtAudioFileSetProperty",
+              ExtAudioFileSetProperty(extAudioFileRef, kExtAudioFileProperty_ClientDataFormat, sizeof(pitchStreamFormat), &pitchStreamFormat));
         
-        result = ExtAudioFileSetProperty(extAudioFileRef,kExtAudioFileProperty_ClientDataFormat,sizeof(clientFormat),&clientFormat);
-        if(result) printf("ExtAudioFileSetProperty 2 %ld \n", result);
+        check(@"ExtAudioFileWriteAsync",
+              ExtAudioFileWriteAsync(extAudioFileRef, 0, NULL));
         
-        result =  ExtAudioFileWriteAsync(extAudioFileRef, 0, NULL);
-        if (result) {[self printErrorMessage: @"ExtAudioFileWriteAsync error" withStatus: result];}
-        
-        result = AudioUnitAddRenderNotify(rioUnit, renderCallback, (__bridge void*)self);
-        if (result) {[self printErrorMessage: @"AudioUnitAddRenderNotify" withStatus: result];}
+        check(@"AudioUnitAddRenderNotify",
+              AudioUnitAddRenderNotify(pitchUnit, renderCallback, (__bridge void*)self));
     }
-    
-    checkError(AUGraphInitialize(_graph), @"Initialize graph");
-    [self startGraph]; // Finally, recording!
+
+    [self initializeGraph];
+    [self startGraph];
 }
 
 CFURLRef getFileUrl(NSString* filename) {
     return CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge   CFStringRef)[BTFiles documentPath:filename], kCFURLPOSIXPathStyle, false);
 }
 
-- (AudioStreamBasicDescription) getFileFormat {
+AudioStreamBasicDescription getFileFormat() {
     AudioStreamBasicDescription destinationFormat;
     memset(&destinationFormat, 0, sizeof(destinationFormat));
-    destinationFormat.mChannelsPerFrame = 2;
     destinationFormat.mFormatID = kAudioFormatMPEG4AAC;
+    destinationFormat.mChannelsPerFrame = 2;
+    destinationFormat.mSampleRate = 16000.0;
     UInt32 size = sizeof(destinationFormat);
     OSStatus result = AudioFormatGetProperty(kAudioFormatProperty_FormatInfo, 0, NULL, &size, &destinationFormat);
     if(result) printf("AudioFormatGetProperty %ld \n", result);
@@ -252,25 +242,17 @@ CFURLRef getFileUrl(NSString* filename) {
 
 static int count = 0;
 
-static OSStatus renderCallback (void *                       inRefCon,
-                                AudioUnitRenderActionFlags * ioActionFlags,
-                                const AudioTimeStamp *       inTimeStamp,
-                                UInt32                       inBusNumber,
-                                UInt32                       inNumberFrames,
-                                AudioBufferList *            ioData)
-{
-    
-    OSStatus result;
+static OSStatus renderCallback (void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
     if (*ioActionFlags != kAudioUnitRenderAction_PostRender) { return noErr; }
     
+    OSStatus result;
     BTAudio* THIS = (__bridge BTAudio *)inRefCon;
-    if (count < 200) {
-        
+    if (count < 1000) {
         result =  ExtAudioFileWriteAsync(THIS->extAudioFileRef, inNumberFrames, ioData);
         if(result) printf("ExtAudioFileWriteAsync %ld \n", result);
     }
     count += 1;
-    if (count == 200) {
+    if (count == 1000) {
         result = ExtAudioFileDispose(THIS->extAudioFileRef);
         if (result) printf("ExtAudioFileDispose %ld \n", result);
         printf("Closed file");
@@ -445,8 +427,11 @@ static OSStatus renderCallback (void *                       inRefCon,
 
 
 // 6) Start and stop audio flow
+- (BOOL) initializeGraph {
+    return check(@"Initialize graph", AUGraphInitialize(_graph));
+}
 - (BOOL) startGraph {
-    return checkError(AUGraphStart(_graph), @"Start graph");
+    return check(@"Start graph", AUGraphStart(_graph));
 }
 - (BOOL) stopGraph {
     Boolean isRunning = false;
@@ -506,6 +491,11 @@ void error(NSString* errorString, OSStatus status) {
 		sprintf(str, "%d", (int)status);
     }
     NSLog(@"*** %@ error: %s\n", errorString, str);
+}
+
+OSStatus check(NSString* str, OSStatus status) {
+    if (status != noErr) { error(str, status); }
+    return status;
 }
 @end
 
