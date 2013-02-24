@@ -193,20 +193,9 @@ static BOOL RECORD = NO;
     AudioUnit rioUnit = [self getUnit:rioNode];
 
     [self connectNode:rioNode bus:RIOOutputToApp toNode:rioNode bus:RIOInputFromApp];
-    OSStatus result;
-    int kInputBus = 1;
-    int kOutputBus = 0;
-    UInt32 flag = 1;
-    result = AudioUnitSetProperty(rioUnit,
-                                  kAudioOutputUnitProperty_EnableIO,
-                                  kAudioUnitScope_Input,
-                                  kInputBus, // == 1
-                                  &flag,
-                                  sizeof(flag));
-    if (noErr != result) {[self printErrorMessage: @"Enable IO for recording" withStatus: result]; return;}
+    setInputPropertyInt(rioUnit, kAudioOutputUnitProperty_EnableIO, RIOInputFromMic, 1);
     
     // Describe format - - - - - - - - - -
-    size_t bytesPerSample = sizeof (AudioUnitSampleType);
     AudioStreamBasicDescription audioFormat;
     memset(&audioFormat, 0, sizeof(audioFormat));
     audioFormat.mSampleRate   = 44100.00;
@@ -218,20 +207,9 @@ static BOOL RECORD = NO;
     audioFormat.mBytesPerPacket   = 2;
     audioFormat.mBytesPerFrame    = 2;
     
-    result = AudioUnitSetProperty(rioUnit,
-                                  kAudioUnitProperty_StreamFormat,
-                                  kAudioUnitScope_Output,
-                                  kInputBus, // == 1
-                                  &audioFormat,
-                                  sizeof(audioFormat));
+    setOutputStreamFormat(rioUnit, RIOOutputToApp, audioFormat);
+    setInputStreamFormat(rioUnit, RIOInputFromApp, audioFormat);
     
-    
-    result = AudioUnitSetProperty(rioUnit,
-                                  kAudioUnitProperty_StreamFormat,
-                                  kAudioUnitScope_Input,
-                                  kOutputBus, // == 0
-                                  &audioFormat,
-                                  sizeof(audioFormat));
     {
         
         OSStatus result;
