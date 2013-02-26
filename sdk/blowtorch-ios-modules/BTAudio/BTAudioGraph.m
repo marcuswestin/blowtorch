@@ -8,97 +8,6 @@
 
 #import "BTAudioGraph.h"
 
-const AudioUnitElement RIOInputFromMic = 1;
-const AudioUnitElement RIOInputFromApp = 0;
-const AudioUnitElement RIOOutputToSpeaker = 0;
-const AudioUnitElement RIOOutputToApp = 1;
-
-/* Audio graph wrapper Utilities
- *******************************/
-//                          -------------------------
-//                          | i                   o |
-// -- BUS 1 -- from mic --> | n    REMOTE I/O     u | -- BUS 1 -- to app -->
-//                          | p      AUDIO        t |
-// -- BUS 0 -- from app --> | u       UNIT        p | -- BUS 0 -- to speaker -->
-//                          | t                   u |
-//                          |                     t |
-//                          -------------------------
-CFURLRef getFileUrl(NSString* filepath) {
-    return CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge   CFStringRef)filepath, kCFURLPOSIXPathStyle, false);
-}
-
-void error(NSString* errorString, OSStatus status) {
-    char str[20];
-	*(UInt32 *)(str + 1) = CFSwapInt32HostToBig(status);
-    
-	if (isprint(str[1]) && isprint(str[2]) && isprint(str[3]) && isprint(str[4])) { // is it a 4-char-code?
-		str[0] = str[5] = '\'';
-		str[6] = '\0';
-	} else { // no, format as an integer
-		sprintf(str, "%d", (int)status);
-    }
-    NSLog(@"*** %@ error: %s\n", errorString, str);
-}
-BOOL check(NSString* str, OSStatus status) {
-    if (status != noErr) { error(str, status); }
-    return status == noErr;
-}
-
-BOOL setOutputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd) {
-    return check(@"Set output stream format",
-                 AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, bus, &asbd, sizeof(asbd)));
-}
-BOOL setInputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd) {
-    return check(@"Set input stream format",
-                 AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus, &asbd, sizeof(asbd)));
-}
-AudioStreamBasicDescription _getStreamFormat(AudioUnit unit, AudioUnitScope scope, AudioUnitElement bus) {
-    AudioStreamBasicDescription streamFormat;
-    memset(&streamFormat, 0, sizeof(streamFormat));
-    UInt32 size = sizeof(streamFormat);
-    check(@"Get stream format", AudioUnitGetProperty(unit, kAudioUnitProperty_StreamFormat, scope, bus, &streamFormat, &size));
-    return streamFormat;
-}
-AudioStreamBasicDescription getInputStreamFormat(AudioUnit unit, AudioUnitElement bus) {
-    return _getStreamFormat(unit, kAudioUnitScope_Input, bus);
-}
-AudioStreamBasicDescription getOutputStreamFormat(AudioUnit unit, AudioUnitElement bus) {
-    return _getStreamFormat(unit, kAudioUnitScope_Output, bus);
-}
-
-OSStatus setPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitScope scope, AudioUnitElement element, UInt32 data) {
-    OSStatus status = AudioUnitSetProperty(unit, propertyId, scope, element, &data, sizeof(data));
-    check(@"setPropertyInt", status);
-    return status;
-}
-OSStatus setInputPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitElement element, UInt32 data) {
-    return setPropertyInt(unit, propertyId, kAudioUnitScope_Input, element, data);
-}
-OSStatus setOutputPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitElement element, UInt32 data) {
-    return setPropertyInt(unit, propertyId, kAudioUnitScope_Output, element, data);
-}
-
-AudioComponentDescription getComponentDescription(OSType type, OSType subType) {
-    AudioComponentDescription iOUnitDescription;
-    iOUnitDescription.componentType = type;
-    iOUnitDescription.componentSubType = subType;
-    iOUnitDescription.componentManufacturer = kAudioUnitManufacturer_Apple;
-    iOUnitDescription.componentFlags = 0;
-    iOUnitDescription.componentFlagsMask = 0;
-    return iOUnitDescription;
-}
-AVAudioSession* createAudioSession(NSString* category) {
-    NSError* err;
-    AVAudioSession* session = [AVAudioSession sharedInstance];
-    [session setCategory:AVAudioSessionCategoryPlayAndRecord error:&err];
-    if (err) { NSLog(@"ERROR setCategory:withOptions: %@", err); return nil; }
-    [session setActive:YES error:&err];
-    if (err) { NSLog(@"ERROR setActive: %@", err); return nil; }
-    return session;
-}
-
-
-
 @implementation BTAudioGraph {
     AUGraph _graph;
     ExtAudioFileRef _recordToAudioExtFileRef;
@@ -263,6 +172,99 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
     startTime.mSampleTime = -1;
     check(@"Set audio player file start timestamp",
           AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduleStartTimeStamp, kAudioUnitScope_Global, 0, &startTime, sizeof(startTime)));
+}
+
+
+/* Audio graph wrapper Utilities
+ *******************************/
+
+//                          -------------------------
+//                          | i                   o |
+// -- BUS 1 -- from mic --> | n    REMOTE I/O     u | -- BUS 1 -- to app -->
+//                          | p      AUDIO        t |
+// -- BUS 0 -- from app --> | u       UNIT        p | -- BUS 0 -- to speaker -->
+//                          | t                   u |
+//                          |                     t |
+//                          -------------------------
+const AudioUnitElement RIOInputFromMic = 1;
+const AudioUnitElement RIOInputFromApp = 0;
+const AudioUnitElement RIOOutputToSpeaker = 0;
+const AudioUnitElement RIOOutputToApp = 1;
+
+
+CFURLRef getFileUrl(NSString* filepath) {
+    return CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (__bridge   CFStringRef)filepath, kCFURLPOSIXPathStyle, false);
+}
+
+
+void error(NSString* errorString, OSStatus status) {
+    char str[20];
+	*(UInt32 *)(str + 1) = CFSwapInt32HostToBig(status);
+    
+	if (isprint(str[1]) && isprint(str[2]) && isprint(str[3]) && isprint(str[4])) { // is it a 4-char-code?
+		str[0] = str[5] = '\'';
+		str[6] = '\0';
+	} else { // no, format as an integer
+		sprintf(str, "%d", (int)status);
+    }
+    NSLog(@"*** %@ error: %s\n", errorString, str);
+}
+BOOL check(NSString* str, OSStatus status) {
+    if (status != noErr) { error(str, status); }
+    return status == noErr;
+}
+
+BOOL setOutputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd) {
+    return check(@"Set output stream format",
+                 AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, bus, &asbd, sizeof(asbd)));
+}
+BOOL setInputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd) {
+    return check(@"Set input stream format",
+                 AudioUnitSetProperty(unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus, &asbd, sizeof(asbd)));
+}
+AudioStreamBasicDescription _getStreamFormat(AudioUnit unit, AudioUnitScope scope, AudioUnitElement bus) {
+    AudioStreamBasicDescription streamFormat;
+    memset(&streamFormat, 0, sizeof(streamFormat));
+    UInt32 size = sizeof(streamFormat);
+    check(@"Get stream format", AudioUnitGetProperty(unit, kAudioUnitProperty_StreamFormat, scope, bus, &streamFormat, &size));
+    return streamFormat;
+}
+AudioStreamBasicDescription getInputStreamFormat(AudioUnit unit, AudioUnitElement bus) {
+    return _getStreamFormat(unit, kAudioUnitScope_Input, bus);
+}
+AudioStreamBasicDescription getOutputStreamFormat(AudioUnit unit, AudioUnitElement bus) {
+    return _getStreamFormat(unit, kAudioUnitScope_Output, bus);
+}
+
+OSStatus setPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitScope scope, AudioUnitElement element, UInt32 data) {
+    OSStatus status = AudioUnitSetProperty(unit, propertyId, scope, element, &data, sizeof(data));
+    check(@"setPropertyInt", status);
+    return status;
+}
+OSStatus setInputPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitElement element, UInt32 data) {
+    return setPropertyInt(unit, propertyId, kAudioUnitScope_Input, element, data);
+}
+OSStatus setOutputPropertyInt(AudioUnit unit, AudioUnitPropertyID propertyId, AudioUnitElement element, UInt32 data) {
+    return setPropertyInt(unit, propertyId, kAudioUnitScope_Output, element, data);
+}
+
+AudioComponentDescription getComponentDescription(OSType type, OSType subType) {
+    AudioComponentDescription iOUnitDescription;
+    iOUnitDescription.componentType = type;
+    iOUnitDescription.componentSubType = subType;
+    iOUnitDescription.componentManufacturer = kAudioUnitManufacturer_Apple;
+    iOUnitDescription.componentFlags = 0;
+    iOUnitDescription.componentFlagsMask = 0;
+    return iOUnitDescription;
+}
+AVAudioSession* createAudioSession(NSString* category) {
+    NSError* err;
+    AVAudioSession* session = [AVAudioSession sharedInstance];
+    [session setCategory:AVAudioSessionCategoryPlayAndRecord error:&err];
+    if (err) { NSLog(@"ERROR setCategory:withOptions: %@", err); return nil; }
+    [session setActive:YES error:&err];
+    if (err) { NSLog(@"ERROR setActive: %@", err); return nil; }
+    return session;
 }
 @end
 
