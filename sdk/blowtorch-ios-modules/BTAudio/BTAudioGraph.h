@@ -19,18 +19,29 @@ const AudioUnitElement RIOOutputToApp;
 @interface BTAudioGraph : NSObject
 @property (nonatomic,assign,readonly) AUNode ioNode;
 @property (nonatomic,assign,readonly) AudioUnit ioUnit;
-- (void) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus;
+
 - (id) initWithSpeaker;
 - (id) initWithSpeakerAndMicrophoneInput;
+- (id) initWithSpearkAndVoiceInput;
+- (id) initWithOfflineIO;
+
 - (BOOL) start;
 - (BOOL) stop;
-- (AUNode) addNodeOfType:(OSType)type subType:(OSType)subType;
+
+- (AUNode) addNodeNamed:(NSString*)nodeName type:(OSType)type subType:(OSType)subType;
+- (AUNode) getNodeNamed:(NSString*)nodeName;
 - (AudioUnit) getUnit:(AUNode)node;
+- (AudioUnit) getUnitNamed:(NSString*)nodeName;
+
 - (BOOL) connectNode:(AUNode)nodeA bus:(UInt32)busA toNode:(AUNode)nodeB bus:(UInt32)busB;
-- (void)recordFromUnit:(AudioUnit)unit bus:(AudioUnitElement)bus toFile:(NSString *)filepath;
+
+- (AUNode) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus;
+- (void) recordFromUnit:(AudioUnit)unit bus:(AudioUnitElement)bus toFile:(NSString *)filepath;
+
 BOOL check(NSString* str, OSStatus status);
 BOOL setOutputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd);
 BOOL setInputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd);
 AudioStreamBasicDescription getInputStreamFormat(AudioUnit unit, AudioUnitElement bus);
 AVAudioSession* createAudioSession(NSString* category);
+
 @end

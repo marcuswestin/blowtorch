@@ -11,6 +11,7 @@
 @implementation BTAudioGraph {
     AUGraph _graph;
     ExtAudioFileRef _recordToAudioExtFileRef;
+    NSMutableDictionary* _nodes;
 }
 @synthesize ioNode=_ioNode, ioUnit=_ioUnit;
 /* Initialize
@@ -20,19 +21,20 @@
         check(@"Create graph", NewAUGraph(&_graph));
         check(@"Open graph", AUGraphOpen(_graph));
         check(@"Init graph", AUGraphInitialize(_graph));
+        _nodes = [NSMutableDictionary dictionary];
     }
     return self;
 }
 - (id) initWithSpeaker {
     if ([self init]) {
-        _ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_RemoteIO];
+        _ioNode = [self addNodeNamed:@"io" type:kAudioUnitType_Output subType:kAudioUnitSubType_RemoteIO];
         _ioUnit = [self getUnit:_ioNode];
     }
     return self;
 }
 - (id) initWithSpeakerAndMicrophoneInput { // use voice for iPhone later
     if ([self init]) {
-        _ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_RemoteIO];
+        _ioNode = [self addNodeNamed:@"io" type:kAudioUnitType_Output subType:kAudioUnitSubType_RemoteIO];
         _ioUnit = [self getUnit:_ioNode];
         check(@"Enable mic input", setInputPropertyInt([self getUnit:_ioNode], kAudioOutputUnitProperty_EnableIO, RIOInputFromMic, 1));
     }
@@ -40,7 +42,7 @@
 }
 - (id) initWithSpearkAndVoiceInput {
     if ([self init]) {
-        _ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_VoiceProcessingIO];
+        _ioNode = [self addNodeNamed:@"io" type:kAudioUnitType_Output subType:kAudioUnitSubType_VoiceProcessingIO];
         _ioUnit = [self getUnit:_ioNode];
         check(@"Enable mic input", setInputPropertyInt([self getUnit:_ioNode], kAudioOutputUnitProperty_EnableIO, RIOInputFromMic, 1));
     }
@@ -48,7 +50,7 @@
 }
 - (id) initWithOfflineIO {
     if ([self init]) {
-        _ioNode = [self addNodeOfType:kAudioUnitType_Output subType:kAudioUnitSubType_GenericOutput];
+        _ioNode = [self addNodeNamed:@"io" type:kAudioUnitType_Output subType:kAudioUnitSubType_GenericOutput];
         _ioUnit = [self getUnit:_ioNode];
     }
     return self;
@@ -56,11 +58,19 @@
 
 /* Add, configure and connect nodes
  **********************************/
-- (AUNode) addNodeOfType:(OSType)type subType:(OSType)subType {
+- (AUNode) addNodeNamed:(NSString*)nodeName type:(OSType)type subType:(OSType)subType {
     AUNode node;
     AudioComponentDescription componentDescription = getComponentDescription(type, subType);
     if (!check(@"Add node", AUGraphAddNode(_graph, &componentDescription, &node))) { return 0; }
+    _nodes[nodeName] = [NSNumber numberWithInt:node];
     return node;
+}
+- (AUNode)getNodeNamed:(NSString *)nodeName {
+    AUNode node = [_nodes[nodeName] intValue];
+    return node;
+}
+- (AudioUnit) getUnitNamed:(NSString*)nodeName {
+    return [self getUnit:[self getNodeNamed:nodeName]];
 }
 - (AudioUnit) getUnit:(AUNode)node {
     AudioUnit unit;
@@ -127,8 +137,8 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
 }
 
 
-- (void) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus {
-    AUNode filePlayerNode = [self addNodeOfType:kAudioUnitType_Generator subType:kAudioUnitSubType_AudioFilePlayer];
+- (AUNode) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus {
+    AUNode filePlayerNode = [self addNodeNamed:@"readFile" type:kAudioUnitType_Generator subType:kAudioUnitSubType_AudioFilePlayer];
     [self connectNode:filePlayerNode bus:0 toNode:node bus:bus]; // Node must be connected before priming the file unit player
     AudioUnit fileAU = [self getUnit:filePlayerNode];
     
@@ -172,6 +182,8 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
     startTime.mSampleTime = -1;
     check(@"Set audio player file start timestamp",
           AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduleStartTimeStamp, kAudioUnitScope_Global, 0, &startTime, sizeof(startTime)));
+
+    return filePlayerNode;
 }
 
 
