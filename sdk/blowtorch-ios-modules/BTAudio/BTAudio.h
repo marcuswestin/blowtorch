@@ -6,10 +6,9 @@
 //  Copyright (c) 2013 Flutterby. All rights reserved.
 //
 
-#import <AVFoundation/AVFoundation.h>
 #import "BTModule.h"
 
-@interface BTAudio : BTModule <AVAudioRecorderDelegate, AVAudioPlayerDelegate>
+@interface BTAudio : BTModule
 
 //+ (NSURL*)getFileLocation;
 
