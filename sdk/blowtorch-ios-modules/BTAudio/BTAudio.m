@@ -70,9 +70,9 @@ static BTAudio* instance;
         
     /*
      
-     http://developer.apple.com/library/ios/#documentation/AudioUnit/Reference/AUComponentServicesReference/Reference/reference.html#//apple_ref/c/econst/kAudioUnitSubType_GenericOutput
-     
      Audio Unit types
+     http://developer.apple.com/library/ios/#documentation/AudioUnit/Reference/AudioUnitParametersReference/Reference/reference.html
+     
      kAudioUnitType_Output            = 'auou',
      kAudioUnitType_MusicDevice       = 'aumu',
      kAudioUnitType_MusicEffect       = 'aumf',
@@ -92,13 +92,13 @@ static BTAudio* instance;
      Converter Audio Unit Subtypes
      
      kAudioUnitSubType_AUConverter        = 'conv', linear PCM conversions, such as changes to sample rate, bit depth, or interleaving.
-   ! kAudioUnitSubType_NewTimePitch       = 'nutp', independent control of both playback rate and pitch.
-   ! kAudioUnitSubType_TimePitch          = 'tmpt', independent control of playback rate and pitch
+     ! kAudioUnitSubType_NewTimePitch       = 'nutp', independent control of both playback rate and pitch.
+     ! kAudioUnitSubType_TimePitch          = 'tmpt', independent control of playback rate and pitch
      kAudioUnitSubType_DeferredRenderer   = 'defr', acquires audio input from a separate thread than the thread on which its render method is called
      kAudioUnitSubType_Splitter           = 'splt', duplicates the input signal to each of its two output buses.
      kAudioUnitSubType_Merger             = 'merg', merges the two input signals to the single output.
-   ! kAudioUnitSubType_Varispeed          = 'vari', control playback rate. As the playback rate increases, so does pitch.
-   ! kAudioUnitSubType_AUiPodTime         = 'iptm', simple, limited control over playback rate and time.
+     ! kAudioUnitSubType_Varispeed          = 'vari', control playback rate. As the playback rate increases, so does pitch.
+     ! kAudioUnitSubType_AUiPodTime         = 'iptm', simple, limited control over playback rate and time.
      kAudioUnitSubType_AUiPodTimeOther    = 'ipto'  ???
      
      
@@ -106,22 +106,22 @@ static BTAudio* instance;
      
      kAudioUnitSubType_PeakLimiter          = 'lmtr', enforces an upper dynamic limit on an audio signal.
      kAudioUnitSubType_DynamicsProcessor    = 'dcmp', provides dynamic compression or expansion.
-   ! kAudioUnitSubType_Reverb2              = 'rvb2', reverb unit for iOS.
+     ! kAudioUnitSubType_Reverb2              = 'rvb2', reverb unit for iOS.
      kAudioUnitSubType_LowPassFilter        = 'lpas', cuts out frequencies below a specified cutoff
      kAudioUnitSubType_HighPassFilter       = 'hpas', cuts out frequencies above a specified cutoff
      kAudioUnitSubType_BandPassFilter       = 'bpas', cuts out frequencies outside specified upper and lower cutoffs
      kAudioUnitSubType_HighShelfFilter      = 'hshf', suitable for implementing a treble control in an audio playback or recording system.
      kAudioUnitSubType_LowShelfFilter       = 'lshf', suitable for implementing a bass control in an audio playback or recording system.
      kAudioUnitSubType_ParametricEQ         = 'pmeq', a filter whose center frequency, boost/cut level, and Q can be adjusted.
-   ! kAudioUnitSubType_Delay                = 'dely', introduces a time delay to a signal.
-   ! kAudioUnitSubType_Distortion           = 'dist', provides a distortion effect.
+     ! kAudioUnitSubType_Delay                = 'dely', introduces a time delay to a signal.
+     ! kAudioUnitSubType_Distortion           = 'dist', provides a distortion effect.
      kAudioUnitSubType_AUiPodEQ             = 'ipeq', provides a graphic equalizer in iPhone OS.
      kAudioUnitSubType_NBandEQ              = 'nbeq'  multi-band equalizer with specifiable filter type for each band.
 
      
      Mixer Audio Unit Subtypes
      
-   ! kAudioUnitSubType_MultiChannelMixer      = 'mcmx', multiple input buses, one output bus always with two channels.
+     ! kAudioUnitSubType_MultiChannelMixer      = 'mcmx', multiple input buses, one output bus always with two channels.
      kAudioUnitSubType_MatrixMixer            = 'mxmx', like MultiChannelMixer but configurable mixing
      kAudioUnitSubType_AU3DMixerEmbedded      = '3dem', 3D stuff
      
@@ -129,9 +129,15 @@ static BTAudio* instance;
      Generator Audio Unit Subtypes
      
      kAudioUnitSubType_ScheduledSoundPlayer  = 'sspl', schedule slices of audio to be played at specified times.
-   ! kAudioUnitSubType_AudioFilePlayer       = 'afpl', play a file.
+     ! kAudioUnitSubType_AudioFilePlayer       = 'afpl', play a file.
+     
+     
+     Audio Unit Parameters:
+     http://developer.apple.com/library/ios/#documentation/AudioUnit/Reference/AudioUnitPropertiesReference/Reference/reference.html
+     
      */
 }
+
 
 - (void) readFromFileToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
     BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithOfflineIO];
