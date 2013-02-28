@@ -12,18 +12,41 @@
 /* Audio graph wrapper
  *********************/
 
+@interface BTAUdioEnpoints : NSObject
+@property (assign,readonly) AUNode firstNode;
+@property (assign,readonly) AUNode lastNode;
+@property (readonly) AudioUnit firstUnit;
+@property (readonly) AudioUnit lastUnit;
+@property (readonly) AudioStreamBasicDescription lastFormat;
+@property (readonly) AudioStreamBasicDescription firstFormat;
+@end
+@implementation BTAUdioEnpoints {
+    BTAudioGraph* _graph;
+}
+@synthesize firstNode=_firstNode, lastNode=_lastNode;
+- (id) initWithGraph:(BTAudioGraph*)graph firstNode:(AUNode)firstNode lastNode:(AUNode)lastNode {
+    if (self = [super init]) {
+        _graph = graph;
+        _firstNode = firstNode;
+        _lastNode = lastNode;
+    }
+    return self;
+}
+- (AudioUnit) firstUnit { return [_graph getUnit:_firstNode]; }
+- (AudioUnit) lastUnit { return [_graph getUnit:_lastNode]; }
+- (AudioStreamBasicDescription) firstFormat { return getInputStreamFormat(self.firstUnit, 0); }
+- (AudioStreamBasicDescription) lastFormat { return getOutputStreamFormat(self.lastUnit, 0); }
+
+@end
+
 /* BTAudio
  *********/
 @implementation BTAudio {
-    AUGraph _graph;
     AVAudioSession* _session;
-    ExtAudioFileRef extAudioFileRef;
-    BTAudioGraph* _audioGraph;
+    BTAudioGraph* _graph;
 }
 
 static BTAudio* instance;
-
-static BOOL RECORD = NO;
 
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
@@ -33,25 +56,18 @@ static BOOL RECORD = NO;
     [app registerHandler:@"BTAudio.recordFromMicrophoneToFile" handler:^(id data, BTResponseCallback responseCallback) {
         [self recordFromMicrophoneToFile:data responseCallback:responseCallback];
     }];
+    [app registerHandler:@"BTAudio.stopRecordingFromMicrophoneToFile" handler:^(id data, BTResponseCallback responseCallback) {
+        [self stopRecordingFromMicrophoneToFile:data responseCallback:responseCallback];
+    }];
     // Task 2: Read audio from file, apply filter, output to speaker
     [app registerHandler:@"BTAudio.playFromFileToSpeaker" handler:^(id data, BTResponseCallback responseCallback) {
         [self playFromFileToSpeaker:data responseCallback:responseCallback];
     }];
     // Task 3: Read audio from file, apply filter, output to file
-    [app registerHandler:@"BTAufio.readFromFileToFile" handler:^(id data, BTResponseCallback responseCallback) {
+    [app registerHandler:@"BTAudio.readFromFileToFile" handler:^(id data, BTResponseCallback responseCallback) {
         [self readFromFileToFile:data responseCallback:responseCallback];
     }];
-    
-    if (RECORD) {
-        [self recordFromMicrophoneToFile:@{@"document":@"audio.m4a"} responseCallback:^(id error, id responseData) {
-            NSLog(@"Recording %@ %@", error, responseData);
-        }];
-    } else {
-        [self playFromFileToSpeaker:@{@"document":@"audio.m4a"} responseCallback:^(id error, id responseData) {
-            NSLog(@"Playing %@ %@", error, responseData);
-        }];
-    }
-    
+        
     /*
      
      http://developer.apple.com/library/ios/#documentation/AudioUnit/Reference/AUComponentServicesReference/Reference/reference.html#//apple_ref/c/econst/kAudioUnitSubType_GenericOutput
@@ -118,28 +134,33 @@ static BOOL RECORD = NO;
 }
 
 - (void) readFromFileToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
-    BTAudioGraph* graph = [[BTAudioGraph alloc] initWithOfflineIO];
+    BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithOfflineIO];
+    BTAUdioEnpoints* endpoints = [self addEffects:graph];
     
-    [graph readFile:[BTFiles documentPath:@"fromDocument"] toNode:graph.ioNode bus:RIOInputFromApp];
-}
-
-- (AUNode) addPitchNodeToGraph:(BTAudioGraph*)graph andConnectFromNode:(AUNode)node bus:(AudioUnitElement)bus  {
-    AUNode pitchNode = [graph addNodeNamed:@"pitch" type:kAudioUnitType_FormatConverter subType:kAudioUnitSubType_NewTimePitch];
-    AudioUnit pitchUnit = [graph getUnit:pitchNode];
-    AudioStreamBasicDescription pitchStreamFormat = getInputStreamFormat(pitchUnit, 0);
-    setOutputStreamFormat(graph.ioUnit, RIOOutputToApp, pitchStreamFormat);
-    [graph connectNode:node bus:bus toNode:pitchNode bus:0];
-    return pitchNode;
-}
-
-- (void) setPitch:(float)pitch forGraph:(BTAudioGraph*)graph {
-    AudioUnit unit = [graph getUnitNamed:@"pitch"];
-    check(@"Set pitch", AudioUnitSetParameter(unit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, 800, 0)); // -2400 to 2400
+    // Read from file
+    AUNode filePlayerNode = [_graph readFile:[BTFiles documentPath:@"fromDocument"] toNode:endpoints.firstNode bus:0];
+    setOutputStreamFormat([graph getUnit:filePlayerNode], 0, endpoints.firstFormat);
+    // Write to file
+    [graph recordFromNode:endpoints.lastNode bus:0 toFile:[BTFiles documentPath:@"toDocument"]];
+    // Connect to io node for
+    setInputStreamFormat(graph.ioUnit, RIOInputFromApp, endpoints.lastFormat);
+    [graph connectNode:endpoints.lastNode bus:0 toNode:graph.ioNode bus:RIOInputFromApp];
+    
+    [graph start];
+    responseCallback(nil,nil);
 }
 
 - (void) playFromFileToSpeaker:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
-    BTAudioGraph* graph = [[BTAudioGraph alloc] initWithSpeaker];
-    [graph readFile:[BTFiles documentPath:data[@"document"]] toNode:graph.ioNode bus:RIOInputFromApp];
+    BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithSpeaker];
+    BTAUdioEnpoints* endpoints = [self addEffects:graph];
+    
+    // Read from file
+    AUNode filePlayerNode = [graph readFile:[BTFiles documentPath:data[@"document"]] toNode:endpoints.firstNode bus:0];
+    setOutputStreamFormat([graph getUnit:filePlayerNode], 0, endpoints.firstFormat);
+    // Write to speaker
+    setInputStreamFormat(graph.ioUnit, RIOInputFromApp, endpoints.lastFormat);
+    [graph connectNode:endpoints.lastNode bus:0 toNode:graph.ioNode bus:RIOInputFromApp];
+    
     [graph start];
     responseCallback(nil,nil);
 }
@@ -147,23 +168,59 @@ static BOOL RECORD = NO;
 - (void) recordFromMicrophoneToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
     _session = createAudioSession(AVAudioSessionCategoryPlayAndRecord);
     if (!_session.inputAvailable) { NSLog(@"WARNING Requested input is not available");}
+    BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithSpeakerAndMicrophoneInput];
+    BTAUdioEnpoints* endpoints = [self addEffects:graph];
     
-    BTAudioGraph* graph = _audioGraph = [[BTAudioGraph alloc] initWithSpeakerAndMicrophoneInput];
-    
-    // Add pitch node
-    AUNode pitchNode = [self addPitchNodeToGraph:graph andConnectFromNode:graph.ioNode bus:RIOOutputToApp];
-    AudioUnit pitchUnit = [graph getUnit:pitchNode];
-    AudioStreamBasicDescription pitchStreamFormat = getInputStreamFormat(pitchUnit, 0);
-    
-    // Pitch -> Speaker
-    setInputStreamFormat(graph.ioUnit, RIOInputFromApp, pitchStreamFormat);
-    [graph connectNode:pitchNode bus:0 toNode:graph.ioNode bus:RIOInputFromApp];
-    
-    [graph recordFromUnit:pitchUnit bus:0 toFile:[BTFiles documentPath:data[@"document"]]];
-    [graph start];
+    // Read from mic
+    setOutputStreamFormat(graph.ioUnit, RIOOutputToApp, endpoints.firstFormat);
+    [graph connectNode:graph.ioNode bus:RIOOutputToApp toNode:endpoints.firstNode bus:0];
+    // Write to file
+    [graph recordFromNode:[graph getNodeNamed:@"record"] bus:0 toFile:[BTFiles documentPath:data[@"document"]]];
+    // Connect to speaker for IO pull, but set volume to 0
+    [graph connectNode:endpoints.lastNode bus:0 toNode:graph.ioNode bus:RIOInputFromApp];
+    setInputStreamFormat(graph.ioUnit, RIOInputFromApp, endpoints.lastFormat);
+    [self setVolume:0];
 
+    [graph start];
     responseCallback(nil, nil);
 }
+- (void) stopRecordingFromMicrophoneToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+    [_graph stopRecordingToFile];
+//    [_graph stop];
+    responseCallback(nil,nil);
+}
+
+//////////////////
+- (BTAUdioEnpoints*) addEffects:(BTAudioGraph*)graph {
+    // Create pitch node
+    AUNode pitchNode = [graph addNodeNamed:@"pitch" type:kAudioUnitType_FormatConverter subType:kAudioUnitSubType_NewTimePitch];
+    AudioUnit pitchUnit = [graph getUnit:pitchNode];
+    // Create recording node
+    AUNode recordNode = [graph addNodeNamed:@"record" type:kAudioUnitType_Mixer subType:kAudioUnitSubType_MultiChannelMixer];
+    AudioUnit recordUnit = [graph getUnit:recordNode];
+    // Create volume node
+    AUNode volumeNode = [graph addNodeNamed:@"volume" type:kAudioUnitType_Mixer subType:kAudioUnitSubType_MultiChannelMixer];
+    AudioUnit volumeUnit = [graph getUnit:volumeNode];
+
+    // Connect pitch node -> record node -> volume node
+    setInputStreamFormat(recordUnit, 0, getOutputStreamFormat(pitchUnit, 0));
+    [graph connectNode:pitchNode bus:0 toNode:recordNode bus:0];
+    setInputStreamFormat(volumeUnit, 0, getOutputStreamFormat(recordUnit, 0));
+    [graph connectNode:recordNode bus:0 toNode:volumeNode bus:0];
+
+    return [[BTAUdioEnpoints alloc] initWithGraph:graph firstNode:pitchNode lastNode:volumeNode];
+}
+
+- (void) setVolume:(NSNumber*)volumeFraction { // 0 - 1
+    AudioUnit unit = [_graph getUnitNamed:@"volume"];
+    AudioUnitSetParameter(unit, kMultiChannelMixerParam_Volume, kAudioUnitScope_Output, 0, [volumeFraction floatValue], 0);
+}
+
+- (void) setPitch:(float)pitch forGraph:(BTAudioGraph*)graph {
+    AudioUnit unit = [graph getUnitNamed:@"pitch"];
+    check(@"Set pitch", AudioUnitSetParameter(unit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, 800, 0)); // -2400 to 2400
+}
+
 @end
 
 

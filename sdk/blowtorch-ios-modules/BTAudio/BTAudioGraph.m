@@ -12,6 +12,7 @@
     AUGraph _graph;
     ExtAudioFileRef _recordToAudioExtFileRef;
     NSMutableDictionary* _nodes;
+    BOOL _recording;
 }
 @synthesize ioNode=_ioNode, ioUnit=_ioUnit;
 /* Initialize
@@ -22,6 +23,7 @@
         check(@"Open graph", AUGraphOpen(_graph));
         check(@"Init graph", AUGraphInitialize(_graph));
         _nodes = [NSMutableDictionary dictionary];
+        _recording = NO;
     }
     return self;
 }
@@ -93,7 +95,8 @@
 
 /* Helpers for advanced audio units
  **********************************/
-- (void)recordFromUnit:(AudioUnit)unit bus:(AudioUnitElement)bus toFile:(NSString *)filepath {
+- (void)recordFromNode:(AUNode)node bus:(AudioUnitElement)bus toFile:(NSString *)filepath {
+    AudioUnit unit = [self getUnit:node];
     AudioStreamBasicDescription destinationFormat;
     memset(&destinationFormat, 0, sizeof(destinationFormat));
     destinationFormat.mFormatID = kAudioFormatMPEG4AAC;
@@ -110,30 +113,33 @@
     UInt32 codec = kAppleHardwareAudioCodecManufacturer;
     check(@"Set codec", ExtAudioFileSetProperty(_recordToAudioExtFileRef, kExtAudioFileProperty_CodecManufacturer, sizeof(codec), &codec));
     
-    AudioStreamBasicDescription unitFormat = getInputStreamFormat(unit, bus);
+    AudioStreamBasicDescription unitFormat = getOutputStreamFormat(unit, bus);
     check(@"Set format", ExtAudioFileSetProperty(_recordToAudioExtFileRef, kExtAudioFileProperty_ClientDataFormat, sizeof(unitFormat), &unitFormat));
     
     check(@"Erase file with first write", ExtAudioFileWriteAsync(_recordToAudioExtFileRef, 0, NULL));
     
+    _recording = YES;
     check(@"Set recording callback", AudioUnitAddRenderNotify(unit, recordFromUnitToFile, (__bridge void*)self));
 }
-static int count = 0;
+- (void)stopRecordingToFile {
+    _recording = NO;
+}
 static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
     if (*ioActionFlags != kAudioUnitRenderAction_PostRender) { return noErr; }
     
-    OSStatus result;
     BTAudioGraph* THIS = (__bridge BTAudioGraph *)inRefCon;
-    if (count < 200) {
-        result =  ExtAudioFileWriteAsync(THIS->_recordToAudioExtFileRef, inNumberFrames, ioData);
-        if(result) printf("ExtAudioFileWriteAsync %ld \n", result);
-    }
-    count += 1;
-    if (count == 200) {
-        result = ExtAudioFileDispose(THIS->_recordToAudioExtFileRef);
-        if (result) printf("ExtAudioFileDispose %ld \n", result);
-        printf("Closed file");
+    if (THIS->_recording) {
+        check(@"Record data to file", ExtAudioFileWriteAsync(THIS->_recordToAudioExtFileRef, inNumberFrames, ioData));
+    } else if (THIS->_recordToAudioExtFileRef) {
+        [THIS cleanupRecording];
     }
     return noErr;
+}
+- (void)cleanupRecording {
+    check(@"Dispose of recording file", ExtAudioFileDispose(_recordToAudioExtFileRef));
+    _recordToAudioExtFileRef = nil;
+    NSLog(@"Done recording");
+    [self stop];
 }
 
 
@@ -143,7 +149,7 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
     AudioUnit fileAU = [self getUnit:filePlayerNode];
     
     AudioFileID inputFile;
-    check(@"Open audio file", AudioFileOpenURL(getFileUrl([BTFiles documentPath:@"audio.m4a"]), kAudioFileReadPermission, 0, &inputFile));
+    check(@"Open audio file", AudioFileOpenURL(getFileUrl(filepath), kAudioFileReadPermission, 0, &inputFile));
     
     AudioStreamBasicDescription inputFormat;
     UInt32 propSize = sizeof(inputFormat);

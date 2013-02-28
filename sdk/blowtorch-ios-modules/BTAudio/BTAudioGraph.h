@@ -36,12 +36,14 @@ const AudioUnitElement RIOOutputToApp;
 - (BOOL) connectNode:(AUNode)nodeA bus:(UInt32)busA toNode:(AUNode)nodeB bus:(UInt32)busB;
 
 - (AUNode) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus;
-- (void) recordFromUnit:(AudioUnit)unit bus:(AudioUnitElement)bus toFile:(NSString *)filepath;
+- (void) recordFromNode:(AUNode)node bus:(AudioUnitElement)bus toFile:(NSString *)filepath;
+- (void) stopRecordingToFile;
 
-BOOL check(NSString* str, OSStatus status);
 BOOL setOutputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd);
 BOOL setInputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd);
 AudioStreamBasicDescription getInputStreamFormat(AudioUnit unit, AudioUnitElement bus);
+AudioStreamBasicDescription getOutputStreamFormat(AudioUnit unit, AudioUnitElement bus);
 AVAudioSession* createAudioSession(NSString* category);
+BOOL check(NSString* str, OSStatus status);
 
 @end
