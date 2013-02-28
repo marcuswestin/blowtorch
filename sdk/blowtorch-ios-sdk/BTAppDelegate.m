@@ -462,11 +462,10 @@ static int uniqueId = 1;
     
     _mediaResponse = response;
 
-    [self.window.rootViewController presentModalViewController: mediaUI animated: YES];
+    [self.window.rootViewController presentViewController:mediaUI animated:YES completion:^{}];
 }
 
 - (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingImage:(UIImage *)image editingInfo:(NSDictionary *)editingInfo {
-    [self.window.rootViewController dismissModalViewControllerAnimated: YES];
     NSString* mediaId = [self unique];
     [_mediaCache setObject:image forKey:mediaId];
     NSDictionary* info = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -474,12 +473,15 @@ static int uniqueId = 1;
                             [NSNumber numberWithFloat:image.size.width], @"width",
                             [NSNumber numberWithFloat:image.size.height], @"height",
                             nil];
-    [_mediaResponse respondWith:info];
+    [self.window.rootViewController dismissViewControllerAnimated:YES completion:^{
+        [_mediaResponse respondWith:info];
+    }];
 }
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
-    [self.window.rootViewController dismissModalViewControllerAnimated: YES];
-    [_mediaResponse respondWith:[NSDictionary dictionary]];
+    [self.window.rootViewController dismissViewControllerAnimated:YES completion:^{
+        [_mediaResponse respondWith:[NSDictionary dictionary]];
+    }];
 }
 
 - (void)uploadMedia:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
