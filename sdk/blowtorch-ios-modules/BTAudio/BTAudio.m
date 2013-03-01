@@ -186,6 +186,8 @@ static BTAudio* instance;
     BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithSpeaker];
     BTAUdioEnpoints* endpoints = [self addEffectChain:graph];
     
+    [self setPitch:data];
+    
     // Read from file
     FileInfo* fileInfo = [graph readFile:[BTFiles documentPath:data[@"document"]] toNode:endpoints.firstNode bus:0];
     setOutputStreamFormat([graph getUnit:fileInfo.fileNode], 0, endpoints.firstFormat);
@@ -248,9 +250,10 @@ static BTAudio* instance;
 }
 
 - (void) setPitch:(NSDictionary*)data {
+    if (!data[@"pitch"]) { return; }
     AudioUnit unit = [_graph getUnitNamed:@"pitch"];
     float pitch = [data[@"pitch"] floatValue] * 2400; // [-1,1] -> [-2400,2400]
-    check(@"Set pitch", AudioUnitSetParameter(unit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, pitch, 0)); // -2400 to 2400
+    check(@"Set pitch", AudioUnitSetParameter(unit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, pitch, 0));
 }
 
 @end
