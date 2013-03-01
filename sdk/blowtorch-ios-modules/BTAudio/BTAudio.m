@@ -178,7 +178,8 @@ static BTAudio* instance;
     }
     [graph cleanupRecording];
 
-    responseCallback(nil,nil);
+    float duration = numFrames / fileInfo.fileFormat.mSampleRate;
+    responseCallback(nil,@{ @"duration":[NSNumber numberWithFloat:duration] });
 }
 
 - (void) playFromFileToSpeaker:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {

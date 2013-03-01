@@ -23,6 +23,9 @@
     ExtAudioFileRef _recordToAudioExtFileRef;
     NSMutableDictionary* _nodes;
     BOOL _recording;
+    // Volume monitoring
+    NSTimer* _volumeMeterTimer;
+    Float32 _lastDbLevel;
 }
 @synthesize ioNode=_ioNode, ioUnit=_ioUnit;
 /* Initialize
@@ -101,6 +104,10 @@
     return check(@"Start graph", AUGraphStart(_graph));
 }
 - (BOOL) stop {
+    if (_volumeMeterTimer) {
+        [_volumeMeterTimer invalidate];
+        _volumeMeterTimer = nil;
+    }
     Boolean isRunning = false;
     if (!check(@"Check if graph is running", AUGraphIsRunning(_graph, &isRunning))) { return NO; }
     return isRunning ? check(@"Stop graph", AUGraphStop(_graph)) : YES;
@@ -133,6 +140,12 @@
     
     _recording = YES;
     check(@"Set recording callback", AudioUnitAddRenderNotify(unit, recordFromUnitToFile, (__bridge void*)self));
+    
+    _volumeMeterTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(monitorVolume) userInfo:nil repeats:YES];
+}
+- (void)monitorVolume {
+    NSDictionary* info = @{ @"decibelLevel":[NSNumber numberWithFloat:_lastDbLevel] };
+    [BTAppDelegate notify:@"BTAudio.decibelMeter" info:info];
 }
 - (void)stopRecordingToFileAndScheduleStop {
     _recording = NO;
@@ -147,6 +160,9 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
     } else if (THIS->_recordToAudioExtFileRef) {
         [THIS cleanupRecording];
     }
+    
+    THIS->_lastDbLevel = getDbLevel(inNumberFrames, ioData->mBuffers[0].mData);
+    
     return noErr;
 }
 - (void)cleanupRecording {
@@ -297,6 +313,41 @@ AVAudioSession* createAudioSession(NSString* category) {
     [session setActive:YES error:&err];
     if (err) { NSLog(@"ERROR setActive: %@", err); return nil; }
     return session;
+}
+
+
+#define DBOFFSET -148.0
+// DBOFFSET is An offset that will be used to normalize the decibels to a maximum of zero.
+// This is an estimate, you can do your own or construct an experiment to find the right value
+#define LOWPASSFILTERTIMESLICE .001
+// LOWPASSFILTERTIMESLICE is part of the low pass filter and should be a small positive value
+Float32 getDbLevel(UInt32 inNumberFrames, UInt32* samples) {
+    Float32 decibels = DBOFFSET; // When we have no signal we'll leave this on the lowest setting
+    Float32 currentFilteredValueOfSampleAmplitude, previousFilteredValueOfSampleAmplitude; // We'll need these in the low-pass filter
+    Float32 peakValue = DBOFFSET; // We'll end up storing the peak value here
+    
+    for (int i=0; i < inNumberFrames; i++) {
+        
+        Float32 absoluteValueOfSampleAmplitude = abs(samples[i]); //Step 2: for each sample, get its amplitude's absolute value.
+        
+        // Step 3: for each sample's absolute value, run it through a simple low-pass filter
+        // Begin low-pass filter
+        currentFilteredValueOfSampleAmplitude = LOWPASSFILTERTIMESLICE * absoluteValueOfSampleAmplitude + (1.0 - LOWPASSFILTERTIMESLICE) * previousFilteredValueOfSampleAmplitude;
+        previousFilteredValueOfSampleAmplitude = currentFilteredValueOfSampleAmplitude;
+        Float32 amplitudeToConvertToDB = currentFilteredValueOfSampleAmplitude;
+        // End low-pass filter
+        
+        Float32 sampleDB = 20.0*log10(amplitudeToConvertToDB) + DBOFFSET;
+        // Step 4: for each sample's filtered absolute value, convert it into decibels
+        // Step 5: for each sample's filtered absolute value in decibels, add an offset value that normalizes the clipping point of the device to zero.
+        
+        if((sampleDB == sampleDB) && (sampleDB != -DBL_MAX)) { // if it's a rational number and isn't infinite
+            
+            if(sampleDB > peakValue) peakValue = sampleDB; // Step 6: keep the highest value you find.
+            decibels = peakValue; // final value
+        }
+    }
+    return decibels;
 }
 @end
 
