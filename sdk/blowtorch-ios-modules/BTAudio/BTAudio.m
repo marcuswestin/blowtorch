@@ -8,6 +8,7 @@
 
 #import "BTAudio.h"
 #import "BTAudioGraph.h"
+#include <mach/mach_time.h>
 
 /* Audio graph wrapper
  *********************/
@@ -67,7 +68,12 @@ static BTAudio* instance;
     [app registerHandler:@"BTAudio.readFromFileToFile" handler:^(id data, BTResponseCallback responseCallback) {
         [self readFromFileToFile:data responseCallback:responseCallback];
     }];
-        
+    // Misc: Set pitch
+    [app registerHandler:@"BTAudio.setPitch" handler:^(id data, BTResponseCallback responseCallback) {
+        [self setPitch:data];
+        responseCallback(nil,nil);
+    }];
+
     /*
      
      Audio Unit types
@@ -140,33 +146,52 @@ static BTAudio* instance;
 
 
 - (void) readFromFileToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
-    BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithOfflineIO];
-    BTAUdioEnpoints* endpoints = [self addEffects:graph];
+    BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithNoIO];
+    BTAUdioEnpoints* endpoints = [self addEffectChain:graph];
+    
+    [self setPitch:data];
     
     // Read from file
-    AUNode filePlayerNode = [_graph readFile:[BTFiles documentPath:@"fromDocument"] toNode:endpoints.firstNode bus:0];
-    setOutputStreamFormat([graph getUnit:filePlayerNode], 0, endpoints.firstFormat);
+    FileInfo* fileInfo = [graph readFile:[BTFiles documentPath:data[@"fromDocument"]] toNode:endpoints.firstNode bus:0];
+    setOutputStreamFormat([graph getUnit:fileInfo.fileNode], 0, endpoints.firstFormat);
     // Write to file
-    [graph recordFromNode:endpoints.lastNode bus:0 toFile:[BTFiles documentPath:@"toDocument"]];
-    // Connect to io node for
-    setInputStreamFormat(graph.ioUnit, RIOInputFromApp, endpoints.lastFormat);
-    [graph connectNode:endpoints.lastNode bus:0 toNode:graph.ioNode bus:RIOInputFromApp];
-    
-    [graph start];
+    [graph recordFromNode:[graph getNodeNamed:@"record"] bus:0 toFile:[BTFiles documentPath:data[@"toDocument"]]];
+
+    // Render the audio until done (this is instead of the typical [graph start])
+    AudioUnitRenderActionFlags flags = kAudioOfflineUnitRenderAction_Render;
+    AudioBufferList bufferList;
+    UInt32 numFrames = fileInfo.fileFormat.mFramesPerPacket * fileInfo.numPackets;
+    UInt32 framesPerBuffer = 1024;
+    bufferList.mNumberBuffers = endpoints.lastFormat.mChannelsPerFrame;
+    for (int i=0; i<endpoints.lastFormat.mChannelsPerFrame; i++) {
+        bufferList.mBuffers[i].mNumberChannels = 1;
+        bufferList.mBuffers[i].mDataByteSize = framesPerBuffer * endpoints.lastFormat.mBytesPerFrame;
+        bufferList.mBuffers[i].mData = NULL;
+    }
+    for (UInt32 i=0; i*framesPerBuffer<=numFrames; i++) {
+        AudioTimeStamp audioTimeStamp = {0};
+        memset (&audioTimeStamp, 0, sizeof(audioTimeStamp));
+        audioTimeStamp.mFlags = kAudioTimeStampSampleTimeValid;
+        audioTimeStamp.mSampleTime = i * framesPerBuffer;
+        check(@"Render audio",
+              AudioUnitRender(endpoints.lastUnit, &flags, &audioTimeStamp, 0, framesPerBuffer, &bufferList));
+    }
+    [graph cleanupRecording];
+
     responseCallback(nil,nil);
 }
 
 - (void) playFromFileToSpeaker:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
     BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithSpeaker];
-    BTAUdioEnpoints* endpoints = [self addEffects:graph];
+    BTAUdioEnpoints* endpoints = [self addEffectChain:graph];
     
     // Read from file
-    AUNode filePlayerNode = [graph readFile:[BTFiles documentPath:data[@"document"]] toNode:endpoints.firstNode bus:0];
-    setOutputStreamFormat([graph getUnit:filePlayerNode], 0, endpoints.firstFormat);
+    FileInfo* fileInfo = [graph readFile:[BTFiles documentPath:data[@"document"]] toNode:endpoints.firstNode bus:0];
+    setOutputStreamFormat([graph getUnit:fileInfo.fileNode], 0, endpoints.firstFormat);
     // Write to speaker
     setInputStreamFormat(graph.ioUnit, RIOInputFromApp, endpoints.lastFormat);
     [graph connectNode:endpoints.lastNode bus:0 toNode:graph.ioNode bus:RIOInputFromApp];
-    
+
     [graph start];
     responseCallback(nil,nil);
 }
@@ -175,7 +200,7 @@ static BTAudio* instance;
     _session = createAudioSession(AVAudioSessionCategoryPlayAndRecord);
     if (!_session.inputAvailable) { NSLog(@"WARNING Requested input is not available");}
     BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithSpeakerAndMicrophoneInput];
-    BTAUdioEnpoints* endpoints = [self addEffects:graph];
+    BTAUdioEnpoints* endpoints = [self addEffectChain:graph];
     
     // Read from mic
     setOutputStreamFormat(graph.ioUnit, RIOOutputToApp, endpoints.firstFormat);
@@ -191,13 +216,12 @@ static BTAudio* instance;
     responseCallback(nil, nil);
 }
 - (void) stopRecordingFromMicrophoneToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
-    [_graph stopRecordingToFile];
-//    [_graph stop];
+    [_graph stopRecordingToFileAndScheduleStop];
     responseCallback(nil,nil);
 }
 
 //////////////////
-- (BTAUdioEnpoints*) addEffects:(BTAudioGraph*)graph {
+- (BTAUdioEnpoints*) addEffectChain:(BTAudioGraph*)graph {
     // Create pitch node
     AUNode pitchNode = [graph addNodeNamed:@"pitch" type:kAudioUnitType_FormatConverter subType:kAudioUnitSubType_NewTimePitch];
     AudioUnit pitchUnit = [graph getUnit:pitchNode];
@@ -222,9 +246,10 @@ static BTAudio* instance;
     AudioUnitSetParameter(unit, kMultiChannelMixerParam_Volume, kAudioUnitScope_Output, 0, [volumeFraction floatValue], 0);
 }
 
-- (void) setPitch:(float)pitch forGraph:(BTAudioGraph*)graph {
-    AudioUnit unit = [graph getUnitNamed:@"pitch"];
-    check(@"Set pitch", AudioUnitSetParameter(unit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, 800, 0)); // -2400 to 2400
+- (void) setPitch:(NSDictionary*)data {
+    AudioUnit unit = [_graph getUnitNamed:@"pitch"];
+    float pitch = [data[@"pitch"] floatValue] * 2400; // [-1,1] -> [-2400,2400]
+    check(@"Set pitch", AudioUnitSetParameter(unit, kNewTimePitchParam_Pitch, kAudioUnitScope_Global, 0, pitch, 0)); // -2400 to 2400
 }
 
 @end

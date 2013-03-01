@@ -8,6 +8,16 @@
 
 #import "BTAudioGraph.h"
 
+@implementation FileInfo
+@synthesize fileFormat=_fileFormat, numPackets=_numPackets, fileNode=_fileNode;
+-(id)initWithFileFormat:(AudioStreamBasicDescription)fileFormat numPackets:(UInt64)numPackets fileNode:(AUNode)fileNode {
+    _fileFormat = fileFormat;
+    _numPackets = numPackets;
+    _fileNode = fileNode;
+    return self;
+}
+@end
+
 @implementation BTAudioGraph {
     AUGraph _graph;
     ExtAudioFileRef _recordToAudioExtFileRef;
@@ -56,6 +66,9 @@
         _ioUnit = [self getUnit:_ioNode];
     }
     return self;
+}
+- (id) initWithNoIO {
+    return [self init];
 }
 
 /* Add, configure and connect nodes
@@ -121,12 +134,13 @@
     _recording = YES;
     check(@"Set recording callback", AudioUnitAddRenderNotify(unit, recordFromUnitToFile, (__bridge void*)self));
 }
-- (void)stopRecordingToFile {
+- (void)stopRecordingToFileAndScheduleStop {
     _recording = NO;
 }
 static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList *ioData) {
-    if (*ioActionFlags != kAudioUnitRenderAction_PostRender) { return noErr; }
-    
+    BOOL isPostRender = (*ioActionFlags & kAudioUnitRenderAction_PostRender);
+    if (!isPostRender) { return noErr; }
+
     BTAudioGraph* THIS = (__bridge BTAudioGraph *)inRefCon;
     if (THIS->_recording) {
         check(@"Record data to file", ExtAudioFileWriteAsync(THIS->_recordToAudioExtFileRef, inNumberFrames, ioData));
@@ -138,12 +152,11 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
 - (void)cleanupRecording {
     check(@"Dispose of recording file", ExtAudioFileDispose(_recordToAudioExtFileRef));
     _recordToAudioExtFileRef = nil;
-    NSLog(@"Done recording");
     [self stop];
 }
 
 
-- (AUNode) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus {
+- (FileInfo*) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus {
     AUNode filePlayerNode = [self addNodeNamed:@"readFile" type:kAudioUnitType_Generator subType:kAudioUnitSubType_AudioFilePlayer];
     [self connectNode:filePlayerNode bus:0 toNode:node bus:bus]; // Node must be connected before priming the file unit player
     AudioUnit fileAU = [self getUnit:filePlayerNode];
@@ -151,15 +164,16 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
     AudioFileID inputFile;
     check(@"Open audio file", AudioFileOpenURL(getFileUrl(filepath), kAudioFileReadPermission, 0, &inputFile));
     
-    AudioStreamBasicDescription inputFormat;
-    UInt32 propSize = sizeof(inputFormat);
-    check(@"Get audio file format", AudioFileGetProperty(inputFile, kAudioFilePropertyDataFormat, &propSize, &inputFormat));
+    AudioStreamBasicDescription fileFormat;
+    UInt32 inputFormatSize = sizeof(fileFormat);
+    check(@"Get audio file format", AudioFileGetProperty(inputFile, kAudioFilePropertyDataFormat, &inputFormatSize, &fileFormat));
     
     check(@"Set file player file id", AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFileIDs, kAudioUnitScope_Global, 0, &(inputFile), sizeof((inputFile))));
     
     UInt64 nPackets;
-    UInt32 propsize = sizeof(nPackets);
-    check(@"Get file audio packet count", AudioFileGetProperty(inputFile, kAudioFilePropertyAudioDataPacketCount, &propsize, &nPackets));
+    UInt32 nPacketsSize = sizeof(nPackets);
+    check(@"Get file audio packet count", AudioFileGetProperty(inputFile, kAudioFilePropertyAudioDataPacketCount, &nPacketsSize, &nPackets));
+    NSLog(@"NPackets %lli", nPackets);
     
     // tell the file player AU to play the entire file
     ScheduledAudioFileRegion rgn;
@@ -171,7 +185,7 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
     rgn.mAudioFile = inputFile;
     rgn.mLoopCount = 0;
     rgn.mStartFrame = 0;
-    rgn.mFramesToPlay = nPackets * inputFormat.mFramesPerPacket;
+    rgn.mFramesToPlay = nPackets * fileFormat.mFramesPerPacket;
     
     check(@"Set audio player file region",
           AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduledFileRegion, kAudioUnitScope_Global, 0,&rgn, sizeof(rgn)));
@@ -189,7 +203,7 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
     check(@"Set audio player file start timestamp",
           AudioUnitSetProperty(fileAU, kAudioUnitProperty_ScheduleStartTimeStamp, kAudioUnitScope_Global, 0, &startTime, sizeof(startTime)));
 
-    return filePlayerNode;
+    return [[FileInfo alloc] initWithFileFormat:fileFormat numPackets:nPackets fileNode:filePlayerNode];
 }
 
 

@@ -16,6 +16,12 @@ const AudioUnitElement RIOInputFromApp;
 const AudioUnitElement RIOOutputToSpeaker;
 const AudioUnitElement RIOOutputToApp;
 
+@interface FileInfo : NSObject
+@property (readonly) AudioStreamBasicDescription fileFormat;
+@property (readonly) UInt64 numPackets;
+@property (readonly) AUNode fileNode;
+@end
+
 @interface BTAudioGraph : NSObject
 @property (nonatomic,assign,readonly) AUNode ioNode;
 @property (nonatomic,assign,readonly) AudioUnit ioUnit;
@@ -24,6 +30,7 @@ const AudioUnitElement RIOOutputToApp;
 - (id) initWithSpeakerAndMicrophoneInput;
 - (id) initWithSpearkAndVoiceInput;
 - (id) initWithOfflineIO;
+- (id) initWithNoIO;
 
 - (BOOL) start;
 - (BOOL) stop;
@@ -35,9 +42,10 @@ const AudioUnitElement RIOOutputToApp;
 
 - (BOOL) connectNode:(AUNode)nodeA bus:(UInt32)busA toNode:(AUNode)nodeB bus:(UInt32)busB;
 
-- (AUNode) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus;
+- (FileInfo*) readFile:(NSString*)filepath toNode:(AUNode)node bus:(AudioUnitElement)bus;
 - (void) recordFromNode:(AUNode)node bus:(AudioUnitElement)bus toFile:(NSString *)filepath;
-- (void) stopRecordingToFile;
+- (void) stopRecordingToFileAndScheduleStop;
+- (void) cleanupRecording;
 
 BOOL setOutputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd);
 BOOL setInputStreamFormat(AudioUnit unit, AudioUnitElement bus, AudioStreamBasicDescription asbd);
