@@ -300,6 +300,11 @@ static BTAppDelegate* instance;
         responseCallback(nil, [[NSLocale currentLocale] objectForKey:NSLocaleCountryCode]);
     }];
     
+    
+    [self registerHandler:@"BT.setStatusBar" handler:^(id data, BTResponseCallback responseCallback) {
+        [self _setStatusBar:data responseCallback:responseCallback];
+    }];
+    
 //    // index.*
 //    [_bridge registerHandler:@"index.build" handler:^(id data, WVJBResponseCallback responseCallback) {
 //        [BTIndex buildIndex:[data objectForKey:@"name"] payloadToStrings:[data objectForKey:@"payloadToStrings"]];
@@ -308,6 +313,13 @@ static BTAppDelegate* instance;
 //        BTIndex* index = [BTIndex indexByName:[data objectForKey:@"name"]];
 //        [index lookup:[data objectForKey:@"searchString"] responseCallback:responseCallback];
 //    }];
+}
+
+- (void) _setStatusBar:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+    UIStatusBarAnimation animation = UIStatusBarAnimationNone;
+    if ([data[@"animation"] isEqualToString:@"fade"]) { animation = UIStatusBarAnimationFade; }
+    if ([data[@"animation"] isEqualToString:@"slide"]) { animation = UIStatusBarAnimationSlide; }
+    [[UIApplication sharedApplication] setStatusBarHidden:![data[@"visible"] boolValue] withAnimation:animation];
 }
 
 + (void)notify:(NSString *)name info:(NSDictionary *)info { [instance notify:name info:info]; }
