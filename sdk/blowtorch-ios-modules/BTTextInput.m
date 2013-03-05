@@ -36,6 +36,14 @@ static BTTextInput* instance;
     [app registerHandler:@"textInput.hideKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
         [self hideKeyboard];
     }];
+    [app registerHandler:@"BTTextInput.setConfig" handler:^(id data, BTResponseCallback responseCallback) {
+        _params = data;
+        responseCallback(nil,nil);
+    }];
+    [app registerHandler:@"BTTextInput.resetConfig" handler:^(id data, BTResponseCallback responseCallback) {
+        _params = nil;
+        responseCallback(nil,nil);
+    }];
     
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
     [center addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
