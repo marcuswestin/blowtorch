@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 #import "WebViewJavascriptBridge.h"
-#import "BTResponse.h"
+#import "BTModule.h"
 
 @interface BTIndexByStrings : NSObject
 
@@ -15,7 +15,7 @@
 
 + (void) buildIndex:(NSString*)name payloadToStrings:(NSDictionary*)payloadToStrings;
 + (BTIndex*) indexByName:(NSString*)name;
-- (void) lookup:(NSString*)string response:(BTResponse*)response;
-- (void) respond:(NSSet*)matches response:(BTResponse*)response;
+- (void) lookup:(NSString*)string callback:(BTResponseCallback)callback;
+- (void) respond:(NSSet*)matches callback:(BTResponseCallback)callback;
 
 @end

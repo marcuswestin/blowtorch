@@ -19,3 +19,6 @@
 [submodule "dependencies/HandyHelpers"]
 	path = dependencies/HandyHelpers
 	url = git@github.com:marcuswestin/HandyHelpers.git
+[submodule "dependencies/fmdb"]
+	path = dependencies/fmdb
+	url = git://github.com/ccgus/fmdb.git

@@ -10,8 +10,6 @@
 
 @interface BTAppDelegate (hidden)
 - (NSURL*) getUrl:(NSString*) path;
-- (NSString*) getFilePath:(NSString*) name;
-- (NSString*) getCurrentVersionPath:(NSString*)resourcePath;
 - (void) createWindowAndWebView;
 - (void) showLoadingOverlay;
 - (void) hideLoadingOverlay:(NSDictionary*)data;
@@ -28,7 +26,7 @@ static BTAppDelegate* instance;
     UILabel* reloadView;
 }
 
-@synthesize window, webView, javascriptBridge=_bridge, state, net, overlay, config, launchNotification;
+@synthesize window, webView, javascriptBridge=_bridge, overlay, config, launchNotification;
 
 + (BTAppDelegate *)instance { return instance; }
 
@@ -38,8 +36,6 @@ static BTAppDelegate* instance;
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     instance = self;
-    state = [[BTState alloc] init];
-    net = [[BTNet alloc] init];
     config = [NSMutableDictionary dictionary];
     [self createWindowAndWebView];
     [self showLoadingOverlay];
@@ -96,6 +92,8 @@ static BTAppDelegate* instance;
     [self setupModules];
 }
 
+- (void)setupNetHandlers:(BOOL)useLocalBuild {}
+
 -(void)_renderDevTools {
     reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-90,4,40,40)];
     reloadView.userInteractionEnabled = YES;
@@ -118,10 +116,10 @@ static BTAppDelegate* instance;
 }
 
 -(void)startApp {
-    NSString* downloadedVersion = [self getAppInfo:@"downloadedVersion"];
-    if (downloadedVersion) {
-        [self setAppInfo:@"installedVersion" value:downloadedVersion];
-    }
+//    NSString* downloadedVersion = [self getAppInfo:@"downloadedVersion"];
+//    if (downloadedVersion) {
+//        [self setAppInfo:@"installedVersion" value:downloadedVersion];
+//    }
     [_bridge reset];
     [webView loadRequest:[NSURLRequest requestWithURL:[self getUrl:@"app"]]];
     NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
@@ -133,17 +131,17 @@ static BTAppDelegate* instance;
     [self notify:@"app.start" info:appInfo];
 }
 
-- (void)setAppInfo:(NSString *)key value:(NSString *)value {
-    NSMutableDictionary* info = [NSMutableDictionary dictionaryWithDictionary:[state load:@"__btAppInfo"]];
-    [info setObject:value forKey:key];
-    [state set:@"__btAppInfo" value:info];
-}
+//- (void)setAppInfo:(NSString *)key value:(NSString *)value {
+//    NSMutableDictionary* info = [NSMutableDictionary dictionaryWithDictionary:[state load:@"__btAppInfo"]];
+//    [info setObject:value forKey:key];
+//    [state set:@"__btAppInfo" value:info];
+//}
 
-- (NSString *)getAppInfo:(NSString *)key {
-    NSDictionary* info = [state load:@"__btAppInfo"];
-    if (!info) { return nil; }
-    return [info objectForKey:key];
-}
+//- (NSString *)getAppInfo:(NSString *)key {
+//    NSDictionary* info = [state load:@"__btAppInfo"];
+//    if (!info) { return nil; }
+//    return [info objectForKey:key];
+//}
 
 @synthesize pushRegistrationResponseCallback=_pushRegistrationResponseCallback;
 - (void)registerForPush:(BTResponseCallback)responseCallback {
@@ -243,35 +241,14 @@ static BTAppDelegate* instance;
         
     }];
     
-    // state.*
-    [self registerHandler:@"state.load" handler:^(id data, BTResponseCallback responseCallback) {
-        responseCallback(nil, [state load:[data objectForKey:@"key"]]);
-    }];
-    [self registerHandler:@"state.set" handler:^(id data, BTResponseCallback responseCallback) {
-        [state set:[data objectForKey:@"key"] value:[data objectForKey:@"value"]];
-        responseCallback(nil, nil);
-    }];
-    [self registerHandler:@"state.clear" handler:^(id data, BTResponseCallback responseCallback) {
-        [state reset];
-        responseCallback(nil, nil);
-    }];
-    
     // push.*
     [self registerHandler:@"push.register" handler:^(id data, BTResponseCallback responseCallback) {
         [self registerForPush:responseCallback];
     }];
     
-    // media.*
-    [self registerHandler:@"media.pick" handler:^(id data, BTResponseCallback responseCallback) {
-        [self pickMedia:data response:[BTResponse responseWithCallback:responseCallback]];
-    }];
-    [self registerHandler:@"media.upload" handler:^(id data, BTResponseCallback responseCallback) {
-        [self uploadMedia:data responseCallback:responseCallback];
-    }];
-    
     // menu.*
     [self registerHandler:@"menu.show" handler:^(id data, BTResponseCallback responseCallback) {
-        [self showMenu:data response:[BTResponse responseWithCallback:responseCallback]];
+        [self showMenu:data callback:responseCallback];
     }];
     
     // device.*
@@ -280,9 +257,9 @@ static BTAppDelegate* instance;
     }];
     
     // version.*
-    [self registerHandler:@"version.download" handler:^(id data, BTResponseCallback responseCallback) {
-        [self downloadAppVersion:data response:[BTResponse responseWithCallback:responseCallback]];
-    }];
+//    [self registerHandler:@"version.download" handler:^(id data, BTResponseCallback callback) {
+//        [self downloadAppVersion:data callback:callback];
+//    }];
     
     // viewport.*
     [self registerHandler:@"viewport.expand" handler:^(id data, BTResponseCallback responseCallback) {
@@ -303,6 +280,11 @@ static BTAppDelegate* instance;
     
     [self registerHandler:@"BT.setStatusBar" handler:^(id data, BTResponseCallback responseCallback) {
         [self _setStatusBar:data responseCallback:responseCallback];
+    }];
+    
+    [self registerHandler:@"BT.readResouce" handler:^(id data, BTResponseCallback responseCallback) {
+        NSString *path = [[NSBundle mainBundle] pathForResource:data[@"name"] ofType:data[@"type"]];
+        responseCallback(nil, [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil]);
     }];
     
 //    // index.*
@@ -334,62 +316,43 @@ static BTAppDelegate* instance;
     [_bridge send:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil]];
 }
 
-/* Net API
- *********/
-- (void)setupNetHandlers:(BOOL)useLocalBuild {
-    NSString* mediaPrefix = @"/blowtorch/media/";
-    [WebViewProxy handleRequestsWithHost:self.serverHost pathPrefix:mediaPrefix handler:^(NSURLRequest *req, WVPResponse *res) {
-        NSString* file = [req.URL.path substringFromIndex:mediaPrefix.length];
-        NSString* format = [file pathExtension];
-        NSString* mediaId = [file stringByDeletingPathExtension];
-        UIImage* image = [_mediaCache objectForKey:mediaId];
-        NSData* data;
-        NSString* mimeType;
-        if ([format isEqualToString:@"png"]) {
-            data = UIImagePNGRepresentation(image);
-            mimeType = @"image/png";
-        } else if ([format isEqualToString:@"jpg"] || [format isEqualToString:@"jpeg"]) {
-            data = UIImageJPEGRepresentation(image, 1.0);
-            mimeType = @"image/jpg";
-        } else {
-            return;
-        }
-        [res respondWithData:data mimeType:mimeType];
-    }];
-}
-
 /* Upgrade API
  *************/
-- (void)downloadAppVersion:(NSDictionary *)data response:(BTResponse*)response {
-    NSString* url = [data objectForKey:@"url"];
-    NSDictionary* headers = [data objectForKey:@"headers"];
-    NSString* version = [url urlEncodedString];
-    NSString* directoryPath = [self getFilePath:[@"versions/" stringByAppendingString:version]];
-    [BTNet request:url method:@"GET" headers:headers params:nil responseCallback:^(id error, NSData *tarData) {
-        if (error) {
-            [response respondWithError:error];
-            return;
-        }
-        if (!tarData || tarData.length == 0) {
-            NSLog(@"Received download response with no data");
-            return;
-        }
-        NSError *tarError;
-        [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarData:tarData error:&tarError];
-        if (tarError) {
-            NSLog(@"Error untarring version %@", error);
-            [response respondWithError:@"Error untarring version"];
-        } else {
-            [self setAppInfo:@"downloadedVersion" value:version];
-            NSLog(@"Success downloading and untarring version %@", version);
-            [response respondWith:nil];
-        }
-    }];
-}
-
-- (NSString *)getCurrentVersion {
-    return [self getAppInfo:@"installedVersion"];
-}
+//- (void)downloadAppVersion:(NSDictionary *)data callback:(BTResponseCallback)callback {
+//    NSString* url = [data objectForKey:@"url"];
+//    NSDictionary* headers = [data objectForKey:@"headers"];
+//    NSString* version = [url urlEncodedString];
+//    NSString* directoryPath = [self getFilePath:[@"versions/" stringByAppendingString:version]];
+//    [BTNet request:url method:@"GET" headers:headers params:nil responseCallback:^(id error, NSData *tarData) {
+//        if (error) {
+//            callback(error,nil);
+//            return;
+//        }
+//        if (!tarData || tarData.length == 0) {
+//            NSLog(@"Received download response with no data");
+//            return;
+//        }
+//        NSError *tarError;
+//        [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarData:tarData error:&tarError];
+//        if (tarError) {
+//            NSLog(@"Error untarring version %@", error);
+//            callback(@"Error untarring version", nil);
+//        } else {
+//            [self setAppInfo:@"downloadedVersion" value:version];
+//            NSLog(@"Success downloading and untarring version %@", version);
+//            callback(nil,nil);
+//        }
+//    }];
+//}
+//
+//- (NSString *)getCurrentVersion {
+//    return [self getAppInfo:@"installedVersion"];
+//}
+//- (NSString *)getFilePath:(NSString *)fileName {
+//    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+//    NSString *documentsDirectory = [paths objectAtIndex:0];
+//    return [documentsDirectory stringByAppendingPathComponent:fileName];
+//}
 
 /* Push API
  **********/
@@ -429,81 +392,8 @@ static BTAppDelegate* instance;
 /* Misc API
  **********/
 
-static int uniqueId = 1;
-- (NSString *)unique {
-    int thisId = ++uniqueId;
-    return [NSString stringWithFormat:@"%d", thisId];
-}
-
 - (BOOL)isRetina {
     return ([[UIScreen mainScreen] respondsToSelector:@selector(scale)] && [[UIScreen mainScreen] scale] == 2.0);
-}
-
-@synthesize mediaResponse=_mediaResponse, mediaCache=_mediaCache;
-- (void)pickMedia:(NSDictionary*)data response:(BTResponse*)response {
-    if (!_mediaCache) { _mediaCache = [NSMutableDictionary dictionary]; }
-    
-    UIImagePickerController *mediaUI = [[UIImagePickerController alloc] init];
-    NSString* source = [data objectForKey:@"source"];
-    if (!source) {
-        source = @"libraryPhotos";
-    }
-    
-    if ([source isEqualToString:@"libraryPhotos"]) {
-        mediaUI.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
-    } else if ([source isEqualToString:@"librarySavedPhotos"]) {
-        mediaUI.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
-    } else if ([source isEqualToString:@"camera"]) {
-        mediaUI.sourceType = UIImagePickerControllerSourceTypeCamera;
-        if ([@"front" isEqualToString:[data objectForKey:@"cameraDevice"]]) {
-            if ([UIImagePickerController isCameraDeviceAvailable:UIImagePickerControllerCameraDeviceFront]) {
-                mediaUI.cameraDevice = UIImagePickerControllerCameraDeviceFront;
-            }
-        }
-    } else {
-        return [response respondWithError:@"Unknown source"];
-    }
-    
-    if ([data objectForKey:@"allowsEditing"]) {
-        mediaUI.allowsEditing = YES;
-    } else {
-        mediaUI.allowsEditing = NO;
-    }
-    
-    mediaUI.delegate = self;
-    
-    _mediaResponse = response;
-
-    [self.window.rootViewController presentViewController:mediaUI animated:YES completion:^{}];
-}
-
-- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingImage:(UIImage *)image editingInfo:(NSDictionary *)editingInfo {
-    NSString* mediaId = [self unique];
-    [_mediaCache setObject:image forKey:mediaId];
-    NSDictionary* info = [NSDictionary dictionaryWithObjectsAndKeys:
-                            mediaId, @"mediaId",
-                            [NSNumber numberWithFloat:image.size.width], @"width",
-                            [NSNumber numberWithFloat:image.size.height], @"height",
-                            nil];
-    [self.window.rootViewController dismissViewControllerAnimated:YES completion:^{
-        [_mediaResponse respondWith:info];
-    }];
-}
-
-- (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
-    [self.window.rootViewController dismissViewControllerAnimated:YES completion:^{
-        [_mediaResponse respondWith:[NSDictionary dictionary]];
-    }];
-}
-
-- (void)uploadMedia:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
-    NSDictionary* mediaParts = [data objectForKey:@"parts"];
-    NSMutableDictionary* attachments = [NSMutableDictionary dictionaryWithCapacity:mediaParts.count];
-    for (NSString* name in mediaParts) {
-        UIImage* image = [_mediaCache objectForKey:[mediaParts objectForKey:name]];
-        [attachments setObject:UIImagePNGRepresentation(image) forKey:name];
-    }
-    [BTNet post:[data objectForKey:@"url"] json:[data objectForKey:@"jsonParams"] attachments:attachments headers:[data objectForKey:@"headers"] boundary:[data objectForKey:@"boundary"] responseCallback:responseCallback];
 }
 
 - (void)_createStatusBarOverlay {
@@ -530,25 +420,24 @@ static int uniqueId = 1;
     webView.frame = newFrame;
 }
 
-- (void)showMenu:(NSDictionary *)data response:(BTResponse*)response {
+- (void)showMenu:(NSDictionary *)data callback:(BTResponseCallback)callback {
     NSArray* titles = [data objectForKey:@"titles"];
     NSString* title1 = titles.count > 0 ? [titles objectAtIndex:0] : nil;
     NSString* title2 = titles.count > 1 ? [titles objectAtIndex:1] : nil;
     NSString* title3 = titles.count > 2 ? [titles objectAtIndex:2] : nil;
     NSString* title4 = titles.count > 3 ? [titles objectAtIndex:3] : nil;
     
-    _menuResponse = response;
+    _menuCallback = callback;
     UIActionSheet* sheet = [[UIActionSheet alloc] initWithTitle:[data objectForKey:@"title"] delegate:self cancelButtonTitle:[data objectForKey:@"cancelTitle"] destructiveButtonTitle:[data objectForKey:@"destructiveTitle"] otherButtonTitles:title1, title2, title3, title4, nil];
     [sheet showInView:self.webView];
 }
 
-@synthesize menuResponse=_menuResponse;
 - (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex {
-    [_menuResponse respondWith:[NSDictionary dictionaryWithObject:[NSNumber numberWithInt:buttonIndex] forKey:@"index"]];
+    _menuCallback(nil, @{ @"index":[NSNumber numberWithInt:buttonIndex] });
 }
 
 - (void)actionSheetCancel:(UIActionSheet *)actionSheet {
-    [_menuResponse respondWith:nil];
+    _menuCallback(nil,nil);
 }
 
 - (void)registerHandler:(NSString *)handlerName handler:(BTHandler)handler {
@@ -579,16 +468,6 @@ static int uniqueId = 1;
     NSString* filePath = [[NSBundle mainBundle] pathForResource:fileName ofType:nil];
     NSData* data = [NSData dataWithContentsOfFile:filePath];
     [res respondWithData:data mimeType:mimeType];
-}
-
-- (NSString *)getCurrentVersionPath:(NSString *)resourcePath {
-    return [self getFilePath:[NSString stringWithFormat:@"versions/%@/%@", [self getCurrentVersion], resourcePath]];
-}
-
-- (NSString *)getFilePath:(NSString *)fileName {
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documentsDirectory = [paths objectAtIndex:0];
-    return [documentsDirectory stringByAppendingPathComponent:fileName];
 }
 
 -(NSURL *)getUrl:(NSString *)path {

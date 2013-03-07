@@ -6,13 +6,14 @@
 @implementation BTNet
 
 static NSOperationQueue* queue;
+static BTNet* instance;
 
-- (id)init {
-    if (self = [super init]) {
-        queue = [[NSOperationQueue alloc] init];
-        [queue setMaxConcurrentOperationCount:5];
-    }
-    return self;
+
+- (void)setup:(BTAppDelegate *)app {
+    if (instance) { return; }
+    instance = self;
+    queue = [[NSOperationQueue alloc] init];
+    [queue setMaxConcurrentOperationCount:5];
 }
 
 + (void)request:(NSDictionary *)data responseCallback:(BTResponseCallback)responseCallback {
