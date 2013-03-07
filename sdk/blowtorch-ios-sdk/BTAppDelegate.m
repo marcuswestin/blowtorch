@@ -24,6 +24,7 @@ static BTAppDelegate* instance;
     NSString* _serverHost;
     NSString* _serverPort;
     UILabel* _reloadView;
+    BTResponseCallback _menuCallback;
 }
 
 @synthesize window, webView, javascriptBridge=_bridge, overlay, config, launchNotification;
