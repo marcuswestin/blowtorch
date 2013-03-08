@@ -1,8 +1,8 @@
 #import <UIKit/UIKit.h>
 #import "WebViewJavascriptBridge.h"
-#import "BTResponse.h"
+#import "BTModule.h"
 
-@interface BTNet : NSObject
+@interface BTNet : BTModule
 
 //- (void)cache:(NSString*)url override:(BOOL)override asUrl:(NSString*)asUrl responseCallback:(WVJBResponseCallback)responseCallback;
 

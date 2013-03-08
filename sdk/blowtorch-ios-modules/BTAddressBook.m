@@ -15,8 +15,9 @@ static BTAddressBook* instance;
 
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
-    [app registerHandler:@"BTAddressBook.getAllEntries" handler:^(id data, BTResponseCallback responseCallback) {
-        [self _getAllEntries:data responseCallback:responseCallback];
+    instance = self;
+    [app registerHandler:@"BTAddressBook.getAllEntries" handler:^(id data, BTResponseCallback callback) {
+        [self getAllEntries:data callback:callback];
     }];
     [app registerHandler:@"BTAddressBook.getAuthorizationStatus" handler:^(id data, BTResponseCallback responseCallback) {
         [self _getAuthorization:data responseCallback:responseCallback];
@@ -36,12 +37,16 @@ static BTAddressBook* instance;
     else { responseCallback(@"Unknown status", nil); }
 }
 
-- (void)_getAllEntries:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
++ (void)allEntries:(BTResponseCallback)callback {
+    [instance getAllEntries:nil callback:callback];
+}
+
+- (void)getAllEntries:(NSDictionary*)data callback:(BTResponseCallback)callback {
     ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
-    if (!addressBook) { return responseCallback(@"Could not open address book", nil); }
+    if (!addressBook) { return callback(@"Could not open address book", nil); }
     ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error) {
-        if (!granted) { return responseCallback(@"Give Dogo access to your address book in Settings -> Privacy -> Contacts", nil); }
-        if (error) { return responseCallback((__bridge id)(error), nil); }
+        if (!granted) { return callback(@"Give Dogo access to your address book in Settings -> Privacy -> Contacts", nil); }
+        if (error) { return callback(CFBridgingRelease(error), nil); }
         CFArrayRef allPeople = ABAddressBookCopyArrayOfAllPeople(addressBook);
         CFIndex numPeople = ABAddressBookGetPersonCount(addressBook);
         NSMutableArray* entries = [NSMutableArray arrayWithCapacity:numPeople];
@@ -49,23 +54,29 @@ static BTAddressBook* instance;
         for (int i=0; i<numPeople; i++ ) {
             ABRecordRef person = CFArrayGetValueAtIndex(allPeople, i);
             
-            ABMultiValueRef emailProperty = ABRecordCopyValue(person, kABPersonEmailProperty);
-            ABMultiValueRef phoneProperty = ABRecordCopyValue(person, kABPersonPhoneProperty);
             NSString *firstName = (__bridge NSString *)ABRecordCopyValue(person, kABPersonFirstNameProperty);
             NSString *lastName = (__bridge NSString *)ABRecordCopyValue(person, kABPersonLastNameProperty);
+            NSString* name = nil;
+            if (firstName) {
+                if (lastName) { name = [NSString stringWithFormat:@"%@ %@", firstName, lastName]; }
+                else { name = firstName; }
+            } else {
+                name = @"";
+            }
+
+            ABMultiValueRef emailProperty = ABRecordCopyValue(person, kABPersonEmailProperty);
             NSArray *emailArray = (__bridge NSArray *)ABMultiValueCopyArrayOfAllValues(emailProperty);
-            NSArray *phoneArray = (__bridge NSArray *)ABMultiValueCopyArrayOfAllValues(phoneProperty);
-            
-            if (!firstName) { firstName = @""; }
-            if (!lastName) { lastName = @""; }
             if (!emailArray) { emailArray = emptyArray; }
-            if (!phoneArray) { phoneArray = emailArray; }
+
+            ABMultiValueRef phoneProperty = ABRecordCopyValue(person, kABPersonPhoneProperty);
+            NSArray *phoneArray = (__bridge NSArray *)ABMultiValueCopyArrayOfAllValues(phoneProperty);
+            if (!phoneArray) { phoneArray = emptyArray; }
             
-            [entries addObject:@{ @"firstName":firstName, @"lastName":lastName, @"emails": emailArray, @"phones":phoneArray }];
+            [entries addObject:@{ @"name":name, @"emailAddresses":emailArray, @"phoneNumbers":phoneArray }];
         }
         CFRelease(addressBook);
         CFRelease(allPeople);
-        responseCallback(nil, @{ @"entries":entries });
+        callback(nil, @{ @"entries":entries });
     });
 }
 

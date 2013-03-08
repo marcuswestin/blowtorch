@@ -34,15 +34,15 @@ static NSMutableDictionary* indices;
     return [indices objectForKey:name];
 }
 
-- (void)lookup:(NSString *)searchString response:(BTResponse*)response {
+- (void)lookup:(NSString *)searchString callback:(BTResponseCallback)callback {
     NSMutableSet* matches = [NSMutableSet set];
     if (!listsByFirstCharacter || !searchString || [searchString isEqualToString:@""]) {
-        return [self respond:matches response:response];
+        return [self respond:matches callback:callback];
     }
     NSString* indexFirstChar = [[searchString substringToIndex:1] lowercaseString];
     NSArray* possibleMatches = [listsByFirstCharacter objectForKey:indexFirstChar];
     if (!possibleMatches) {
-        return [self respond:matches response:response];
+        return [self respond:matches callback:callback];
     }
     NSPredicate* beginsWithsearchString = [NSPredicate predicateWithFormat:@"SELF BEGINSWITH[cd] %@", searchString];
     for (BTIndexByStrings* indexByStrings in possibleMatches) {
@@ -53,11 +53,11 @@ static NSMutableDictionary* indices;
             }
         }
     }
-    [self respond:matches response:response];
+    [self respond:matches callback:callback];
 }
 
-- (void)respond:(NSSet *)matches response:(BTResponse*)response {
-    [response respondWith:[NSDictionary dictionaryWithObject:[matches allObjects] forKey:@"matches"]];
+- (void)respond:(NSSet *)matches callback:(BTResponseCallback)callback {
+    callback(nil, @{ @"matches":matches });
 }
 
 @end

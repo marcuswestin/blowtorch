@@ -1,21 +1,17 @@
+#import "BTTypes.h"
 #import <UIKit/UIKit.h>
 #import "WebViewJavascriptBridge.h"
 #import "WebViewProxy.h"
-#import "BTNet.h"
-#import "BTState.h"
 #import <AudioToolbox/AudioServices.h>
-#import "BTResponse.h"
 
 #import "NSString+Util.h"
 
-@interface BTAppDelegate : UIResponder <UIApplicationDelegate, UIWebViewDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UIActionSheetDelegate, UIScrollViewDelegate>
+@interface BTAppDelegate : UIResponder <UIApplicationDelegate, UIWebViewDelegate, UIActionSheetDelegate, UIScrollViewDelegate>
 
 + (BTAppDelegate*) instance;
 
 /* Properties
  ************/
-@property (atomic, strong) BTState* state;
-@property (atomic, strong) BTNet* net;
 @property (strong, atomic) NSMutableDictionary* config;
 
 - (NSString*) serverUrl;
@@ -27,9 +23,7 @@
 - (void)setupModules;
 - (void)startApp;
 - (void)setupApp:(BOOL)useLocalBuild;
-- (void)setAppInfo:(NSString*)key value:(NSString*)value;
-- (NSString*)getAppInfo:(NSString*)key;
-
+- (void)setupNetHandlers:(BOOL)useLocalBuild;
 /* Webview API
  *************/
 + (void) notify:(NSString*)name info:(NSDictionary*)info;
@@ -37,12 +31,6 @@
 - (void) notify:(NSString*)name info:(NSDictionary*)info;
 - (void) notify:(NSString*)name;
 - (void) setupBridgeHandlers:(BOOL)useLocalBuild;
-- (void) setupNetHandlers:(BOOL)useLocalBuild;
-
-/* Upgrade API
- *************/
-- (void) downloadAppVersion:(NSDictionary*)data response:(BTResponse*)response;
-- (NSString*) getCurrentVersion;
 
 /* Keyboard
  **********/
@@ -53,13 +41,8 @@
 
 /* Misc
  ******/
-- (NSString*) unique;
 - (BOOL) isRetina;
-- (void) pickMedia:(NSDictionary*)data response:(BTResponse*)response;
 @property (atomic,strong) NSMutableDictionary* mediaCache;
-@property (atomic,strong) BTResponse* mediaResponse;
-- (void) showMenu:(NSDictionary*)data response:(BTResponse*)response;
-@property (atomic,strong) BTResponse* menuResponse;
 
 /* Notifications
  ***************/
