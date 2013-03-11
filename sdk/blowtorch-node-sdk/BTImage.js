@@ -26,7 +26,7 @@ function setup(app) {
 					res.writeHead((err && err.code == 'ETIMEDOUT') ? 408 : 500)
 					res.end()
 				} else {
-					if (!data) {
+					if (!data || !data.length) {
 						console.log("No data", params, req.headers)
 						throw new Error("Got no data for " + params.url + " ("+JSON.stringify(headers)+")")
 					}
@@ -79,20 +79,13 @@ function cropImage(data, crop, callback) {
 }
 
 function resizeImage(data, resize, callback) {
-	// resize == '120x400'
-	var customArgs = [
-		"-gravity", "center",
-		"-extent", resize
-	]
-	
-	var sizes = resize.split('x')
-	
+	var sizes = resize.split('x') // '120x400'
 	imagemagick.resize({
 		srcData: data,
 		strip: false,
 		width: sizes[0],
 		height: sizes[1]+'^',
-		customArgs: customArgs
+		customArgs: ["-gravity", "center", "-extent", resize]
 	}, function(err, stdout, stderr) {
 		if (err || stderr) { throw (err || new Error(stderr)) }
 		callback(new Buffer(stdout, 'binary'))
