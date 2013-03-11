@@ -21,4 +21,4 @@
 	url = git@github.com:marcuswestin/HandyHelpers.git
 [submodule "dependencies/fmdb"]
 	path = dependencies/fmdb
-	url = git://github.com/ccgus/fmdb.git
+	url = git@github.com:marcuswestin/fmdb.git
