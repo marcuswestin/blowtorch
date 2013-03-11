@@ -90,27 +90,33 @@ static BTImage* instance;
 
 
 - (void)fetchImage:(NSString *)requestUrl params:(NSDictionary*)params response:(WVPResponse *)res {
-    bool useCache = !![params objectForKey:@"cache"];
+    if (params[@"mediaModule"]) {
+        [BTModule module:params[@"mediaModule"] getMedia:params[@"mediaId"] callback:^(id error, id responseData) {
+            [self processData:responseData requestUrl:requestUrl response:res params:params];
+        }];
+        return;
+    }
     
-    if (useCache) {
-//        UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
-//        bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
-//            [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
-//        }];
-        if ([BTCache has:requestUrl]) {
-            [self respondWithData:[BTCache get:requestUrl] response:res params:params];
-        } else if ([BTCache has:[params objectForKey:@"url"]]) {
-            NSData* cachedNetData = [BTCache get:[params objectForKey:@"url"]];
-            [self processData:cachedNetData requestUrl:requestUrl response:res params:params];
-        } else {
-            [self fetchData:requestUrl response:res params:params];
-        }
+    if (![params objectForKey:@"cache"]) {
+        [self _fetchImageData:requestUrl response:res params:params];
+        return;
+    }
+    
+//    UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
+//    bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+//        [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
+//    }];
+    if ([BTCache has:requestUrl]) {
+        [self respondWithData:[BTCache get:requestUrl] response:res params:params];
+    } else if ([BTCache has:params[@"url"]]) {
+        NSData* cachedNetData = [BTCache get:params[@"url"]];
+        [self processData:cachedNetData requestUrl:requestUrl response:res params:params];
     } else {
-        [self fetchData:requestUrl response:res params:params];
+        [self _fetchImageData:requestUrl response:res params:params];
     }
 }
 
-- (void)fetchData:(NSString *)requestUrl response:(WVPResponse*)res params:(NSDictionary*)params {
+- (void)_fetchImageData:(NSString *)requestUrl response:(WVPResponse*)res params:(NSDictionary*)params {
     NSString* urlParam = [params objectForKey:@"url"];
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }

@@ -22,6 +22,26 @@ static BTAddressBook* instance;
     [app registerHandler:@"BTAddressBook.getAuthorizationStatus" handler:^(id data, BTResponseCallback responseCallback) {
         [self _getAuthorization:data responseCallback:responseCallback];
     }];
+    [app handleRequests:@"BTAddressBook/image" handler:^(NSDictionary *params, WVPResponse *response) {
+        [self getImage:params[@"recordId"] response:response];
+    }];
+}
+
+- (void) getImage:(NSString*)recordId response:(WVPResponse*)response {
+    NSData* data = [self _getImage:[recordId intValue]];
+    if (data) {
+        UIImage* image = [UIImage imageWithData:data];
+        [response respondWithImage:image];
+    } else {
+        [response respondWithError:400 text:@"BTAddressBook image not found"];
+    }
+}
+
+- (NSData*) _getImage:(ABRecordID)recordId {
+    ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
+    if (!addressBook) { return nil; }
+    ABRecordRef person = ABAddressBookGetPersonWithRecordID(addressBook, recordId);
+    return (__bridge NSData *)(ABPersonCopyImageData(person));
 }
 
 - (void) _getAuthorization:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
@@ -56,6 +76,8 @@ static BTAddressBook* instance;
             
             NSString *firstName = (__bridge NSString *)ABRecordCopyValue(person, kABPersonFirstNameProperty);
             NSString *lastName = (__bridge NSString *)ABRecordCopyValue(person, kABPersonLastNameProperty);
+            NSNumber* hasImage = [NSNumber numberWithBool:ABPersonHasImageData(person)];
+            NSString* recordId = [NSString stringWithFormat:@"%d", ABRecordGetRecordID(person)];
             NSString* name = nil;
             if (firstName) {
                 if (lastName) { name = [NSString stringWithFormat:@"%@ %@", firstName, lastName]; }
@@ -72,12 +94,17 @@ static BTAddressBook* instance;
             NSArray *phoneArray = (__bridge NSArray *)ABMultiValueCopyArrayOfAllValues(phoneProperty);
             if (!phoneArray) { phoneArray = emptyArray; }
             
-            [entries addObject:@{ @"name":name, @"emailAddresses":emailArray, @"phoneNumbers":phoneArray }];
+            [entries addObject:@{ @"recordId":recordId, @"name":name, @"emailAddresses":emailArray, @"phoneNumbers":phoneArray, @"hasImage":hasImage }];
         }
         CFRelease(addressBook);
         CFRelease(allPeople);
         callback(nil, @{ @"entries":entries });
     });
+}
+
+- (void)getMedia:(NSString *)mediaId callback:(BTResponseCallback)callback {
+    NSData* data = [self _getImage:[mediaId intValue]];
+    callback(data ? nil : @"Could not get address book image", data);
 }
 
 

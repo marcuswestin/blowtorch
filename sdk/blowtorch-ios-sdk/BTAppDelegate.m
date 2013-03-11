@@ -441,7 +441,7 @@ static BTAppDelegate* instance;
     _menuCallback(nil,nil);
 }
 
-- (void)registerHandler:(NSString *)handlerName handler:(BTHandler)handler {
+- (void)registerHandler:(NSString *)handlerName handler:(BTCommandHandler)handler {
     [self.javascriptBridge registerHandler:handlerName handler:^(id data, WVJBResponseCallback responseCallback) {
         handler(data, ^(id err, id responseData) {
             if (err) {
@@ -454,6 +454,15 @@ static BTAppDelegate* instance;
             } else {
                 responseCallback([NSDictionary dictionary]);
             }
+        });
+    }];
+}
+
+- (void)handleRequests:(NSString *)path handler:(BTRequestHandler)requestHandler {
+    [WebViewProxy handleRequestsWithHost:self.serverHost path:path handler:^(NSURLRequest *req, WVPResponse *res) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            NSDictionary* params = [req.URL.query parseQueryParams];
+            requestHandler(params, res);
         });
     }];
 }
