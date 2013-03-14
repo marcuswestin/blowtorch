@@ -29,10 +29,10 @@ static BTSql* instance;
         [self executeQuery:data[@"sql"] arguments:data[@"arguments"] callback:responseCallback];
     }];
     [app registerHandler:@"BTSql.update" handler:^(id data, BTResponseCallback responseCallback) {
-        [self executeUpdate:data[@"sql"] arguments:data[@"arguments"] callback:responseCallback];
+        [self executeUpdate:data[@"sql"] arguments:data[@"arguments"] ignoreDuplicates:[data[@"ignoreDuplicates"] boolValue] callback:responseCallback];
     }];
     [app registerHandler:@"BTSql.insertMultiple" handler:^(id data, BTResponseCallback callback) {
-        [self insertMultiple:data[@"sql"] ignoreDuplicates:[data[@"ignoreDuplicates"] boolValue] argumentsList:data[@"argumentsList"] callback:callback];
+        [self insertMultiple:data[@"sql"] argumentsList:data[@"argumentsList"] ignoreDuplicates:[data[@"ignoreDuplicates"] boolValue] callback:callback];
     }];
 //    [app registerHandler:@"BTSql.transact" handler:^(id data, BTResponseCallback responseCallback) {
 //        [self transact:data callback:responseCallback];
@@ -57,23 +57,23 @@ static BTSql* instance;
     }];
 }
 
-- (void)executeUpdate:(NSString *)sql arguments:(NSArray *)arguments callback:(BTResponseCallback)callback {
+- (void)executeUpdate:(NSString *)sql arguments:(NSArray *)arguments ignoreDuplicates:(BOOL)ignoreDuplicates callback:(BTResponseCallback)callback {
     [self async:^{
         [queue inDatabase:^(FMDatabase *db) {
             BOOL success = [db executeUpdate:sql withArgumentsInArray:arguments];
+            if (!success && ignoreDuplicates && db.lastErrorCode == SQLITE_CONSTRAINT) { success = YES; }
             callback(success ? nil : db.lastError, nil);
         }];
     }];
 }
 
-- (void)insertMultiple:(NSString*)sql ignoreDuplicates:(BOOL)ignoreDuplicates argumentsList:(NSArray*)argumentsList callback:(BTResponseCallback)callback {
+- (void)insertMultiple:(NSString*)sql argumentsList:(NSArray*)argumentsList ignoreDuplicates:(BOOL)ignoreDuplicates callback:(BTResponseCallback)callback {
     [self async:^{
         [queue inTransaction:^(FMDatabase *db, BOOL *rollback) {
             for (NSArray* arguments in argumentsList) {
                 BOOL success = [db executeUpdate:sql withArgumentsInArray:arguments];
                 if (!success) {
                     if (ignoreDuplicates && db.lastErrorCode == SQLITE_CONSTRAINT) { continue; }
-                    NSLog(@"QWEQWE %@ %@", sql, arguments);
                     return callback(db.lastError, nil);
                 }
             }
