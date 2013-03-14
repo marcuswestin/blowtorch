@@ -75,14 +75,14 @@ static BTAppDelegate* instance;
 
 -(void)setupApp:(BOOL)useLocalBuild {
     if (useLocalBuild) {
-        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"/app" handler:^(NSURLRequest* req, WVPResponse *res) {
-            [self _respond:res fileName:@"app.html" mimeType:@"text/html"];
+        [self handleRequests:@"app" handler:^(NSDictionary *params, WVPResponse *response) {
+            [self _respond:response fileName:@"app.html" mimeType:@"text/html"];
         }];
-        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"appJs.js" handler:^(NSURLRequest *req, WVPResponse *res) {
-            [self _respond:res fileName:@"appJs.html" mimeType:@"application/javascript"];
+        [self handleRequests:@"appJs.js" handler:^(NSDictionary *params, WVPResponse *response) {
+            [self _respond:response fileName:@"appJs.html" mimeType:@"application/javascript"];
         }];
-        [WebViewProxy handleRequestsWithHost:self.serverHost path:@"appCss.css" handler:^(NSURLRequest *req, WVPResponse *res) {
-            [self _respond:res fileName:@"appCss.css" mimeType:@"text/css"];
+        [self handleRequests:@"appCss.css" handler:^(NSDictionary *params, WVPResponse *response) {
+            [self _respond:response fileName:@"appCss.css" mimeType:@"text/css"];
         }];
     } else {
         [self _renderDevTools];
@@ -458,8 +458,8 @@ static BTAppDelegate* instance;
     }];
 }
 
-- (void)handleRequests:(NSString *)path handler:(BTRequestHandler)requestHandler {
-    [WebViewProxy handleRequestsWithHost:self.serverHost path:path handler:^(NSURLRequest *req, WVPResponse *res) {
+- (void)handleRequests:(NSString *)command handler:(BTRequestHandler)requestHandler {
+    [WebViewProxy handleRequestsWithHost:self.serverHost path:command handler:^(NSURLRequest *req, WVPResponse *res) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             NSDictionary* params = [req.URL.query parseQueryParams];
             requestHandler(params, res);

@@ -29,11 +29,11 @@ static BTImage* instance;
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
-    [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage.fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
-        [self fetchImage:req.URL.absoluteString params:[req.URL.query parseQueryParams] response:res];
+    [app handleRequests:@"BTImage.fetchImage" handler:^(NSDictionary *params, WVPResponse *response) {
+        [self fetchImage:params response:response];
     }];
-    [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage.collage" handler:^(NSURLRequest *req, WVPResponse *res) {
-        [self collage:req.URL.absoluteString params:[req.URL.query parseQueryParams] response:res];
+    [app handleRequests:@"BTImage.collage" handler:^(NSDictionary *params, WVPResponse *response) {
+        [self collage:params response:response];
     }];
 }
 
@@ -50,7 +50,7 @@ static BTImage* instance;
     }
 }
 
-- (void)collage:(NSString*)requestUrl params:(NSDictionary*)params response:(WVPResponse*)res {
+- (void)collage:(NSDictionary*)params response:(WVPResponse*)res {
     NSArray* rects = [params objectForKey:@"rects"];
     NSArray* contents = [params objectForKey:@"contents"];
     CGFloat alpha = [[params objectForKey:@"alpha"] floatValue];
@@ -74,7 +74,7 @@ static BTImage* instance;
                         id content = [results objectAtIndex:idx];
                         CGRect rect = [rectString makeRect];
                         if ([content class] == [UIImage class]) {
-                            [[(UIImage*)content thumbnailSize:rect.size transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationHigh] drawAtPoint:rect.origin];
+                            [[(UIImage*)content thumbnailSize:rect.size transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault] drawAtPoint:rect.origin];
                         } else {
                             UIColor* color = [content makeRgbColor];
                             CGContextSetFillColorWithColor(context, [color CGColor]);
@@ -90,10 +90,10 @@ static BTImage* instance;
 }
 
 
-- (void)fetchImage:(NSString *)requestUrl params:(NSDictionary*)params response:(WVPResponse *)res {
+- (void)fetchImage:(NSDictionary*)params response:(WVPResponse *)res {
     if (params[@"mediaModule"]) {
         [BTModule module:params[@"mediaModule"] getMedia:params[@"mediaId"] callback:^(id error, id responseData) {
-            [self processData:responseData requestUrl:requestUrl response:res params:params];
+            [self processData:responseData params:params response:res];
         }];
         return;
     }
@@ -101,7 +101,7 @@ static BTImage* instance;
     if (params[@"document"]) {
         [self async:^{
             NSData* data = [BTFiles readDocument:params[@"document"]];
-            [self processData:data requestUrl:requestUrl response:res params:params];
+            [self processData:data params:params response:res];
         }];
         return;
     }
@@ -109,13 +109,13 @@ static BTImage* instance;
     if (params[@"file"]) {
         [self async:^{
             NSData* data = [NSData dataWithContentsOfFile:params[@"file"]];
-            [self processData:data requestUrl:requestUrl response:res params:params];
+            [self processData:data params:params response:res];
         }];
         return;
     }
     
     if (![params objectForKey:@"cache"]) {
-        [self _fetchImageData:requestUrl response:res params:params];
+        [self _fetchImageData:params response:res];
         return;
     }
     
@@ -123,26 +123,24 @@ static BTImage* instance;
 //    bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
 //        [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
 //    }];
-    if ([BTCache has:requestUrl]) {
-        [self respondWithData:[BTCache get:requestUrl] response:res params:params];
-    } else if ([BTCache has:params[@"url"]]) {
+    if ([BTCache has:params[@"url"]]) {
         NSData* cachedNetData = [BTCache get:params[@"url"]];
-        [self processData:cachedNetData requestUrl:requestUrl response:res params:params];
+        [self processData:cachedNetData params:params response:res];
     } else {
-        [self _fetchImageData:requestUrl response:res params:params];
+        [self _fetchImageData:params response:res];
     }
 }
 
-- (void)_fetchImageData:(NSString *)requestUrl response:(WVPResponse*)res params:(NSDictionary*)params {
+- (void)_fetchImageData:(NSDictionary*)params response:(WVPResponse*)res {
     NSString* urlParam = params[@"url"];
     NSLog(@"_fetchImageData %@", urlParam);
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
-        [self processData:netData requestUrl:requestUrl response:res params:params];
+        [self processData:netData params:params response:res];
     }];
 }
 
-- (void)processData:(NSData*)netData requestUrl:(NSString*)requestUrl response:(WVPResponse*)res params:(NSDictionary*)params {
+- (void)processData:(NSData*)netData params:(NSDictionary*)params response:(WVPResponse*)res {
     bool useCache = !![params objectForKey:@"cache"];
     if (useCache) {
         [BTCache store:[params objectForKey:@"url"] data:netData];
@@ -156,12 +154,7 @@ static BTImage* instance;
         int radius = radiusParam ? [radiusParam intValue] : 0;
         UIImage* image = [UIImage imageWithData:netData];
         image = [image thumbnailSize:[resizeParam makeSize] transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
-        // kCGInterpolationHigh
         NSData* resizedData = UIImageJPEGRepresentation(image, 1.0);
-//        NSData* resizedData = UIImagePNGRepresentation(image);
-        if (useCache) {
-            [BTCache store:requestUrl data:resizedData];
-        }
         [self respondWithData:resizedData response:res params:params];
     } else if (cropParam) {
         CGSize size = [cropParam makeSize];
@@ -170,9 +163,6 @@ static BTImage* instance;
         CGRect cropRect = CGRectMake(deltaSize.width / 2, deltaSize.height / 2, size.width, size.height);
         image = [image croppedImage:cropRect];
         NSData* croppedData = UIImageJPEGRepresentation(image, 1.0);
-        if (useCache) {
-            [BTCache store:requestUrl data:croppedData];
-        }
         [self respondWithData:croppedData response:res params:params];
     } else {
         [self respondWithData:netData response:res params:params];
@@ -181,6 +171,7 @@ static BTImage* instance;
 
 - (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {
     NSString* mimeTypeParam = [params objectForKey:@"mimeType"];
+    res.cachePolicy = NSURLCacheStorageNotAllowed; // we take care of caching ourselves
     [res respondWithData:data mimeType:mimeTypeParam];
 }
 @end

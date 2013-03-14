@@ -54,7 +54,7 @@ static BTCamera* instance;
     
     NSString* resize = captureParams[@"resize"];
     if (resize) {
-        image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationHigh];
+        image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
     }
     
     NSData* data;
