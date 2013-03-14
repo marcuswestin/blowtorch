@@ -10,6 +10,7 @@
 #import "UIImage+Resize.h"
 #import "UIImage+HHImages.h"
 #import "BTCache.h"
+#import "BTFiles.h"
 
 @implementation BTImage {
     NSOperationQueue* queue;
@@ -28,10 +29,10 @@ static BTImage* instance;
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
-    [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage/fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
+    [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage.fetchImage" handler:^(NSURLRequest *req, WVPResponse *res) {
         [self fetchImage:req.URL.absoluteString params:[req.URL.query parseQueryParams] response:res];
     }];
-    [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage/collage" handler:^(NSURLRequest *req, WVPResponse *res) {
+    [WebViewProxy handleRequestsWithHost:app.serverHost path:@"/BTImage.collage" handler:^(NSURLRequest *req, WVPResponse *res) {
         [self collage:req.URL.absoluteString params:[req.URL.query parseQueryParams] response:res];
     }];
 }
@@ -97,6 +98,22 @@ static BTImage* instance;
         return;
     }
     
+    if (params[@"document"]) {
+        [self async:^{
+            NSData* data = [BTFiles readDocument:params[@"document"]];
+            [self processData:data requestUrl:requestUrl response:res params:params];
+        }];
+        return;
+    }
+    
+    if (params[@"file"]) {
+        [self async:^{
+            NSData* data = [NSData dataWithContentsOfFile:params[@"file"]];
+            [self processData:data requestUrl:requestUrl response:res params:params];
+        }];
+        return;
+    }
+    
     if (![params objectForKey:@"cache"]) {
         [self _fetchImageData:requestUrl response:res params:params];
         return;
@@ -117,7 +134,8 @@ static BTImage* instance;
 }
 
 - (void)_fetchImageData:(NSString *)requestUrl response:(WVPResponse*)res params:(NSDictionary*)params {
-    NSString* urlParam = [params objectForKey:@"url"];
+    NSString* urlParam = params[@"url"];
+    NSLog(@"_fetchImageData %@", urlParam);
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
         [self processData:netData requestUrl:requestUrl response:res params:params];

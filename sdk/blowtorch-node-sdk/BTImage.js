@@ -11,7 +11,7 @@ module.exports = {
 var cache = {}
 
 function setup(app) {
-	app.get('/BTImage/fetchImage', function(req, res) {
+	app.get('/BTImage.fetchImage', function(req, res) {
 		var params = parseUrl(req.url, true).query
 		if (cache[params.url]) {
 			// console.log("BTImage.fetchImage found in cache", params.url)
