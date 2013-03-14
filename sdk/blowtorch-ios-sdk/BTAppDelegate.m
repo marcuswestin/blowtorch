@@ -218,81 +218,81 @@ static BTAppDelegate* instance;
  ************************/
 - (void)setupBridgeHandlers:(BOOL)useLocalBuild {
     // app.*
-    [self registerHandler:@"app.restart" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"app.restart" handler:^(id data, BTResponseCallback responseCallback) {
         [self startApp];
     }];
-    [self registerHandler:@"app.show" handler:^(id data, BTResponseCallback  responseCallback) {
+    [self handleCommand:@"app.show" handler:^(id data, BTResponseCallback  responseCallback) {
         [self hideLoadingOverlay:data];
         if (launchNotification) {
             [self handlePushNotification:launchNotification didBringAppToForeground:YES];
             launchNotification = nil;
         }
     }];
-    [self registerHandler:@"app.setIconBadgeNumber" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"app.setIconBadgeNumber" handler:^(id data, BTResponseCallback responseCallback) {
         NSNumber* number = [data objectForKey:@"number"];
         [[UIApplication sharedApplication] setApplicationIconBadgeNumber:[number intValue]];
     }];
-    [self registerHandler:@"app.getIconBadgeNumber" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"app.getIconBadgeNumber" handler:^(id data, BTResponseCallback responseCallback) {
         NSNumber* number = [NSNumber numberWithInt:[[UIApplication sharedApplication] applicationIconBadgeNumber]];
         responseCallback(nil, [NSDictionary dictionaryWithObject:number forKey:@"number"]);
     }];
     
     // console.*
-    [self registerHandler:@"console.log" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"console.log" handler:^(id data, BTResponseCallback responseCallback) {
         
     }];
     
     // push.*
-    [self registerHandler:@"push.register" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"push.register" handler:^(id data, BTResponseCallback responseCallback) {
         [self registerForPush:responseCallback];
     }];
     
     // menu.*
-    [self registerHandler:@"menu.show" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"menu.show" handler:^(id data, BTResponseCallback responseCallback) {
         [self showMenu:data callback:responseCallback];
     }];
     
     // device.*
-    [self registerHandler:@"device.vibrate" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"device.vibrate" handler:^(id data, BTResponseCallback responseCallback) {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
     }];
     
     // version.*
-//    [self registerHandler:@"version.download" handler:^(id data, BTResponseCallback callback) {
+//    [self handleCommand:@"version.download" handler:^(id data, BTResponseCallback callback) {
 //        [self downloadAppVersion:data callback:callback];
 //    }];
     
     // viewport.*
-    [self registerHandler:@"viewport.expand" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"viewport.expand" handler:^(id data, BTResponseCallback responseCallback) {
         [self _expandViewport:[[data objectForKey:@"height"] floatValue]];
     }];
-    [self registerHandler:@"viewport.putOverKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"viewport.putOverKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
         [self putWindowOverKeyboard];
     }];
-    [self registerHandler:@"viewport.putUnderKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"viewport.putUnderKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
         [self putWindowUnderKeyboard];
     }];
     
     
-    [self registerHandler:@"BTLocale.getCountryCode" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"BTLocale.getCountryCode" handler:^(id data, BTResponseCallback responseCallback) {
         responseCallback(nil, [[NSLocale currentLocale] objectForKey:NSLocaleCountryCode]);
     }];
     
     
-    [self registerHandler:@"BT.setStatusBar" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"BT.setStatusBar" handler:^(id data, BTResponseCallback responseCallback) {
         [self _setStatusBar:data responseCallback:responseCallback];
     }];
     
-    [self registerHandler:@"BT.readResouce" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"BT.readResouce" handler:^(id data, BTResponseCallback responseCallback) {
         NSString *path = [[NSBundle mainBundle] pathForResource:data[@"name"] ofType:data[@"type"]];
         responseCallback(nil, [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil]);
     }];
     
 //    // index.*
-//    [_bridge registerHandler:@"index.build" handler:^(id data, WVJBResponseCallback responseCallback) {
+//    [_bridge handleCommand:@"index.build" handler:^(id data, WVJBResponseCallback responseCallback) {
 //        [BTIndex buildIndex:[data objectForKey:@"name"] payloadToStrings:[data objectForKey:@"payloadToStrings"]];
 //    }];
-//    [_bridge registerHandler:@"index.lookup" handler:^(id data, WVJBResponseCallback responseCallback) {
+//    [_bridge handleCommand:@"index.lookup" handler:^(id data, WVJBResponseCallback responseCallback) {
 //        BTIndex* index = [BTIndex indexByName:[data objectForKey:@"name"]];
 //        [index lookup:[data objectForKey:@"searchString"] responseCallback:responseCallback];
 //    }];
@@ -441,7 +441,7 @@ static BTAppDelegate* instance;
     _menuCallback(nil,nil);
 }
 
-- (void)registerHandler:(NSString *)handlerName handler:(BTCommandHandler)handler {
+- (void)handleCommand:(NSString *)handlerName handler:(BTCommandHandler)handler {
     [self.javascriptBridge registerHandler:handlerName handler:^(id data, WVJBResponseCallback responseCallback) {
         handler(data, ^(id err, id responseData) {
             if (err) {

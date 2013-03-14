@@ -189,7 +189,6 @@ static OSStatus recordFromUnitToFile (void *inRefCon, AudioUnitRenderActionFlags
     UInt64 nPackets;
     UInt32 nPacketsSize = sizeof(nPackets);
     check(@"Get file audio packet count", AudioFileGetProperty(inputFile, kAudioFilePropertyAudioDataPacketCount, &nPacketsSize, &nPackets));
-    NSLog(@"NPackets %lli", nPackets);
     
     // tell the file player AU to play the entire file
     ScheduledAudioFileRegion rgn;

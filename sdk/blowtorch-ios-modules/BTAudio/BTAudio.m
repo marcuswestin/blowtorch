@@ -54,22 +54,22 @@ static BTAudio* instance;
     instance = self;
     
     // Task 1: Record audio to file
-    [app registerHandler:@"BTAudio.recordFromMicrophoneToFile" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.recordFromMicrophoneToFile" handler:^(id data, BTResponseCallback responseCallback) {
         [self recordFromMicrophoneToFile:data responseCallback:responseCallback];
     }];
-    [app registerHandler:@"BTAudio.stopRecordingFromMicrophoneToFile" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.stopRecordingFromMicrophoneToFile" handler:^(id data, BTResponseCallback responseCallback) {
         [self stopRecordingFromMicrophoneToFile:data responseCallback:responseCallback];
     }];
     // Task 2: Read audio from file, apply filter, output to speaker
-    [app registerHandler:@"BTAudio.playFromFileToSpeaker" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.playFromFileToSpeaker" handler:^(id data, BTResponseCallback responseCallback) {
         [self playFromFileToSpeaker:data responseCallback:responseCallback];
     }];
     // Task 3: Read audio from file, apply filter, output to file
-    [app registerHandler:@"BTAudio.readFromFileToFile" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.readFromFileToFile" handler:^(id data, BTResponseCallback responseCallback) {
         [self readFromFileToFile:data responseCallback:responseCallback];
     }];
     // Misc: Set pitch
-    [app registerHandler:@"BTAudio.setPitch" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.setPitch" handler:^(id data, BTResponseCallback responseCallback) {
         [self setPitch:data];
         responseCallback(nil,nil);
     }];
@@ -178,7 +178,7 @@ static BTAudio* instance;
     }
     [graph cleanupRecording];
 
-    float duration = numFrames / fileInfo.fileFormat.mSampleRate;
+    int duration = (numFrames / fileInfo.fileFormat.mSampleRate * 1000);
     responseCallback(nil,@{ @"duration":[NSNumber numberWithFloat:duration] });
 }
 

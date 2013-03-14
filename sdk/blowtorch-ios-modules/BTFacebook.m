@@ -20,7 +20,7 @@ static BTFacebook* instance;
     [center addObserver:self selector:@selector(appDidBecomeActive) name:@"app.didBecomeActive" object:nil];
     [center addObserver:self selector:@selector(appWillTerminate) name:@"app.willTerminate" object:nil];
     
-    [app registerHandler:@"facebook.connect" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFacebook.connect" handler:^(id data, BTResponseCallback responseCallback) {
         [FBSession openActiveSessionWithReadPermissions:[data objectForKey:@"permissions"] allowLoginUI:YES completionHandler:^(FBSession *session, FBSessionState state, NSError *error) {
             NSLog(@"FBSession.open result %@ %d %@", session, state, error);
             
@@ -39,14 +39,14 @@ static BTFacebook* instance;
                                   nil];
             
             responseCallback(nil, info);
-            [app notify:@"facebook.sessionStateChanged" info:info];
+            [app notify:@"BTFacebook.sessionStateChanged" info:info];
         }];
     }];
     // DO WE NEED THIS?
     //        case FBSessionStateClosed: {
     //            [FBSession.activeSession closeAndClearTokenInformation];
     
-    [app registerHandler:@"facebook.request" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFacebook.request" handler:^(id data, BTResponseCallback responseCallback) {
         if (!FBSession.activeSession) {
             return responseCallback(@"No active FB session", nil);
         }
@@ -59,7 +59,7 @@ static BTFacebook* instance;
         }];
     }];
     
-    [app registerHandler:@"facebook.dialog" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFacebook.dialog" handler:^(id data, BTResponseCallback responseCallback) {
         if (!FBSession.activeSession) {
             return responseCallback(@"No active FB session", nil);
         }
@@ -69,7 +69,7 @@ static BTFacebook* instance;
         NSMutableDictionary* params = [NSMutableDictionary dictionaryWithDictionary:[data objectForKey:@"params"]]; // so silly
         [_facebook dialog:dialog andParams:params andDelegate:self];
     }];
-    [app registerHandler:@"facebook.clear" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFacebook.clear" handler:^(id data, BTResponseCallback responseCallback) {
         if (FBSession.activeSession) {
             [FBSession.activeSession closeAndClearTokenInformation];
         }
@@ -96,7 +96,7 @@ static BTFacebook* instance;
  * Called when the dialog succeeds and is about to be dismissed.
  */
 - (void)dialogDidComplete:(FBDialog *)dialog {
-    [BTAppDelegate notify:@"facebook.dialogDidComplete"];
+    [BTAppDelegate notify:@"BTFacebook.dialogDidComplete"];
 }
 
 /**
@@ -105,7 +105,7 @@ static BTFacebook* instance;
 - (void)dialogCompleteWithUrl:(NSURL *)url {
     NSMutableDictionary *info = [NSMutableDictionary dictionary];
     if (url) { [info setObject:[url absoluteString] forKey:@"url"]; }
-    [BTAppDelegate notify:@"facebook.dialogCompleteWithUrl" info:info];
+    [BTAppDelegate notify:@"BTFacebook.dialogCompleteWithUrl" info:info];
 }
 
 /**
@@ -114,21 +114,21 @@ static BTFacebook* instance;
 - (void)dialogDidNotCompleteWithUrl:(NSURL *)url {
     NSMutableDictionary *info = [NSMutableDictionary dictionary];
     if (url) { [info setObject:[url absoluteString] forKey:@"url"]; }
-    [BTAppDelegate notify:@"facebook.dialogDidNotCompleteWithUrl" info:info];
+    [BTAppDelegate notify:@"BTFacebook.dialogDidNotCompleteWithUrl" info:info];
 }
 
 /**
  * Called when the dialog is cancelled and is about to be dismissed.
  */
 - (void)dialogDidNotComplete:(FBDialog *)dialog {
-    [BTAppDelegate notify:@"facebook.dialogDidNotComplete"];
+    [BTAppDelegate notify:@"BTFacebook.dialogDidNotComplete"];
 }
 
 /**
  * Called when dialog failed to load due to an error.
  */
 - (void)dialog:(FBDialog*)dialog didFailWithError:(NSError *)error {
-    [BTAppDelegate notify:@"facebook.dialogDidFailWithError"];
+    [BTAppDelegate notify:@"BTFacebook.dialogDidFailWithError"];
 }
 
 @end

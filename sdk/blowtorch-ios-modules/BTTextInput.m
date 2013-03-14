@@ -21,26 +21,26 @@ static BTTextInput* instance;
 - (void) setup:(BTAppDelegate*)app {
     if (instance) { return; }
     instance = self;
-    [app.javascriptBridge registerHandler:@"textInput.show" handler:^(id data, WVJBResponseCallback responseCallback) {
+    [app handleCommand:@"textInput.show" handler:^(id data, BTResponseCallback responseCallback) {
         [self show:data webView:app.webView];
     }];
-    [app.javascriptBridge registerHandler:@"textInput.hide" handler:^(id data,  WVJBResponseCallback responseCallback) {
+    [app handleCommand:@"textInput.hide" handler:^(id data,  BTResponseCallback responseCallback) {
         [self hide];
     }];
-    [app.javascriptBridge registerHandler:@"textInput.animate" handler:^(id data,  WVJBResponseCallback responseCallback) {
+    [app handleCommand:@"textInput.animate" handler:^(id data,  BTResponseCallback responseCallback) {
         [self animate:data];
     }];
-    [app.javascriptBridge registerHandler:@"textInput.set" handler:^(id data,  WVJBResponseCallback responseCallback) {
+    [app handleCommand:@"textInput.set" handler:^(id data,  BTResponseCallback responseCallback) {
         [self set:data];
     }];
-    [app registerHandler:@"textInput.hideKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"textInput.hideKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
         [self hideKeyboard];
     }];
-    [app registerHandler:@"BTTextInput.setConfig" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTTextInput.setConfig" handler:^(id data, BTResponseCallback responseCallback) {
         _params = data;
         responseCallback(nil,nil);
     }];
-    [app registerHandler:@"BTTextInput.resetConfig" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTTextInput.resetConfig" handler:^(id data, BTResponseCallback responseCallback) {
         _params = nil;
         responseCallback(nil,nil);
     }];

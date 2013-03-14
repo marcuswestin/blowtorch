@@ -33,7 +33,7 @@ static NSMutableDictionary* modules;
 
 + (void) _init:(BTAppDelegate*)app {
     modules = [NSMutableDictionary dictionary];
-    [app registerHandler:@"BTModule.getMedia" handler:^(id data, BTResponseCallback callback) {
+    [app handleCommand:@"BTModule.getMedia" handler:^(id data, BTResponseCallback callback) {
         [BTModule module:data[@"module"] getMedia:data[@"mediaId"] callback:callback];
     }];
 }

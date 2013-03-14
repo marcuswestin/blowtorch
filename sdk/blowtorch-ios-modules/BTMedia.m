@@ -41,11 +41,11 @@ static BTMedia* instance;
         [res respondWithData:data mimeType:mimeType];
     }];
     
-    [app registerHandler:@"media.upload" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"media.upload" handler:^(id data, BTResponseCallback responseCallback) {
         [self uploadMedia:data responseCallback:responseCallback];
     }];
     
-    [app registerHandler:@"media.pick" handler:^(id data, BTResponseCallback callback) {
+    [app handleCommand:@"media.pick" handler:^(id data, BTResponseCallback callback) {
         [self pickMedia:data callback:callback];
     }];
 }

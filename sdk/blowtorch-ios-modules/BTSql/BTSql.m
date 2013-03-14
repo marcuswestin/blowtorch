@@ -22,19 +22,19 @@ static BTSql* instance;
     if (instance) { return; }
     instance = self;
     
-    [app registerHandler:@"BTSql.openDatabase" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTSql.openDatabase" handler:^(id data, BTResponseCallback responseCallback) {
         [self openDatabase:data callback:responseCallback];
     }];
-    [app registerHandler:@"BTSql.query" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTSql.query" handler:^(id data, BTResponseCallback responseCallback) {
         [self executeQuery:data[@"sql"] arguments:data[@"arguments"] callback:responseCallback];
     }];
-    [app registerHandler:@"BTSql.update" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTSql.update" handler:^(id data, BTResponseCallback responseCallback) {
         [self executeUpdate:data[@"sql"] arguments:data[@"arguments"] ignoreDuplicates:[data[@"ignoreDuplicates"] boolValue] callback:responseCallback];
     }];
-    [app registerHandler:@"BTSql.insertMultiple" handler:^(id data, BTResponseCallback callback) {
+    [app handleCommand:@"BTSql.insertMultiple" handler:^(id data, BTResponseCallback callback) {
         [self insertMultiple:data[@"sql"] argumentsList:data[@"argumentsList"] ignoreDuplicates:[data[@"ignoreDuplicates"] boolValue] callback:callback];
     }];
-//    [app registerHandler:@"BTSql.transact" handler:^(id data, BTResponseCallback responseCallback) {
+//    [app handleCommand:@"BTSql.transact" handler:^(id data, BTResponseCallback responseCallback) {
 //        [self transact:data callback:responseCallback];
 //    }];
 }

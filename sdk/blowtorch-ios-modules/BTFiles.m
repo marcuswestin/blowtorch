@@ -40,20 +40,24 @@ static BTFiles* instance;
     _documentsDirectory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
     _cachesDirectory = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0];
 
-    [app registerHandler:@"BTFiles.writeJsonDocument" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFiles.writeJsonDocument" handler:^(id data, BTResponseCallback responseCallback) {
         [self _writeJson:[self _documentPath:[data objectForKey:@"filename"]] jsonValue:[data objectForKey:@"jsonValue"] andRespond:responseCallback];
     }];
-    [app registerHandler:@"BTFiles.writeJsonCache" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFiles.writeJsonCache" handler:^(id data, BTResponseCallback responseCallback) {
         [self _writeJson:[self _cachePath:[data objectForKey:@"filename"]] jsonValue:[data objectForKey:@"jsonValue"] andRespond:responseCallback];
     }];
-    [app registerHandler:@"BTFiles.readJsonDocument" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFiles.readJsonDocument" handler:^(id data, BTResponseCallback responseCallback) {
         [self _readJson:[self _documentPath:[data objectForKey:@"filename"]] andRespond:responseCallback];
     }];
-    [app registerHandler:@"BTFiles.readJsonCache" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFiles.readJsonCache" handler:^(id data, BTResponseCallback responseCallback) {
         [self _readJson:[self _cachePath:[data objectForKey:@"filename"]] andRespond:responseCallback];
     }];
-    [app registerHandler:@"BTFiles.clearAll" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFiles.clearAll" handler:^(id data, BTResponseCallback responseCallback) {
         [self _clearAll:data responseCallback:responseCallback];
+    }];
+    
+    [app handleRequests:@"BTFiles.getDocument" handler:^(NSDictionary *params, WVPResponse *response) {
+        [response respondWithData:[self readDocument:params[@"document"]] mimeType:params[@"mimeType"]];
     }];
 }
 

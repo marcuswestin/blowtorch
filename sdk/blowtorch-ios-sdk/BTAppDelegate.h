@@ -51,10 +51,10 @@
 @property (strong, nonatomic) NSDictionary* launchNotification;
 - (void) handlePushNotification:(NSDictionary*)notification didBringAppToForeground:(BOOL)didBringAppToForeground;
 - (void) handleRequests:(NSString*)path handler:(BTRequestHandler)requestHandler;
+- (void) handleCommand:(NSString*)handlerName handler:(BTCommandHandler)handler;
 
 /* Private
  *********/
-- (void) registerHandler:(NSString*)handlerName handler:(BTCommandHandler)handler;
 @property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) UIWebView *webView;
 @property (strong, nonatomic) WebViewJavascriptBridge *javascriptBridge;

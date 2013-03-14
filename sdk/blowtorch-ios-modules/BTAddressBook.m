@@ -16,10 +16,10 @@ static BTAddressBook* instance;
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
-    [app registerHandler:@"BTAddressBook.getAllEntries" handler:^(id data, BTResponseCallback callback) {
+    [app handleCommand:@"BTAddressBook.getAllEntries" handler:^(id data, BTResponseCallback callback) {
         [self getAllEntries:data callback:callback];
     }];
-    [app registerHandler:@"BTAddressBook.getAuthorizationStatus" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAddressBook.getAuthorizationStatus" handler:^(id data, BTResponseCallback responseCallback) {
         [self _getAuthorization:data responseCallback:responseCallback];
     }];
     [app handleRequests:@"BTAddressBook/image" handler:^(NSDictionary *params, WVPResponse *response) {
