@@ -7,11 +7,15 @@
 //
 
 #import "BTCamera.h"
+#import "BTFiles.h"
 
-@implementation BTCamera
+@implementation BTCamera {
+    UIImagePickerController* picker;
+    BTResponseCallback captureCallback;
+    NSDictionary* captureParams;
+}
 
 static BTCamera* instance;
-static UIImagePickerController* picker;
 
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
@@ -22,6 +26,7 @@ static UIImagePickerController* picker;
         picker = [[UIImagePickerController alloc] init];
         picker.sourceType = UIImagePickerControllerSourceTypeCamera;
         picker.showsCameraControls = NO;
+        picker.delegate = self;
         picker.view.frame = [[data objectForKey:@"position"] makeRect];
         [app.webView.superview insertSubview:picker.view belowSubview:app.webView];
     }];
@@ -31,6 +36,31 @@ static UIImagePickerController* picker;
         picker = nil;
         responseCallback(nil, nil);
     }];
+    
+    [app registerHandler:@"BTCamera.capture" handler:^(id params, BTResponseCallback callback) {
+        captureParams = params;
+        captureCallback = callback;
+        [picker takePicture];
+    }];
 }
 
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info {
+    UIImage* image = info[UIImagePickerControllerOriginalImage];
+    NSData* data;
+    if ([@"jpg" isEqualToString:captureParams[@"format"]]) {
+        NSNumber* compressionQuality = captureParams[@"compressionQuality"];
+        data = UIImageJPEGRepresentation(image, compressionQuality ? [compressionQuality floatValue] : 1.0);
+    } else {
+        data = UIImagePNGRepresentation(image);
+    }
+    NSString* file = [BTFiles documentPath:captureParams[@"document"]];
+    BOOL success = [data writeToFile:file atomically:YES];
+    if (!success) { return captureCallback(@"Could not write image to file", nil); }
+    
+    captureCallback(nil, @{ @"file":file });
+}
+
+- (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
+    [BTAppDelegate notify:@"BTCamera.imagePickerControllerDidCancel"];
+}
 @end

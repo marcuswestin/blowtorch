@@ -8,6 +8,6 @@
 
 #import "BTModule.h"
 
-@interface BTCamera : BTModule
+@interface BTCamera : BTModule <UIImagePickerControllerDelegate,UINavigationControllerDelegate>
 
 @end

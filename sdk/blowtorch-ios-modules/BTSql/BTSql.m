@@ -82,10 +82,6 @@ static BTSql* instance;
     }];
 }
 
-- (void)async:(void (^)())asyncBlock {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), asyncBlock);
-}
-
 //- (void) transact:(NSDictionary*)data callback:(BTResponseCallback)callback {
 //    [queue inTransaction:^(FMDatabase *db, BOOL *rollback) {
 //        for (NSDictionary* update in data[@"updates"]) {

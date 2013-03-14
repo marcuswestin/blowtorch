@@ -49,4 +49,8 @@ static NSMutableDictionary* modules;
     callback([NSString stringWithFormat:@"Module %@ has not implemented getMedia:", [self moduleName]], nil);
 }
 
+- (void)async:(void (^)())asyncBlock {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), asyncBlock);
+}
+
 @end
