@@ -154,9 +154,8 @@ static BTImage* instance;
     if (resizeParam) {
         NSString* radiusParam = [params objectForKey:@"radius"];
         int radius = radiusParam ? [radiusParam intValue] : 0;
-        CGSize size = [self getSize:resizeParam];
         UIImage* image = [UIImage imageWithData:netData];
-        image = [image thumbnailSize:size transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
+        image = [image thumbnailSize:[resizeParam makeSize] transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
         // kCGInterpolationHigh
         NSData* resizedData = UIImageJPEGRepresentation(image, 1.0);
 //        NSData* resizedData = UIImagePNGRepresentation(image);
@@ -165,7 +164,7 @@ static BTImage* instance;
         }
         [self respondWithData:resizedData response:res params:params];
     } else if (cropParam) {
-        CGSize size = [self getSize:cropParam];
+        CGSize size = [cropParam makeSize];
         UIImage* image = [UIImage imageWithData:netData];
         CGSize deltaSize = CGSizeMake(image.size.width - size.width, image.size.height - size.height);
         CGRect cropRect = CGRectMake(deltaSize.width / 2, deltaSize.height / 2, size.width, size.height);
@@ -178,11 +177,6 @@ static BTImage* instance;
     } else {
         [self respondWithData:netData response:res params:params];
     }
-}
-
-- (CGSize) getSize:(NSString*)sizeParam {
-    NSArray* sizes = [sizeParam componentsSeparatedByString:@"x"];
-    return CGSizeMake([sizes[0] integerValue], [sizes[1] integerValue]);
 }
 
 - (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {

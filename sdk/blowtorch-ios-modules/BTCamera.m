@@ -8,6 +8,7 @@
 
 #import "BTCamera.h"
 #import "BTFiles.h"
+#import "UIImage+Resize.h"
 
 @implementation BTCamera {
     UIImagePickerController* picker;
@@ -46,6 +47,16 @@ static BTCamera* instance;
 
 - (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info {
     UIImage* image = info[UIImagePickerControllerOriginalImage];
+    
+    if (captureParams[@"saveToAlbum"]) {
+        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil);
+    }
+    
+    NSString* resize = captureParams[@"resize"];
+    if (resize) {
+        image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationHigh];
+    }
+    
     NSData* data;
     if ([@"jpg" isEqualToString:captureParams[@"format"]]) {
         NSNumber* compressionQuality = captureParams[@"compressionQuality"];
@@ -55,7 +66,7 @@ static BTCamera* instance;
     }
     NSString* file = [BTFiles documentPath:captureParams[@"document"]];
     BOOL success = [data writeToFile:file atomically:YES];
-    if (!success) { return captureCallback(@"Could not write image to file", nil); }
+    if (!success) { return captureCallback(@"Could not store image", nil); }
     
     captureCallback(nil, @{ @"file":file });
 }

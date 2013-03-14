@@ -67,7 +67,7 @@ function send(res, params, result) {
 }
 
 function cropImage(data, crop, callback) {
-	var sizes = crop.split('x')
+	var sizes = crop.split(',')
 	var time = new Date().getTime()+Math.random()
 	var srcPath = '/tmp/BTImage-crop-'+time+'.jpg'
 	fs.writeFileSync(srcPath, data)
@@ -79,13 +79,13 @@ function cropImage(data, crop, callback) {
 }
 
 function resizeImage(data, resize, callback) {
-	var sizes = resize.split('x') // '120x400'
+	var sizes = resize.split(',') // '120,400'
 	imagemagick.resize({
 		srcData: data,
 		strip: false,
 		width: sizes[0],
 		height: sizes[1]+'^',
-		customArgs: ["-gravity", "center", "-extent", resize]
+		customArgs: ["-gravity", "center", "-extent", sizes.join('x')]
 	}, function(err, stdout, stderr) {
 		if (err || stderr) { throw (err || new Error(stderr)) }
 		callback(new Buffer(stdout, 'binary'))
