@@ -12,7 +12,7 @@
 
 @implementation BTCamera {
     UIImagePickerController* picker;
-    BTResponseCallback captureCallback;
+    BTCallback captureCallback;
     NSDictionary* captureParams;
 }
 
@@ -22,7 +22,7 @@ static BTCamera* instance;
     if (instance) { return; }
     instance = self;
     
-    [app handleCommand:@"BTCamera.show" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTCamera.show" handler:^(id data, BTCallback responseCallback) {
         if (picker) { return; }
         picker = [[UIImagePickerController alloc] init];
         picker.sourceType = UIImagePickerControllerSourceTypeCamera;
@@ -32,13 +32,13 @@ static BTCamera* instance;
         [app.webView.superview insertSubview:picker.view belowSubview:app.webView];
     }];
     
-    [app handleCommand:@"BTCamera.hide" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTCamera.hide" handler:^(id data, BTCallback responseCallback) {
         [picker.view removeFromSuperview];
         picker = nil;
         responseCallback(nil, nil);
     }];
     
-    [app handleCommand:@"BTCamera.capture" handler:^(id params, BTResponseCallback callback) {
+    [app handleCommand:@"BTCamera.capture" handler:^(id params, BTCallback callback) {
         captureParams = params;
         captureCallback = callback;
         [picker takePicture];

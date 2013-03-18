@@ -20,7 +20,7 @@ static BTFacebook* instance;
     [center addObserver:self selector:@selector(appDidBecomeActive) name:@"app.didBecomeActive" object:nil];
     [center addObserver:self selector:@selector(appWillTerminate) name:@"app.willTerminate" object:nil];
     
-    [app handleCommand:@"BTFacebook.connect" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFacebook.connect" handler:^(id data, BTCallback responseCallback) {
         [FBSession openActiveSessionWithReadPermissions:[data objectForKey:@"permissions"] allowLoginUI:YES completionHandler:^(FBSession *session, FBSessionState state, NSError *error) {
             NSLog(@"FBSession.open result %@ %d %@", session, state, error);
             
@@ -46,7 +46,7 @@ static BTFacebook* instance;
     //        case FBSessionStateClosed: {
     //            [FBSession.activeSession closeAndClearTokenInformation];
     
-    [app handleCommand:@"BTFacebook.request" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFacebook.request" handler:^(id data, BTCallback responseCallback) {
         if (!FBSession.activeSession) {
             return responseCallback(@"No active FB session", nil);
         }
@@ -59,7 +59,7 @@ static BTFacebook* instance;
         }];
     }];
     
-    [app handleCommand:@"BTFacebook.dialog" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFacebook.dialog" handler:^(id data, BTCallback responseCallback) {
         if (!FBSession.activeSession) {
             return responseCallback(@"No active FB session", nil);
         }
@@ -69,7 +69,7 @@ static BTFacebook* instance;
         NSMutableDictionary* params = [NSMutableDictionary dictionaryWithDictionary:[data objectForKey:@"params"]]; // so silly
         [_facebook dialog:dialog andParams:params andDelegate:self];
     }];
-    [app handleCommand:@"BTFacebook.clear" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTFacebook.clear" handler:^(id data, BTCallback responseCallback) {
         if (FBSession.activeSession) {
             [FBSession.activeSession closeAndClearTokenInformation];
         }

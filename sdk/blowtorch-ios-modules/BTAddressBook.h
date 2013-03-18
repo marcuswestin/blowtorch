@@ -10,6 +10,6 @@
 
 @interface BTAddressBook : BTModule
 
-+ (void)allEntries:(BTResponseCallback)callback;
++ (void)allEntries:(BTCallback)callback;
 
 @end

@@ -14,7 +14,7 @@ static BTMedia* instance;
 
 @implementation BTMedia {
     NSMutableDictionary* _mediaCache;
-    BTResponseCallback _callback;
+    BTCallback _callback;
 }
 
 - (void)setup:(BTAppDelegate *)app {
@@ -41,17 +41,17 @@ static BTMedia* instance;
         [res respondWithData:data mimeType:mimeType];
     }];
     
-    [app handleCommand:@"media.upload" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"media.upload" handler:^(id data, BTCallback responseCallback) {
         [self uploadMedia:data responseCallback:responseCallback];
     }];
     
-    [app handleCommand:@"media.pick" handler:^(id data, BTResponseCallback callback) {
+    [app handleCommand:@"media.pick" handler:^(id data, BTCallback callback) {
         [self pickMedia:data callback:callback];
     }];
 }
 
 
-- (void)pickMedia:(NSDictionary*)data callback:(BTResponseCallback)callback {
+- (void)pickMedia:(NSDictionary*)data callback:(BTCallback)callback {
     if (!_mediaCache) { _mediaCache = [NSMutableDictionary dictionary]; }
     
     UIImagePickerController *mediaUI = [[UIImagePickerController alloc] init];
@@ -113,7 +113,7 @@ static int uniqueId = 1;
     }];
 }
 
-- (void)uploadMedia:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+- (void)uploadMedia:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
     NSDictionary* mediaParts = [data objectForKey:@"parts"];
     NSMutableDictionary* attachments = [NSMutableDictionary dictionaryWithCapacity:mediaParts.count];
     for (NSString* name in mediaParts) {

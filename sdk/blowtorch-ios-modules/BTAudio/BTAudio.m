@@ -54,22 +54,22 @@ static BTAudio* instance;
     instance = self;
     
     // Task 1: Record audio to file
-    [app handleCommand:@"BTAudio.recordFromMicrophoneToFile" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.recordFromMicrophoneToFile" handler:^(id data, BTCallback responseCallback) {
         [self recordFromMicrophoneToFile:data responseCallback:responseCallback];
     }];
-    [app handleCommand:@"BTAudio.stopRecordingFromMicrophoneToFile" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.stopRecordingFromMicrophoneToFile" handler:^(id data, BTCallback responseCallback) {
         [self stopRecordingFromMicrophoneToFile:data responseCallback:responseCallback];
     }];
     // Task 2: Read audio from file, apply filter, output to speaker
-    [app handleCommand:@"BTAudio.playFromFileToSpeaker" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.playFromFileToSpeaker" handler:^(id data, BTCallback responseCallback) {
         [self playFromFileToSpeaker:data responseCallback:responseCallback];
     }];
     // Task 3: Read audio from file, apply filter, output to file
-    [app handleCommand:@"BTAudio.readFromFileToFile" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.readFromFileToFile" handler:^(id data, BTCallback responseCallback) {
         [self readFromFileToFile:data responseCallback:responseCallback];
     }];
     // Misc: Set pitch
-    [app handleCommand:@"BTAudio.setPitch" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAudio.setPitch" handler:^(id data, BTCallback responseCallback) {
         [self setPitch:data];
         responseCallback(nil,nil);
     }];
@@ -145,7 +145,7 @@ static BTAudio* instance;
 }
 
 
-- (void) readFromFileToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+- (void) readFromFileToFile:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
     BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithNoIO];
     BTAUdioEnpoints* endpoints = [self addEffectChain:graph];
     
@@ -182,7 +182,7 @@ static BTAudio* instance;
     responseCallback(nil,@{ @"duration":[NSNumber numberWithFloat:duration] });
 }
 
-- (void) playFromFileToSpeaker:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+- (void) playFromFileToSpeaker:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
     BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithSpeaker];
     BTAUdioEnpoints* endpoints = [self addEffectChain:graph];
     
@@ -199,7 +199,7 @@ static BTAudio* instance;
     responseCallback(nil,nil);
 }
 
-- (void) recordFromMicrophoneToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+- (void) recordFromMicrophoneToFile:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
     _session = createAudioSession(AVAudioSessionCategoryPlayAndRecord);
     if (!_session.inputAvailable) { NSLog(@"WARNING Requested input is not available");}
     BTAudioGraph* graph = _graph = [[BTAudioGraph alloc] initWithSpeakerAndMicrophoneInput];
@@ -218,7 +218,7 @@ static BTAudio* instance;
     [graph start];
     responseCallback(nil, nil);
 }
-- (void) stopRecordingFromMicrophoneToFile:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+- (void) stopRecordingFromMicrophoneToFile:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
     [_graph stopRecordingToFileAndScheduleStop];
     responseCallback(nil,nil);
 }

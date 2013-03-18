@@ -46,8 +46,8 @@
 
 /* Notifications
  ***************/
-@property (nonatomic,copy) BTResponseCallback pushRegistrationResponseCallback;
-- (void) registerForPush:(BTResponseCallback)response;
+@property (nonatomic,copy) BTCallback pushRegistrationResponseCallback;
+- (void) registerForPush:(BTCallback)response;
 @property (strong, nonatomic) NSDictionary* launchNotification;
 - (void) handlePushNotification:(NSDictionary*)notification didBringAppToForeground:(BOOL)didBringAppToForeground;
 - (void) handleRequests:(NSString*)path handler:(BTRequestHandler)requestHandler;

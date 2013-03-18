@@ -16,7 +16,7 @@ static BTNet* instance;
     [queue setMaxConcurrentOperationCount:5];
 }
 
-+ (void)request:(NSDictionary *)data responseCallback:(BTResponseCallback)responseCallback {
++ (void)request:(NSDictionary *)data responseCallback:(BTCallback)responseCallback {
     NSString* url = [data objectForKey:@"url"];
     NSString* method = [data objectForKey:@"method"];
     NSDictionary* postParams = [data objectForKey:@"params"];
@@ -25,7 +25,7 @@ static BTNet* instance;
     [BTNet request:url method:method headers:headers params:postParams responseCallback:responseCallback];
 }
 
-+ (void)post:(NSString*)url json:(NSDictionary*)jsonParams attachments:(NSDictionary*)attachments headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(BTResponseCallback)responseCallback {
++ (void)post:(NSString*)url json:(NSDictionary*)jsonParams attachments:(NSDictionary*)attachments headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(BTCallback)responseCallback {
     NSData* jsonData = [NSJSONSerialization dataWithJSONObject:jsonParams options:0 error:nil];
     NSDictionary* jsonPart = [NSDictionary dictionaryWithObjectsAndKeys:
                               @"attachment; name=\"jsonParams\"", @"Content-Disposition",
@@ -48,7 +48,7 @@ static BTNet* instance;
     [BTNet postMultipart:url headers:headers parts:parts boundary:boundary responseCallback:responseCallback];
 }
 
-+ (void)postMultipart:(NSString *)url headers:(NSDictionary *)headers parts:(NSArray *)parts boundary:(NSString*)boundary responseCallback:(BTResponseCallback)responseCallback {
++ (void)postMultipart:(NSString *)url headers:(NSDictionary *)headers parts:(NSArray *)parts boundary:(NSString*)boundary responseCallback:(BTCallback)responseCallback {
     
     NSMutableDictionary* _headers = [NSMutableDictionary dictionaryWithDictionary:headers];
     [_headers setObject:[NSString stringWithFormat:@"multipart/form-data; boundary=%@", boundary] forKey:@"Content-Type"];
@@ -73,7 +73,7 @@ static BTNet* instance;
     [BTNet request:url method:@"POST" headers:headers data:httpData responseCallback:responseCallback];
 }
 
-+ (void)request:(NSString *)url method:(NSString *)method headers:(NSDictionary *)headers params:(NSDictionary *)params responseCallback:(BTResponseCallback)responseCallback {
++ (void)request:(NSString *)url method:(NSString *)method headers:(NSDictionary *)headers params:(NSDictionary *)params responseCallback:(BTCallback)responseCallback {
     NSData* data = nil;
     if (params) {
         data = [NSJSONSerialization dataWithJSONObject:params options:0 error:nil];
@@ -84,7 +84,7 @@ static BTNet* instance;
     [BTNet request:url method:method headers:headers data:data responseCallback:responseCallback];
 }
 
-+ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary*)headers data:(NSData*)data responseCallback:(BTResponseCallback)responseCallback {
++ (void)request:(NSString*)url method:(NSString*)method headers:(NSDictionary*)headers data:(NSData*)data responseCallback:(BTCallback)responseCallback {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:url]];
     request.HTTPMethod = method;
 

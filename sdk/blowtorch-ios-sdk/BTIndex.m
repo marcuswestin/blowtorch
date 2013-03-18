@@ -34,7 +34,7 @@ static NSMutableDictionary* indices;
     return [indices objectForKey:name];
 }
 
-- (void)lookup:(NSString *)searchString callback:(BTResponseCallback)callback {
+- (void)lookup:(NSString *)searchString callback:(BTCallback)callback {
     NSMutableSet* matches = [NSMutableSet set];
     if (!listsByFirstCharacter || !searchString || [searchString isEqualToString:@""]) {
         return [self respond:matches callback:callback];
@@ -56,7 +56,7 @@ static NSMutableDictionary* indices;
     [self respond:matches callback:callback];
 }
 
-- (void)respond:(NSSet *)matches callback:(BTResponseCallback)callback {
+- (void)respond:(NSSet *)matches callback:(BTCallback)callback {
     callback(nil, @{ @"matches":matches });
 }
 

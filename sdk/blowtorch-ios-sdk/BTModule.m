@@ -33,7 +33,7 @@ static NSMutableDictionary* modules;
 
 + (void) _init:(BTAppDelegate*)app {
     modules = [NSMutableDictionary dictionary];
-    [app handleCommand:@"BTModule.getMedia" handler:^(id data, BTResponseCallback callback) {
+    [app handleCommand:@"BTModule.getMedia" handler:^(id data, BTCallback callback) {
         [BTModule module:data[@"module"] getMedia:data[@"mediaId"] callback:callback];
     }];
 }
@@ -41,11 +41,11 @@ static NSMutableDictionary* modules;
 + (NSString*) moduleName { return NSStringFromClass(self); }
 - (NSString*) moduleName { return [self.class moduleName]; }
 
-+ (void)module:(NSString *)moduleName getMedia:(NSString *)mediaId callback:(BTResponseCallback)callback {
++ (void)module:(NSString *)moduleName getMedia:(NSString *)mediaId callback:(BTCallback)callback {
     BTModule* module = modules[moduleName];
     [module getMedia:mediaId callback:callback];
 }
-- (void)getMedia:(NSString *)mediaId callback:(BTResponseCallback)callback {
+- (void)getMedia:(NSString *)mediaId callback:(BTCallback)callback {
     callback([NSString stringWithFormat:@"Module %@ has not implemented getMedia:", [self moduleName]], nil);
 }
 

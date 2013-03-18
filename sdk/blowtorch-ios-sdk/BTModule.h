@@ -15,8 +15,8 @@
 @interface BTModule : NSObject
 + (void) setup:(BTAppDelegate*)app;
 - (void) setup:(BTAppDelegate*)app;
-+ (void) module:(NSString*)module getMedia:(NSString*)mediaId callback:(BTResponseCallback)callback;
-- (void) getMedia:(NSString*)mediaId callback:(BTResponseCallback)callback;
++ (void) module:(NSString*)module getMedia:(NSString*)mediaId callback:(BTCallback)callback;
+- (void) getMedia:(NSString*)mediaId callback:(BTCallback)callback;
 - (void)async:(void (^)())asyncBlock;
 
 @end

@@ -22,29 +22,29 @@ static BTSql* instance;
     if (instance) { return; }
     instance = self;
     
-    [app handleCommand:@"BTSql.openDatabase" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTSql.openDatabase" handler:^(id data, BTCallback responseCallback) {
         [self openDatabase:data callback:responseCallback];
     }];
-    [app handleCommand:@"BTSql.query" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTSql.query" handler:^(id data, BTCallback responseCallback) {
         [self executeQuery:data[@"sql"] arguments:data[@"arguments"] callback:responseCallback];
     }];
-    [app handleCommand:@"BTSql.update" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTSql.update" handler:^(id data, BTCallback responseCallback) {
         [self executeUpdate:data[@"sql"] arguments:data[@"arguments"] ignoreDuplicates:[data[@"ignoreDuplicates"] boolValue] callback:responseCallback];
     }];
-    [app handleCommand:@"BTSql.insertMultiple" handler:^(id data, BTResponseCallback callback) {
+    [app handleCommand:@"BTSql.insertMultiple" handler:^(id data, BTCallback callback) {
         [self insertMultiple:data[@"sql"] argumentsList:data[@"argumentsList"] ignoreDuplicates:[data[@"ignoreDuplicates"] boolValue] callback:callback];
     }];
-//    [app handleCommand:@"BTSql.transact" handler:^(id data, BTResponseCallback responseCallback) {
+//    [app handleCommand:@"BTSql.transact" handler:^(id data, BTCallback responseCallback) {
 //        [self transact:data callback:responseCallback];
 //    }];
 }
 
-- (void) openDatabase:(NSDictionary*)data callback:(BTResponseCallback)callback {
+- (void) openDatabase:(NSDictionary*)data callback:(BTCallback)callback {
     queue = [FMDatabaseQueue databaseQueueWithPath:[BTFiles documentPath:data[@"name"]]];
     callback(nil,nil);
 }
 
-- (void)executeQuery:(NSString *)sql arguments:(NSArray *)arguments callback:(BTResponseCallback)callback {
+- (void)executeQuery:(NSString *)sql arguments:(NSArray *)arguments callback:(BTCallback)callback {
     [self async:^{
         [queue inDatabase:^(FMDatabase *db) {
             FMResultSet* resultSet = [db executeQuery:sql withArgumentsInArray:arguments];
@@ -57,7 +57,7 @@ static BTSql* instance;
     }];
 }
 
-- (void)executeUpdate:(NSString *)sql arguments:(NSArray *)arguments ignoreDuplicates:(BOOL)ignoreDuplicates callback:(BTResponseCallback)callback {
+- (void)executeUpdate:(NSString *)sql arguments:(NSArray *)arguments ignoreDuplicates:(BOOL)ignoreDuplicates callback:(BTCallback)callback {
     [self async:^{
         [queue inDatabase:^(FMDatabase *db) {
             BOOL success = [db executeUpdate:sql withArgumentsInArray:arguments];
@@ -67,7 +67,7 @@ static BTSql* instance;
     }];
 }
 
-- (void)insertMultiple:(NSString*)sql argumentsList:(NSArray*)argumentsList ignoreDuplicates:(BOOL)ignoreDuplicates callback:(BTResponseCallback)callback {
+- (void)insertMultiple:(NSString*)sql argumentsList:(NSArray*)argumentsList ignoreDuplicates:(BOOL)ignoreDuplicates callback:(BTCallback)callback {
     [self async:^{
         [queue inTransaction:^(FMDatabase *db, BOOL *rollback) {
             for (NSArray* arguments in argumentsList) {
@@ -82,7 +82,7 @@ static BTSql* instance;
     }];
 }
 
-//- (void) transact:(NSDictionary*)data callback:(BTResponseCallback)callback {
+//- (void) transact:(NSDictionary*)data callback:(BTCallback)callback {
 //    [queue inTransaction:^(FMDatabase *db, BOOL *rollback) {
 //        for (NSDictionary* update in data[@"updates"]) {
 //            BOOL success = [db executeUpdate:update[@"sql"] withArgumentsInArray:update[@"arguments"]];

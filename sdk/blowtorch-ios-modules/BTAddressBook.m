@@ -16,15 +16,29 @@ static BTAddressBook* instance;
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
-    [app handleCommand:@"BTAddressBook.getAllEntries" handler:^(id data, BTResponseCallback callback) {
+    [app handleCommand:@"BTAddressBook.getAllEntries" handler:^(id data, BTCallback callback) {
         [self getAllEntries:data callback:callback];
     }];
-    [app handleCommand:@"BTAddressBook.getAuthorizationStatus" handler:^(id data, BTResponseCallback responseCallback) {
+    [app handleCommand:@"BTAddressBook.getAuthorizationStatus" handler:^(id data, BTCallback responseCallback) {
         [self _getAuthorization:data responseCallback:responseCallback];
+    }];
+    [app handleCommand:@"BTAddressBook.countAllEntries" handler:^(id params, BTCallback callback) {
+        [self countAllEntries:params callback:callback];
     }];
     [app handleRequests:@"BTAddressBook/image" handler:^(NSDictionary *params, WVPResponse *response) {
         [self getImage:params[@"recordId"] response:response];
     }];
+}
+
+- (void) countAllEntries:(NSDictionary*)params callback:(BTCallback)callback {
+    ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
+    if (!addressBook) { return callback(@"Could not open address book", nil); }
+    ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error) {
+        if (!granted) { return callback(@"Give Dogo access to your address book in Settings -> Privacy -> Contacts", nil); }
+        if (error) { return callback(CFBridgingRelease(error), nil); }
+        CFIndex count = ABAddressBookGetPersonCount(addressBook);
+        callback(nil, @{ @"count":[NSNumber numberWithLong:count] });
+    });
 }
 
 - (void) getImage:(NSString*)recordId response:(WVPResponse*)response {
@@ -44,7 +58,7 @@ static BTAddressBook* instance;
     return (__bridge NSData *)(ABPersonCopyImageData(person));
 }
 
-- (void) _getAuthorization:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+- (void) _getAuthorization:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
     ABAuthorizationStatus status = ABAddressBookGetAuthorizationStatus();
     NSString* response = nil;
     
@@ -57,21 +71,27 @@ static BTAddressBook* instance;
     else { responseCallback(@"Unknown status", nil); }
 }
 
-+ (void)allEntries:(BTResponseCallback)callback {
++ (void)allEntries:(BTCallback)callback {
     [instance getAllEntries:nil callback:callback];
 }
 
-- (void)getAllEntries:(NSDictionary*)data callback:(BTResponseCallback)callback {
+- (void)getAllEntries:(NSDictionary*)data callback:(BTCallback)callback {
     ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
     if (!addressBook) { return callback(@"Could not open address book", nil); }
     ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error) {
         if (!granted) { return callback(@"Give Dogo access to your address book in Settings -> Privacy -> Contacts", nil); }
         if (error) { return callback(CFBridgingRelease(error), nil); }
-        CFArrayRef allPeople = ABAddressBookCopyArrayOfAllPeople(addressBook);
+        NSNumber* indexNum = data[@"index"];
+        NSNumber* limitNum = data[@"limit"];
+        CFIndex index = (indexNum ? [indexNum longValue] : 0);
         CFIndex numPeople = ABAddressBookGetPersonCount(addressBook);
-        NSMutableArray* entries = [NSMutableArray arrayWithCapacity:numPeople];
+        CFIndex limit = (limitNum ? [limitNum longValue] : 0);
+        if (index + limit > numPeople) { limit = numPeople - index; }
+        
+        CFArrayRef allPeople = ABAddressBookCopyArrayOfAllPeople(addressBook);
+        NSMutableArray* entries = [NSMutableArray arrayWithCapacity:limit];
         NSArray* emptyArray = @[];
-        for (int i=0; i<numPeople; i++ ) {
+        for (int i=index; i<index+limit; i++ ) {
             ABRecordRef person = CFArrayGetValueAtIndex(allPeople, i);
             
             NSString *firstName = (__bridge NSString *)ABRecordCopyValue(person, kABPersonFirstNameProperty);
@@ -102,7 +122,7 @@ static BTAddressBook* instance;
     });
 }
 
-- (void)getMedia:(NSString *)mediaId callback:(BTResponseCallback)callback {
+- (void)getMedia:(NSString *)mediaId callback:(BTCallback)callback {
     NSData* data = [self _getImage:[mediaId intValue]];
     callback(data ? nil : @"Could not get address book image", data);
 }

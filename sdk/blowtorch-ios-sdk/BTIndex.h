@@ -15,7 +15,7 @@
 
 + (void) buildIndex:(NSString*)name payloadToStrings:(NSDictionary*)payloadToStrings;
 + (BTIndex*) indexByName:(NSString*)name;
-- (void) lookup:(NSString*)string callback:(BTResponseCallback)callback;
-- (void) respond:(NSSet*)matches callback:(BTResponseCallback)callback;
+- (void) lookup:(NSString*)string callback:(BTCallback)callback;
+- (void) respond:(NSSet*)matches callback:(BTCallback)callback;
 
 @end

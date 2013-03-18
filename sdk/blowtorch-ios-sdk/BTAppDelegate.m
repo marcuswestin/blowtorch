@@ -24,7 +24,7 @@ static BTAppDelegate* instance;
     NSString* _serverHost;
     NSString* _serverPort;
     UILabel* _reloadView;
-    BTResponseCallback _menuCallback;
+    BTCallback _menuCallback;
 }
 
 @synthesize window, webView, javascriptBridge=_bridge, overlay, config, launchNotification;
@@ -145,7 +145,7 @@ static BTAppDelegate* instance;
 //}
 
 @synthesize pushRegistrationResponseCallback=_pushRegistrationResponseCallback;
-- (void)registerForPush:(BTResponseCallback)responseCallback {
+- (void)registerForPush:(BTCallback)responseCallback {
     _pushRegistrationResponseCallback = responseCallback;
     [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
      (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
@@ -218,72 +218,72 @@ static BTAppDelegate* instance;
  ************************/
 - (void)setupBridgeHandlers:(BOOL)useLocalBuild {
     // app.*
-    [self handleCommand:@"app.restart" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"app.restart" handler:^(id data, BTCallback responseCallback) {
         [self startApp];
     }];
-    [self handleCommand:@"app.show" handler:^(id data, BTResponseCallback  responseCallback) {
+    [self handleCommand:@"app.show" handler:^(id data, BTCallback  responseCallback) {
         [self hideLoadingOverlay:data];
         if (launchNotification) {
             [self handlePushNotification:launchNotification didBringAppToForeground:YES];
             launchNotification = nil;
         }
     }];
-    [self handleCommand:@"app.setIconBadgeNumber" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"app.setIconBadgeNumber" handler:^(id data, BTCallback responseCallback) {
         NSNumber* number = [data objectForKey:@"number"];
         [[UIApplication sharedApplication] setApplicationIconBadgeNumber:[number intValue]];
     }];
-    [self handleCommand:@"app.getIconBadgeNumber" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"app.getIconBadgeNumber" handler:^(id data, BTCallback responseCallback) {
         NSNumber* number = [NSNumber numberWithInt:[[UIApplication sharedApplication] applicationIconBadgeNumber]];
         responseCallback(nil, [NSDictionary dictionaryWithObject:number forKey:@"number"]);
     }];
     
     // console.*
-    [self handleCommand:@"console.log" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"console.log" handler:^(id data, BTCallback responseCallback) {
         
     }];
     
     // push.*
-    [self handleCommand:@"push.register" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"push.register" handler:^(id data, BTCallback responseCallback) {
         [self registerForPush:responseCallback];
     }];
     
     // menu.*
-    [self handleCommand:@"menu.show" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"menu.show" handler:^(id data, BTCallback responseCallback) {
         [self showMenu:data callback:responseCallback];
     }];
     
     // device.*
-    [self handleCommand:@"device.vibrate" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"device.vibrate" handler:^(id data, BTCallback responseCallback) {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
     }];
     
     // version.*
-//    [self handleCommand:@"version.download" handler:^(id data, BTResponseCallback callback) {
+//    [self handleCommand:@"version.download" handler:^(id data, BTCallback callback) {
 //        [self downloadAppVersion:data callback:callback];
 //    }];
     
     // viewport.*
-    [self handleCommand:@"viewport.expand" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"viewport.expand" handler:^(id data, BTCallback responseCallback) {
         [self _expandViewport:[[data objectForKey:@"height"] floatValue]];
     }];
-    [self handleCommand:@"viewport.putOverKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"viewport.putOverKeyboard" handler:^(id data, BTCallback responseCallback) {
         [self putWindowOverKeyboard];
     }];
-    [self handleCommand:@"viewport.putUnderKeyboard" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"viewport.putUnderKeyboard" handler:^(id data, BTCallback responseCallback) {
         [self putWindowUnderKeyboard];
     }];
     
     
-    [self handleCommand:@"BTLocale.getCountryCode" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"BTLocale.getCountryCode" handler:^(id data, BTCallback responseCallback) {
         responseCallback(nil, [[NSLocale currentLocale] objectForKey:NSLocaleCountryCode]);
     }];
     
     
-    [self handleCommand:@"BT.setStatusBar" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"BT.setStatusBar" handler:^(id data, BTCallback responseCallback) {
         [self _setStatusBar:data responseCallback:responseCallback];
     }];
     
-    [self handleCommand:@"BT.readResouce" handler:^(id data, BTResponseCallback responseCallback) {
+    [self handleCommand:@"BT.readResouce" handler:^(id data, BTCallback responseCallback) {
         NSString *path = [[NSBundle mainBundle] pathForResource:data[@"name"] ofType:data[@"type"]];
         responseCallback(nil, [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil]);
     }];
@@ -298,7 +298,7 @@ static BTAppDelegate* instance;
 //    }];
 }
 
-- (void) _setStatusBar:(NSDictionary*)data responseCallback:(BTResponseCallback)responseCallback {
+- (void) _setStatusBar:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
     UIStatusBarAnimation animation = UIStatusBarAnimationNone;
     if ([data[@"animation"] isEqualToString:@"fade"]) { animation = UIStatusBarAnimationFade; }
     if ([data[@"animation"] isEqualToString:@"slide"]) { animation = UIStatusBarAnimationSlide; }
@@ -319,7 +319,7 @@ static BTAppDelegate* instance;
 
 /* Upgrade API
  *************/
-//- (void)downloadAppVersion:(NSDictionary *)data callback:(BTResponseCallback)callback {
+//- (void)downloadAppVersion:(NSDictionary *)data callback:(BTCallback)callback {
 //    NSString* url = [data objectForKey:@"url"];
 //    NSDictionary* headers = [data objectForKey:@"headers"];
 //    NSString* version = [url urlEncodedString];
@@ -421,7 +421,7 @@ static BTAppDelegate* instance;
     webView.frame = newFrame;
 }
 
-- (void)showMenu:(NSDictionary *)data callback:(BTResponseCallback)callback {
+- (void)showMenu:(NSDictionary *)data callback:(BTCallback)callback {
     NSArray* titles = [data objectForKey:@"titles"];
     NSString* title1 = titles.count > 0 ? [titles objectAtIndex:0] : nil;
     NSString* title2 = titles.count > 1 ? [titles objectAtIndex:1] : nil;
