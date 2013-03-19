@@ -114,13 +114,13 @@ static int uniqueId = 1;
 }
 
 - (void)uploadMedia:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
-    NSDictionary* mediaParts = [data objectForKey:@"parts"];
+    NSDictionary* mediaParts = data[@"parts"];
     NSMutableDictionary* attachments = [NSMutableDictionary dictionaryWithCapacity:mediaParts.count];
     for (NSString* name in mediaParts) {
         UIImage* image = [_mediaCache objectForKey:[mediaParts objectForKey:name]];
         [attachments setObject:UIImagePNGRepresentation(image) forKey:name];
     }
-    [BTNet post:[data objectForKey:@"url"] json:[data objectForKey:@"jsonParams"] attachments:attachments headers:[data objectForKey:@"headers"] boundary:[data objectForKey:@"boundary"] responseCallback:responseCallback];
+    [BTNet post:data[@"url"] jsonParams:data[@"jsonParams"] attachments:attachments headers:data[@"headers"] boundary:data[@"boundary"] responseCallback:responseCallback];
 }
 
 @end
