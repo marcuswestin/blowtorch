@@ -25,7 +25,7 @@ static BTNet* instance;
     [BTNet request:url method:method headers:headers params:postParams responseCallback:responseCallback];
 }
 
-+ (void)post:(NSString*)url json:(NSDictionary*)jsonParams attachments:(NSDictionary*)attachments headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(BTCallback)responseCallback {
++ (void)post:(NSString*)url jsonParams:(NSDictionary*)jsonParams attachments:(NSDictionary*)attachments headers:(NSDictionary*)headers boundary:(NSString*)boundary responseCallback:(BTCallback)responseCallback {
     NSData* jsonData = [NSJSONSerialization dataWithJSONObject:jsonParams options:0 error:nil];
     NSDictionary* jsonPart = [NSDictionary dictionaryWithObjectsAndKeys:
                               @"attachment; name=\"jsonParams\"", @"Content-Disposition",
