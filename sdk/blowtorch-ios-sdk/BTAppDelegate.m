@@ -361,7 +361,7 @@ static BTAppDelegate* instance;
     NSString * tokenAsString = [[[deviceToken description]
                                  stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]] 
                                 stringByReplacingOccurrencesOfString:@" " withString:@""];
-    NSDictionary* info = [NSDictionary dictionaryWithObject:tokenAsString forKey:@"deviceToken"];
+    NSDictionary* info = @{ @"pushToken":tokenAsString, @"pushType":@"ios" };
     [self notify:@"push.registered" info:info];
     if (_pushRegistrationResponseCallback) {
         _pushRegistrationResponseCallback(nil, info);
