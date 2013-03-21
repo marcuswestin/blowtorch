@@ -33,6 +33,7 @@ static BTCamera* instance;
     }];
     
     [app handleCommand:@"BTCamera.hide" handler:^(id data, BTCallback responseCallback) {
+        if (!picker) { return; }
         [picker.view removeFromSuperview];
         picker = nil;
         responseCallback(nil, nil);
