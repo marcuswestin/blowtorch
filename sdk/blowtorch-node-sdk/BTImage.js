@@ -20,6 +20,12 @@ function setup(app) {
 			delete req.headers.host
 			var headers = scrubHeaders(req.headers)
 			// console.log("BTImage.fetchImage", params.url)
+			if (!params.url) {
+				console.log("BTImage.fetchImage: NO URL", params)
+				res.writeHead(500)
+				res.end('No url given')
+				return
+			}
 			request({ url:params.url, headers:headers, method:req.method, timeout:5000, encoding:null }, function(err, response, data) {
 				if (err || response.statusCode >= 300) {
 					console.log("BTImage.fetchImage error", params, response && response.statusCode, err, data && data.toString())
