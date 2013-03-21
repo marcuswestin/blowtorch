@@ -133,7 +133,6 @@ static BTImage* instance;
 
 - (void)_fetchImageData:(NSDictionary*)params response:(WVPResponse*)res {
     NSString* urlParam = params[@"url"];
-    NSLog(@"_fetchImageData %@", urlParam);
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
         [self processData:netData params:params response:res];
