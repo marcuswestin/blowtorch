@@ -38,6 +38,9 @@ static BTAppDelegate* instance;
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     instance = self;
     config = [NSMutableDictionary dictionary];
+    
+    [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:@"WebKitCacheModelPreferenceKey"];
+
     [self createWindowAndWebView];
     [self showLoadingOverlay];
     
