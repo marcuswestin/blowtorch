@@ -18,5 +18,7 @@
 + (void) module:(NSString*)module getMedia:(NSString*)mediaId callback:(BTCallback)callback;
 - (void) getMedia:(NSString*)mediaId callback:(BTCallback)callback;
 - (void)async:(void (^)())asyncBlock;
+- (void) notify:(NSString*)event;
+- (void) notify:(NSString*)event info:(NSDictionary*)info;
 
 @end

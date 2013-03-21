@@ -28,6 +28,13 @@ static NSMutableDictionary* modules;
     [NSException raise:@"NotImplemented" format:@"Module %@ has not implemented setup:", [self moduleName]];
 }
 
+- (void)notify:(NSString *)event {
+    return [self notify:event info:nil];
+}
+- (void)notify:(NSString *)event info:(NSDictionary *)info {
+    [BTAppDelegate notify:event info:info];
+}
+
 /* Utils
  *******/
 

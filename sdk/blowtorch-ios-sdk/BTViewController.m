@@ -2,6 +2,10 @@
 
 @implementation BTViewController
 
+- (void)didReceiveMemoryWarning {
+    [[NSURLCache sharedURLCache] removeAllCachedResponses];
+}
+
 - (BOOL)shouldAutorotate {
     return NO;
 }
