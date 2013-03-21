@@ -140,9 +140,9 @@ static BTImage* instance;
 }
 
 - (void)processData:(NSData*)netData params:(NSDictionary*)params response:(WVPResponse*)res {
-    bool useCache = !![params objectForKey:@"cache"];
-    if (useCache) {
-        [BTCache store:[params objectForKey:@"url"] data:netData];
+    bool useCache = !!params[@"cache"];
+    if (useCache && ![BTCache has:params[@"url"]]) {
+        [BTCache store:params[@"url"] data:netData];
     }
     
     NSString* resizeParam = [params objectForKey:@"resize"];
