@@ -87,6 +87,9 @@ static BTAppDelegate* instance;
         [self handleRequests:@"appCss.css" handler:^(NSDictionary *params, WVPResponse *response) {
             [self _respond:response fileName:@"appCss.css" mimeType:@"text/css"];
         }];
+        [self handleRequests:@"lib/jquery-1.8.1.min.js" handler:^(NSDictionary *params, WVPResponse *response) {
+            [self _respond:response fileName:@"jquery-1.8.1.min" mimeType:@"application/javascript"];
+        }];
     } else {
         [self _renderDevTools];
     }
