@@ -24,6 +24,17 @@ static BTNotifications* instance;
         [[UIApplication sharedApplication] registerForRemoteNotificationTypes:types];
     }];
     
+    [app handleCommand:@"BTNotifications.getAuthorizationStatus" handler:^(id params, BTCallback callback) {
+        UIRemoteNotificationType types = [[UIApplication sharedApplication] enabledRemoteNotificationTypes];
+        if (types == UIRemoteNotificationTypeNone) { return callback(nil, nil); }
+
+        NSMutableDictionary* res = [NSMutableDictionary dictionary];
+        if (types | UIRemoteNotificationTypeAlert) { res[@"alert"] = [NSNumber numberWithBool:YES]; }
+        if (types | UIRemoteNotificationTypeBadge) { res[@"badge"] = [NSNumber numberWithBool:YES]; }
+        if (types | UIRemoteNotificationTypeSound) { res[@"sound"] = [NSNumber numberWithBool:YES]; }
+        callback(nil, res);
+    }];
+    
     NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
     [notifications addObserver:self selector:@selector(handleDidRegister:) name:@"application.didRegisterForRemoteNotifications" object:nil];
     [notifications addObserver:self selector:@selector(handleDidLaunchWithNotification) name:@"application.didLaunchWithNotification" object:nil];
