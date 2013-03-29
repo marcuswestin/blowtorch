@@ -10,6 +10,9 @@
 
 + (BTAppDelegate*) instance;
 
+- (void) handleRequests:(NSString*)path handler:(BTRequestHandler)requestHandler;
+- (void) handleCommand:(NSString*)handlerName handler:(BTCommandHandler)handler;
+
 /* Properties
  ************/
 @property (strong, atomic) NSMutableDictionary* config;
@@ -34,24 +37,8 @@
 
 /* Keyboard
  **********/
-- (void)keyboardWillShow:(NSNotification *)notification;
-- (void)keyboardWillHide:(NSNotification *)notification;
 - (void)putWindowOverKeyboard;
 - (void)putWindowUnderKeyboard;
-
-/* Misc
- ******/
-- (BOOL) isRetina;
-@property (atomic,strong) NSMutableDictionary* mediaCache;
-
-/* Notifications
- ***************/
-@property (nonatomic,copy) BTCallback pushRegistrationResponseCallback;
-- (void) registerForPush:(BTCallback)response;
-@property (strong, nonatomic) NSDictionary* launchNotification;
-- (void) handlePushNotification:(NSDictionary*)notification didBringAppToForeground:(BOOL)didBringAppToForeground;
-- (void) handleRequests:(NSString*)path handler:(BTRequestHandler)requestHandler;
-- (void) handleCommand:(NSString*)handlerName handler:(BTCommandHandler)handler;
 
 /* Private
  *********/

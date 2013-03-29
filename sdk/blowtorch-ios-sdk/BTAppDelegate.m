@@ -25,9 +25,10 @@ static BTAppDelegate* instance;
     NSString* _serverPort;
     UILabel* _reloadView;
     BTCallback _menuCallback;
+    NSDictionary* _launchNotification;
 }
 
-@synthesize window, webView, javascriptBridge=_bridge, overlay, config, launchNotification;
+@synthesize window, webView, javascriptBridge=_bridge, overlay, config;
 
 + (BTAppDelegate *)instance { return instance; }
 
@@ -56,7 +57,7 @@ static BTAppDelegate* instance;
     [notifications addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
     [notifications addObserver:self selector:@selector(keyboardDidHide:) name:UIKeyboardDidHideNotification object:nil];
     
-    launchNotification = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+    _launchNotification = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
     
     return YES;
 }
@@ -150,13 +151,6 @@ static BTAppDelegate* instance;
 //    return [info objectForKey:key];
 //}
 
-@synthesize pushRegistrationResponseCallback=_pushRegistrationResponseCallback;
-- (void)registerForPush:(BTCallback)responseCallback {
-    _pushRegistrationResponseCallback = responseCallback;
-    [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
-     (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
-}
-
 - (void)applicationWillResignActive:(UIApplication *)application {
     [self notify:@"app.willResignActive"];
     /*
@@ -229,9 +223,9 @@ static BTAppDelegate* instance;
     }];
     [self handleCommand:@"app.show" handler:^(id data, BTCallback  responseCallback) {
         [self hideLoadingOverlay:data];
-        if (launchNotification) {
-            [self handlePushNotification:launchNotification didBringAppToForeground:YES];
-            launchNotification = nil;
+        if (_launchNotification) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didLaunchWithNotification" object:nil userInfo:@{ @"launchNotification":_launchNotification }];
+            _launchNotification = nil;
         }
     }];
     [self handleCommand:@"app.setIconBadgeNumber" handler:^(id data, BTCallback responseCallback) {
@@ -246,11 +240,6 @@ static BTAppDelegate* instance;
     // console.*
     [self handleCommand:@"console.log" handler:^(id data, BTCallback responseCallback) {
         
-    }];
-    
-    // push.*
-    [self handleCommand:@"push.register" handler:^(id data, BTCallback responseCallback) {
-        [self registerForPush:responseCallback];
     }];
     
     // menu.*
@@ -361,48 +350,22 @@ static BTAppDelegate* instance;
 //    return [documentsDirectory stringByAppendingPathComponent:fileName];
 //}
 
-/* Push API
- **********/
+/* Remote notifications
+ **********************/
 - (void)application:(UIApplication *)app didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
-    NSString * tokenAsString = [[[deviceToken description]
-                                 stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]] 
-                                stringByReplacingOccurrencesOfString:@" " withString:@""];
-    NSDictionary* info = @{ @"pushToken":tokenAsString, @"pushType":@"ios" };
-    [self notify:@"push.registered" info:info];
-    if (_pushRegistrationResponseCallback) {
-        _pushRegistrationResponseCallback(nil, info);
-        _pushRegistrationResponseCallback = nil;
-    }
-}     
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didRegisterForRemoteNotifications" object:nil userInfo:@{ @"deviceToken":deviceToken }];
+}
 
 - (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
-    NSLog(@"Push registration failure %@", err);
-    [self notify:@"push.registerFailed" info:nil];
-    if (_pushRegistrationResponseCallback) {
-        _pushRegistrationResponseCallback(@"Notifications were not allowed.", nil);
-        _pushRegistrationResponseCallback = nil;
-    }
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didFailToRegisterForRemoteNotifications" object:nil userInfo:nil];
 }
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)notification {
-    [self handlePushNotification:notification didBringAppToForeground:(application.applicationState != UIApplicationStateActive)];
-}
-
-- (void)handlePushNotification:(NSDictionary *)notification didBringAppToForeground:(BOOL)didBringAppToForeground {
-    NSNumber* didBringAppIntoForegroundObj = [NSNumber numberWithBool:(didBringAppToForeground)];
-    [self notify:@"push.notification" info:[NSDictionary dictionaryWithObjectsAndKeys:
-                                            notification, @"data",
-                                            didBringAppIntoForegroundObj, @"didBringAppIntoForeground",
-                                            nil]];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didReceiveRemoteNotification" object:nil userInfo:@{ @"notification":notification }];
 }
 
 /* Misc API
  **********/
-
-- (BOOL)isRetina {
-    return ([[UIScreen mainScreen] respondsToSelector:@selector(scale)] && [[UIScreen mainScreen] scale] == 2.0);
-}
-
 - (void)_createStatusBarOverlay {
     // Put a transparent view on top of the status bar in order to intercept touch 
     UIView* statusBarOverlay = [[UIView alloc] initWithFrame:[UIApplication sharedApplication].statusBarFrame];
