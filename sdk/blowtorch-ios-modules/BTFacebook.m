@@ -25,12 +25,13 @@ static BTFacebook* instance;
             NSLog(@"FBSession.open result %@ %d %@", session, state, error);
             
             NSMutableDictionary *facebookSession = [NSMutableDictionary dictionary];
-            NSNumber* expirationDate = [NSNumber numberWithDouble:[session.expirationDate timeIntervalSince1970]];
-            if (session.accessToken) {
-                [facebookSession setObject:session.accessToken forKey:@"accessToken"];
+            FBAccessTokenData* tokenData = session.accessTokenData;
+            NSNumber* expirationDate = [NSNumber numberWithDouble:[tokenData.expirationDate timeIntervalSince1970]];
+            if (tokenData.accessToken) {
+                [facebookSession setObject:tokenData.accessToken forKey:@"accessToken"];
                 [facebookSession setObject:expirationDate forKey:@"expirationDate"];
-                _facebook.accessToken = session.accessToken;
-                _facebook.expirationDate = session.expirationDate;
+                _facebook.accessToken = tokenData.accessToken;
+                _facebook.expirationDate = tokenData.expirationDate;
             }
             
             NSDictionary* info = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -63,8 +64,8 @@ static BTFacebook* instance;
         if (!FBSession.activeSession) {
             return responseCallback(@"No active FB session", nil);
         }
-        _facebook.accessToken = FBSession.activeSession.accessToken;
-        _facebook.expirationDate = FBSession.activeSession.expirationDate;
+        _facebook.accessToken = FBSession.activeSession.accessTokenData.accessToken;
+        _facebook.expirationDate = FBSession.activeSession.accessTokenData.expirationDate;
         NSString* dialog = [data objectForKey:@"dialog"]; // oauth, feed, and apprequests
         NSMutableDictionary* params = [NSMutableDictionary dictionaryWithDictionary:[data objectForKey:@"params"]]; // so silly
         [_facebook dialog:dialog andParams:params andDelegate:self];
