@@ -21,6 +21,9 @@ static BTTextInput* instance;
 - (void) setup:(BTAppDelegate*)app {
     if (instance) { return; }
     instance = self;
+
+    _params = [NSDictionary dictionary];
+
     [app handleCommand:@"textInput.show" handler:^(id data, BTCallback responseCallback) {
         [self show:data webView:app.webView];
     }];
@@ -41,7 +44,6 @@ static BTTextInput* instance;
         responseCallback(nil,nil);
     }];
     [app handleCommand:@"BTTextInput.resetConfig" handler:^(id data, BTCallback responseCallback) {
-        _params = nil;
         responseCallback(nil,nil);
     }];
     
@@ -121,7 +123,7 @@ static BTTextInput* instance;
     [_textInput resignFirstResponder];
     [_textInput removeFromSuperview];
     _textInput = nil;
-    _params = nil;
+    _params = [NSDictionary dictionary];
     _webView = nil;
 }
 
@@ -230,7 +232,7 @@ static BTTextInput* instance;
 - (void)keyboardWillShow:(NSNotification *)notification {
     [BTAppDelegate.instance putWindowOverKeyboard];
     [self performSelector:@selector(_removeWebViewKeyboardBar) withObject:nil afterDelay:0];
-    if (_params && [_params objectForKey:@"preventWebviewShift"]) {
+    if ([_params objectForKey:@"preventWebviewShift"]) {
         // do nothing
     } else {
         float delay = 0.02f; // 0.04f;
@@ -239,12 +241,11 @@ static BTTextInput* instance;
 }
 
 - (void)keyboardWillHide:(NSNotification *)notification {
-    if (_params && [_params objectForKey:@"preventWebviewShift"]) {
+    if ([_params objectForKey:@"preventWebviewShift"]) {
         // do nothing
     } else {
         [self _shiftWebviewWithKeyboard:notification delay:0 speedup:0.05f];
     }
-    _params = nil;
 }
 
 - (void)_removeWebViewKeyboardBar {
