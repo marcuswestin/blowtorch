@@ -291,8 +291,8 @@ static BTTextInput* instance;
     float keyboardHeight = end.size.height;
     float target = end.origin.y;
     float newY = (target >= [[UIScreen mainScreen] bounds].size.height
-                  ? -20 // keyboard hiding - 44 for the webview keyboard accessory
-                  : -(keyboardHeight-44) // keyboard showing
+                  ? -20 // keyboard showing (20 for status bar
+                  : -(keyboardHeight - (44 - 20)) // keyboard showing (44 for webview keyboard accessory, 20 for status bar)
                   );
     UIWebView* webView = BTAppDelegate.instance.webView;
     CGRect frame = webView.frame;
