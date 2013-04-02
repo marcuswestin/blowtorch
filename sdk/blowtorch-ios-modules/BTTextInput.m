@@ -232,7 +232,7 @@ static BTTextInput* instance;
 - (void)keyboardWillShow:(NSNotification *)notification {
     [BTAppDelegate.instance putWindowOverKeyboard];
     [self performSelector:@selector(_removeWebViewKeyboardBar) withObject:nil afterDelay:0];
-    if ([_params objectForKey:@"preventWebviewShift"]) {
+    if ([_params[@"preventWebviewShift"] boolValue]) {
         // do nothing
     } else {
         float delay = 0.02f; // 0.04f;
@@ -241,7 +241,7 @@ static BTTextInput* instance;
 }
 
 - (void)keyboardWillHide:(NSNotification *)notification {
-    if ([_params objectForKey:@"preventWebviewShift"]) {
+    if ([_params[@"preventWebviewShift"] boolValue]) {
         // do nothing
     } else {
         [self _shiftWebviewWithKeyboard:notification delay:0 speedup:0.05f];
