@@ -124,6 +124,10 @@ static BTImage* instance;
 //        [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
 //    }];
     if ([BTCache has:params[@"url"]]) {
+        if ([BTCache has:res.request.URL.absoluteString]) {
+            [self respondWithData:[BTCache get:res.request.URL.absoluteString] response:res params:params];
+            return;
+        }
         NSData* cachedNetData = [BTCache get:params[@"url"]];
         [self processData:cachedNetData params:params response:res];
     } else {
@@ -139,33 +143,34 @@ static BTImage* instance;
     }];
 }
 
-- (void)processData:(NSData*)netData params:(NSDictionary*)params response:(WVPResponse*)res {
-    bool useCache = !!params[@"cache"];
-    if (useCache && ![BTCache has:params[@"url"]]) {
-        [BTCache store:params[@"url"] data:netData];
+- (void)processData:(NSData*)data params:(NSDictionary*)params response:(WVPResponse*)res {
+    if (params[@"cache"]) {
+        [BTCache store:params[@"url"] data:data];
     }
     
     NSString* resizeParam = [params objectForKey:@"resize"];
     NSString* cropParam = [params objectForKey:@"crop"];
-    
     if (resizeParam) {
         NSString* radiusParam = [params objectForKey:@"radius"];
         int radius = radiusParam ? [radiusParam intValue] : 0;
-        UIImage* image = [UIImage imageWithData:netData];
+        UIImage* image = [UIImage imageWithData:data];
         image = [image thumbnailSize:[resizeParam makeSize] transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
-        NSData* resizedData = UIImageJPEGRepresentation(image, 1.0);
-        [self respondWithData:resizedData response:res params:params];
+        data = UIImageJPEGRepresentation(image, 1.0);
+        if (params[@"cache"]) {
+            [BTCache store:res.request.URL.absoluteString data:data];
+        }
     } else if (cropParam) {
         CGSize size = [cropParam makeSize];
-        UIImage* image = [UIImage imageWithData:netData];
+        UIImage* image = [UIImage imageWithData:data];
         CGSize deltaSize = CGSizeMake(image.size.width - size.width, image.size.height - size.height);
         CGRect cropRect = CGRectMake(deltaSize.width / 2, deltaSize.height / 2, size.width, size.height);
         image = [image croppedImage:cropRect];
-        NSData* croppedData = UIImageJPEGRepresentation(image, 1.0);
-        [self respondWithData:croppedData response:res params:params];
-    } else {
-        [self respondWithData:netData response:res params:params];
+        data = UIImageJPEGRepresentation(image, 1.0);
+        if (params[@"cache"]) {
+            [BTCache store:res.request.URL.absoluteString data:data];
+        }
     }
+    [self respondWithData:data response:res params:params];
 }
 
 - (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {
