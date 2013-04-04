@@ -23,13 +23,16 @@ static BTCamera* instance;
     instance = self;
     
     [app handleCommand:@"BTCamera.show" handler:^(id data, BTCallback responseCallback) {
-        if (picker) { return; }
+        if (picker) {
+            [picker.view removeFromSuperview];
+        }
         picker = [[UIImagePickerController alloc] init];
         picker.sourceType = UIImagePickerControllerSourceTypeCamera;
         picker.showsCameraControls = NO;
         picker.delegate = self;
         picker.view.frame = [[data objectForKey:@"position"] makeRect];
         [app.webView.superview insertSubview:picker.view belowSubview:app.webView];
+        responseCallback(nil,nil);
     }];
     
     [app handleCommand:@"BTCamera.hide" handler:^(id data, BTCallback responseCallback) {
