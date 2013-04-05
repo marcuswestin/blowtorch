@@ -16,6 +16,14 @@ static BTAddressBook* instance;
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
+    [app handleCommand:@"BTAddressBook.authorize" handler:^(id params, BTCallback callback) {
+        ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
+        if (!addressBook) { return callback(@"Could not open address book", nil); }
+        ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error) {
+            if (error) { return callback((__bridge id)(error), nil); }
+            return callback(nil, @{ @"granted":[NSNumber numberWithBool:granted] });
+        });
+    }];
     [app handleCommand:@"BTAddressBook.getAllEntries" handler:^(id data, BTCallback callback) {
         [self getAllEntries:data callback:callback];
     }];
