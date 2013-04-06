@@ -106,13 +106,6 @@ static BTAddressBook* instance;
             NSString *lastName = (__bridge NSString *)ABRecordCopyValue(person, kABPersonLastNameProperty);
             NSNumber* hasImage = [NSNumber numberWithBool:ABPersonHasImageData(person)];
             NSString* recordId = [NSString stringWithFormat:@"%d", ABRecordGetRecordID(person)];
-            NSString* name = nil;
-            if (firstName) {
-                if (lastName) { name = [NSString stringWithFormat:@"%@ %@", firstName, lastName]; }
-                else { name = firstName; }
-            } else {
-                name = @"";
-            }
 
             ABMultiValueRef emailProperty = ABRecordCopyValue(person, kABPersonEmailProperty);
             NSArray *emailArray = (__bridge NSArray *)ABMultiValueCopyArrayOfAllValues(emailProperty);
@@ -122,7 +115,18 @@ static BTAddressBook* instance;
             NSArray *phoneArray = (__bridge NSArray *)ABMultiValueCopyArrayOfAllValues(phoneProperty);
             if (!phoneArray) { phoneArray = emptyArray; }
             
-            [entries addObject:@{ @"recordId":recordId, @"name":name, @"emailAddresses":emailArray, @"phoneNumbers":phoneArray, @"hasImage":hasImage }];
+            NSDate* birthdayDate = (__bridge NSDate *)ABRecordCopyValue(person, kABPersonBirthdayProperty);
+            NSArray* birthday = nil;
+            if (birthdayDate) {
+                NSDateComponents *components = [[NSCalendar currentCalendar] components:NSDayCalendarUnit | NSMonthCalendarUnit | NSYearCalendarUnit fromDate:birthdayDate];
+                birthday = @[
+                             [NSNumber numberWithInt:[components day]],
+                             [NSNumber numberWithInt:[components month]],
+                             [NSNumber numberWithInt:[components year]]];
+            }
+            
+            
+            [entries addObject:@{ @"recordId":recordId, @"firstName":firstName, @"lastName":lastName, @"emailAddresses":emailArray, @"phoneNumbers":phoneArray, @"hasImage":hasImage, @"birthday":birthday }];
         }
         CFRelease(addressBook);
         CFRelease(allPeople);
