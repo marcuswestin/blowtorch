@@ -109,7 +109,7 @@ static BTAppDelegate* instance;
     _reloadView.font = [UIFont fontWithName:@"Open Sans" size:20];
     _reloadView.textAlignment = NSTextAlignmentCenter;
     _reloadView.backgroundColor = [UIColor whiteColor];
-    _reloadView.alpha = 0.25;
+    _reloadView.alpha = 0.05;
     [_reloadView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(_reloadTap)]];
     [window.rootViewController.view addSubview:_reloadView];
 }
