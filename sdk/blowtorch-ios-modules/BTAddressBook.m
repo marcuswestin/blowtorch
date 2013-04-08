@@ -125,8 +125,15 @@ static BTAddressBook* instance;
                              [NSNumber numberWithInt:[components year]]];
             }
             
-            
-            [entries addObject:@{ @"recordId":recordId, @"firstName":firstName, @"lastName":lastName, @"emailAddresses":emailArray, @"phoneNumbers":phoneArray, @"hasImage":hasImage, @"birthday":birthday }];
+            [entries addObject:@{
+             @"recordId":recordId,
+             @"firstName":firstName ? firstName : @"",
+             @"lastName":lastName ? lastName : @"",
+             @"emailAddresses":emailArray,
+             @"phoneNumbers":phoneArray,
+             @"hasImage":hasImage,
+             @"birthday":birthday ? birthday : [NSNumber numberWithBool:NO]
+             }];
         }
         CFRelease(addressBook);
         CFRelease(allPeople);
