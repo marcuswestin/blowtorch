@@ -44,6 +44,7 @@ static BTTextInput* instance;
         responseCallback(nil,nil);
     }];
     [app handleCommand:@"BTTextInput.resetConfig" handler:^(id data, BTCallback responseCallback) {
+        _params = [NSDictionary dictionary];
         responseCallback(nil,nil);
     }];
     
@@ -71,7 +72,7 @@ static BTTextInput* instance;
     [self hide];
     
     _textInput = [[UITextView alloc] initWithFrame:[self rectFromDict:[params objectForKey:@"at"]]];
-    _params=params;
+    _params = params;
     _webView = webView;
     
     _textInput.font = [UIFont systemFontOfSize:17];
