@@ -32,9 +32,11 @@ static BTCache* instance;
 }
 
 - (void)store:(NSString *)key data:(NSData *)data {
-    _cacheInfo[key] = [NSNumber numberWithInt:1];
-    [_cacheInfo writeToFile:[BTFiles cachePath:@"BTCache._cacheInfo"] atomically:YES];
-    [BTFiles writeCache:[self _filenameFor:key] data:data];
+    @synchronized(self) {
+        _cacheInfo[key] = [NSNumber numberWithInt:1];
+        [_cacheInfo writeToFile:[BTFiles cachePath:@"BTCache._cacheInfo"] atomically:YES];
+        [BTFiles writeCache:[self _filenameFor:key] data:data];
+    }
 }
 
 - (NSData *)get:(NSString *)key {
