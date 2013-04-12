@@ -80,7 +80,7 @@ static BTAppDelegate* instance;
 -(void)setupApp:(BOOL)useLocalBuild {
     if (useLocalBuild) {
         [self handleRequests:@"app" handler:^(NSDictionary *params, WVPResponse *response) {
-            [self _respond:response fileName:@"app.html" mimeType:@"text/html"];
+            [self _respond:response fileName:@"app.html" mimeType:@"text/html; charset=utf-8"];
         }];
         [self handleRequests:@"appJs.js" handler:^(NSDictionary *params, WVPResponse *response) {
             [self _respond:response fileName:@"appJs.html" mimeType:@"application/javascript"];
