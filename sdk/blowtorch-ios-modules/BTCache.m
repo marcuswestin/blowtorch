@@ -27,33 +27,32 @@ static BTCache* instance;
 
 - (void)setup:(BTAppDelegate *)app {
     instance = self;
-    _cacheInfo = [NSMutableDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:@"BTCache._cacheInfo"]];
+    NSDictionary* cacheInfo = [NSDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:@"BTCache._cacheInfo"]];
+    _cacheInfo = [NSMutableDictionary dictionaryWithDictionary:cacheInfo];
 }
 
 - (void)store:(NSString *)key data:(NSData *)data {
-    @synchronized(self) {
-        NSString* name = [self _filenameFor:key];
-        [_cacheInfo setObject:[NSNumber numberWithInt:1] forKey:name];
-        [_cacheInfo writeToFile:[BTFiles cachePath:@"BTCache._cacheInfo"] atomically:YES];
-        [BTFiles writeCache:name data:data];
-    }
+    _cacheInfo[key] = [NSNumber numberWithInt:1];
+    [_cacheInfo writeToFile:[BTFiles cachePath:@"BTCache._cacheInfo"] atomically:YES];
+    [BTFiles writeCache:[self _filenameFor:key] data:data];
 }
 
 - (NSData *)get:(NSString *)key {
-    NSString* name = [self _filenameFor:key];
-    if ([_cacheInfo objectForKey:name]) {
-        return [BTFiles readCache:name];
+    if (_cacheInfo[key]) {
+        return [BTFiles readCache:[self _filenameFor:key]];
     } else {
         return nil;
     }
 }
 
 - (bool)has:(NSString *)key {
-    return !![_cacheInfo objectForKey:[self _filenameFor:key]];
+    id obj = _cacheInfo[key];
+    return !!obj;
 }
 
 - (NSString *)_filenameFor:(NSString *)key {
     NSCharacterSet* illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/\\?%*|\"<>"];
-    return [[key componentsSeparatedByCharactersInSet:illegalFileNameCharacters] componentsJoinedByString:@""];
+    NSString* filename = [[key componentsSeparatedByCharactersInSet:illegalFileNameCharacters] componentsJoinedByString:@""];
+    return filename;
 }
 @end
