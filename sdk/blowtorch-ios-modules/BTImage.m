@@ -139,7 +139,7 @@ static BTImage* instance;
     NSString* urlParam = params[@"url"];
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
-        if (params[@"cache"] && ![BTCache has:params[@"url"]]) {
+        if (netData.length && params[@"cache"] && ![BTCache has:params[@"url"]]) {
             [BTCache store:params[@"url"] data:netData];
         }
         [self processData:netData params:params response:res];
