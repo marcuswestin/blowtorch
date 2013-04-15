@@ -11,6 +11,7 @@
 
 @implementation BTCache {
     NSMutableDictionary* _cacheInfo;
+    BOOL storeScheduled;
 }
 
 static BTCache* instance;
@@ -25,18 +26,30 @@ static BTCache* instance;
     return [instance has:key];
 }
 
+static NSString* filename = @"BTCacheInfo";
+
 - (void)setup:(BTAppDelegate *)app {
+    if (instance) { return; }
     instance = self;
-    NSDictionary* cacheInfo = [NSDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:@"BTCache._cacheInfo"]];
+    storeScheduled = NO;
+    NSDictionary* cacheInfo = [NSDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:filename]];
     _cacheInfo = [NSMutableDictionary dictionaryWithDictionary:cacheInfo];
 }
 
 - (void)store:(NSString *)key data:(NSData *)data {
+    [BTFiles writeCache:[self _filenameFor:key] data:data];
+    _cacheInfo[key] = [NSNumber numberWithInt:1];
     @synchronized(self) {
-        _cacheInfo[key] = [NSNumber numberWithInt:1];
-        [_cacheInfo writeToFile:[BTFiles cachePath:@"BTCache._cacheInfo"] atomically:YES];
-        [BTFiles writeCache:[self _filenameFor:key] data:data];
+        if (storeScheduled) { return; }
+        storeScheduled = YES;
     }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        @synchronized(self) {
+            [_cacheInfo writeToFile:[BTFiles cachePath:filename] atomically:YES];
+            [BTFiles writeCache:[self _filenameFor:key] data:data];
+            storeScheduled = NO;
+        }
+    });
 }
 
 - (NSData *)get:(NSString *)key {
