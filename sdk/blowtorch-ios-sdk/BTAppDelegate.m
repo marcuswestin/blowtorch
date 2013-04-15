@@ -136,7 +136,7 @@ static BTAppDelegate* instance;
                              config, @"config",
                              client, @"client",
                              nil];
-    [self notify:@"app.start" info:appInfo];
+    [self notify:@"app.init" info:appInfo];
 }
 
 //- (void)setAppInfo:(NSString *)key value:(NSString *)value {
