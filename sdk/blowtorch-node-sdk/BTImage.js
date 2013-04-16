@@ -21,7 +21,7 @@ function setup(app) {
 			var headers = scrubHeaders(req.headers)
 			// console.log("BTImage.fetchImage", params.url)
 			if (!params.url) {
-				console.log("BTImage.fetchImage: NO URL", params)
+				console.log("BTImage.fetchImage: NO URL", JSON.stringify(params))
 				res.writeHead(500)
 				res.end('No url given')
 				return
