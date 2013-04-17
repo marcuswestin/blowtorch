@@ -37,6 +37,10 @@ static NSString* filename = @"BTCacheInfo";
 }
 
 - (void)store:(NSString *)key data:(NSData *)data {
+    if (!data || !data.length) {
+        NSLog(@"Refusing to cache 0-length data %@", key);
+        return;
+    }
     [BTFiles writeCache:[self _filenameFor:key] data:data];
     _cacheInfo[key] = [NSNumber numberWithInt:1];
     @synchronized(self) {
