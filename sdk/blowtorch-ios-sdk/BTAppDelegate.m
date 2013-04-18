@@ -497,7 +497,7 @@ static BTAppDelegate* instance;
 
 - (void)showLoadingOverlay {
     CGRect frame = [[UIScreen mainScreen] bounds];
-    frame.origin.y -= 20;
+    frame.size.height -= 20;
     UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
     splashScreen.image = [UIImage imageNamed:@"Default"];
     self.overlay = splashScreen;
