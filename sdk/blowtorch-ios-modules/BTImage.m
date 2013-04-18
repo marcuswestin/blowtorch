@@ -91,6 +91,7 @@ static BTImage* instance;
 
 
 - (void)fetchImage:(NSDictionary*)params response:(WVPResponse *)res {
+    NSLog(@"BTImage.fetchImage %@", params);
     if (params[@"mediaModule"]) {
         [BTModule module:params[@"mediaModule"] getMedia:params[@"mediaId"] callback:^(id error, id responseData) {
             [self processData:responseData params:params response:res];
