@@ -65,12 +65,12 @@ static BTCamera* instance;
 }
 
 - (void)imagePickerController:(UIImagePickerController *)thePicker didFinishPickingMediaWithInfo:(NSDictionary *)info {
-    UIImage* image = info[UIImagePickerControllerOriginalImage];
-    
     if (captureParams[@"saveToAlbum"]) {
-        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil);
+        UIImageWriteToSavedPhotosAlbum(info[UIImagePickerControllerOriginalImage], nil, nil, nil);
     }
     
+    UIImage* image = captureParams[@"allowEditing"] ? info[UIImagePickerControllerEditedImage] : info[UIImagePickerControllerOriginalImage];
+
     NSString* resize = captureParams[@"resize"];
     if (resize) {
         image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
@@ -101,7 +101,7 @@ static BTCamera* instance;
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)thePicker {
     if (captureParams && captureParams[@"modal"]) {
-        captureCallback(nil, nil);
+        [BTAppDelegate.instance.window.rootViewController dismissViewControllerAnimated:YES completion:NULL];
     }
     [BTAppDelegate notify:@"BTCamera.imagePickerControllerDidCancel"];
     picker = nil;
