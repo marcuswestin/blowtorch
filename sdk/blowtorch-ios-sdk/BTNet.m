@@ -2,6 +2,8 @@
 #import "WebViewJavascriptBridge.h"
 #import "BTCache.h"
 #import "BTAppDelegate.h"
+#import "BTFiles.h"
+#import "BTMedia.h"
 
 @implementation BTNet
 
@@ -14,6 +16,28 @@ static BTNet* instance;
     instance = self;
     queue = [[NSOperationQueue alloc] init];
     [queue setMaxConcurrentOperationCount:5];
+    
+    [app handleCommand:@"BTNet.post" handler:^(id params, BTCallback callback) {
+        [self _upload:params callback:callback];
+    }];
+}
+
+- (void) _upload:(NSDictionary*)params callback:(BTCallback)callback {
+    NSArray* attachmentsInfo = params[@"attachments"];
+    NSMutableDictionary* attachments = [NSMutableDictionary dictionaryWithCapacity:attachmentsInfo.count];
+    for (NSDictionary* info in attachmentsInfo) {
+        NSString* name = info[@"name"];
+        if (info[@"file"]) {
+            attachments[name] = [NSData dataWithContentsOfFile:info[@"file"]];
+        } else if (info[@"data"]) {
+            NSString* dataString = info[@"data"];
+            attachments[name] = [dataString dataUsingEncoding:NSUTF8StringEncoding];
+        } else {
+            NSLog(@"Warning: unknown attachment into %@", info);
+        }
+    }
+    [BTNet post:params[@"url"] jsonParams:params[@"jsonParams"] attachments:attachments headers:params[@"headers"] boundary:params[@"boundary"] responseCallback:callback];
+
 }
 
 + (void)request:(NSDictionary *)data responseCallback:(BTCallback)responseCallback {

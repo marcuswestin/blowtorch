@@ -22,17 +22,17 @@ static BTCamera* instance;
     if (instance) { return; }
     instance = self;
     
-    [app handleCommand:@"BTCamera.show" handler:^(id data, BTCallback responseCallback) {
-        if (picker) {
-            [picker.view removeFromSuperview];
+    [app handleCommand:@"BTCamera.show" handler:^(id params, BTCallback callback) {
+        picker = [self _createPicker:params];
+        picker.view.frame = [[params objectForKey:@"position"] makeRect];
+        if (params[@"modal"]) {
+            [app.window.rootViewController presentViewController:picker animated:YES completion:NULL];
+            captureParams = params;
+            captureCallback = callback;
+        } else {
+            [app.webView.superview insertSubview:picker.view belowSubview:app.webView];
+            callback(nil,nil);
         }
-        picker = [[UIImagePickerController alloc] init];
-        picker.sourceType = UIImagePickerControllerSourceTypeCamera;
-        picker.showsCameraControls = NO;
-        picker.delegate = self;
-        picker.view.frame = [[data objectForKey:@"position"] makeRect];
-        [app.webView.superview insertSubview:picker.view belowSubview:app.webView];
-        responseCallback(nil,nil);
     }];
     
     [app handleCommand:@"BTCamera.hide" handler:^(id data, BTCallback responseCallback) {
@@ -41,7 +41,7 @@ static BTCamera* instance;
         picker = nil;
         responseCallback(nil, nil);
     }];
-    
+
     [app handleCommand:@"BTCamera.capture" handler:^(id params, BTCallback callback) {
         captureParams = params;
         captureCallback = callback;
@@ -49,7 +49,22 @@ static BTCamera* instance;
     }];
 }
 
-- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info {
+- (UIImagePickerController*)_createPicker:(NSDictionary*)data {
+    if (picker) {
+        [picker.view removeFromSuperview];
+    }
+    picker = [[UIImagePickerController alloc] init];
+    picker.sourceType = UIImagePickerControllerSourceTypeCamera;
+    picker.showsCameraControls = !data[@"hideControls"];
+    picker.allowsEditing = !!data[@"allowEditing"];
+    if (!!data[@"frontFacing"] && [UIImagePickerController isCameraDeviceAvailable: UIImagePickerControllerCameraDeviceFront]) {
+        picker.cameraDevice = UIImagePickerControllerCameraDeviceFront;
+    }
+    picker.delegate = self;
+    return picker;
+}
+
+- (void)imagePickerController:(UIImagePickerController *)thePicker didFinishPickingMediaWithInfo:(NSDictionary *)info {
     UIImage* image = info[UIImagePickerControllerOriginalImage];
     
     if (captureParams[@"saveToAlbum"]) {
@@ -68,15 +83,27 @@ static BTCamera* instance;
     } else {
         data = UIImagePNGRepresentation(image);
     }
-    image = nil;
     NSString* file = [BTFiles documentPath:captureParams[@"document"]];
     BOOL success = [data writeToFile:file atomically:YES];
     if (!success) { return captureCallback(@"Could not store image", nil); }
     
-    captureCallback(nil, @{ @"file":file });
+    NSDictionary* response = @{ @"file":file, @"width":[NSNumber numberWithFloat:image.size.width], @"height":[NSNumber numberWithFloat:image.size.height] };
+    if (captureParams[@"modal"]) {
+        [BTAppDelegate.instance.window.rootViewController dismissViewControllerAnimated:YES completion:^{
+            captureCallback(nil, response);
+            picker = nil;
+        }];
+    } else {
+        captureCallback(nil, response);
+        picker = nil;
+    }
 }
 
-- (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
+- (void)imagePickerControllerDidCancel:(UIImagePickerController *)thePicker {
+    if (captureParams && captureParams[@"modal"]) {
+        captureCallback(nil, nil);
+    }
     [BTAppDelegate notify:@"BTCamera.imagePickerControllerDidCancel"];
+    picker = nil;
 }
 @end
