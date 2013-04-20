@@ -11,5 +11,6 @@
 @interface BTAddressBook : BTModule
 
 + (void)allEntries:(BTCallback)callback;
++ (NSData*)getRecordImage:(NSString*)recordId;
 
 @end

@@ -4,6 +4,7 @@
 #import "BTAppDelegate.h"
 #import "BTFiles.h"
 #import "BTMedia.h"
+#import "BTAddressBook.h"
 
 @implementation BTNet
 
@@ -32,6 +33,8 @@ static BTNet* instance;
         } else if (info[@"data"]) {
             NSString* dataString = info[@"data"];
             attachments[name] = [dataString dataUsingEncoding:NSUTF8StringEncoding];
+        } else if (info[@"BTAddressBookRecordId"]) { // HACK
+            attachments[name] = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
         } else {
             NSLog(@"Warning: unknown attachment into %@", info);
         }

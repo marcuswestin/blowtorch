@@ -50,7 +50,7 @@ static BTAddressBook* instance;
 }
 
 - (void) getImage:(NSString*)recordId response:(WVPResponse*)response {
-    NSData* data = [self _getImage:[recordId intValue]];
+    NSData* data = [self getRecordImage:recordId];
     if (data) {
         UIImage* image = [UIImage imageWithData:data];
         [response respondWithImage:image];
@@ -59,10 +59,10 @@ static BTAddressBook* instance;
     }
 }
 
-- (NSData*) _getImage:(ABRecordID)recordId {
+- (NSData*) getRecordImage:(NSString*)recordId {
     ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
     if (!addressBook) { return nil; }
-    ABRecordRef person = ABAddressBookGetPersonWithRecordID(addressBook, recordId);
+    ABRecordRef person = ABAddressBookGetPersonWithRecordID(addressBook, [recordId intValue]);
     return (__bridge NSData *)(ABPersonCopyImageData(person));
 }
 
@@ -142,10 +142,13 @@ static BTAddressBook* instance;
 }
 
 - (void)getMedia:(NSString *)mediaId callback:(BTCallback)callback {
-    NSData* data = [self _getImage:[mediaId intValue]];
+    NSData* data = [self getRecordImage:mediaId];
     callback(data ? nil : @"Could not get address book image", data);
 }
 
++ (NSData*)getRecordImage:(NSString *)localId { // HACK
+    return [instance getRecordImage:localId];
+}
 
 @end
 
