@@ -140,7 +140,7 @@ static BTImage* instance;
     NSString* urlParam = params[@"url"];
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
-        if (netData.length && params[@"cache"] && ![BTCache has:params[@"url"]]) {
+        if (netData.length && params[@"cache"]) {
             [BTCache store:params[@"url"] data:netData];
         }
         [self processData:netData params:params response:res];
@@ -156,7 +156,7 @@ static BTImage* instance;
         UIImage* image = [UIImage imageWithData:data];
         image = [image thumbnailSize:[resizeParam makeSize] transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
         data = UIImageJPEGRepresentation(image, 1.0);
-        if (params[@"cache"]) {
+        if (params[@"cache"] && data.length) {
             [BTCache store:res.request.URL.absoluteString data:data];
         }
     } else if (cropParam) {
