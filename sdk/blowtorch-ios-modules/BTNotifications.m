@@ -35,6 +35,12 @@ static BTNotifications* instance;
         callback(nil, res);
     }];
     
+    [app handleCommand:@"BTNotifications.setBadgeNumber" handler:^(id params, BTCallback callback) {
+        NSInteger number = [params[@"number"] integerValue];
+        [[UIApplication sharedApplication] setApplicationIconBadgeNumber:number];
+        callback(nil, nil);
+    }];
+    
     NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
     [notifications addObserver:self selector:@selector(handleDidRegister:) name:@"application.didRegisterForRemoteNotifications" object:nil];
     [notifications addObserver:self selector:@selector(handleDidLaunchWithNotification) name:@"application.didLaunchWithNotification" object:nil];
