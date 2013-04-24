@@ -1,5 +1,4 @@
 #import <UIKit/UIKit.h>
-#import "WebViewJavascriptBridge.h"
 #import "BTModule.h"
 
 @interface BTNet : BTModule

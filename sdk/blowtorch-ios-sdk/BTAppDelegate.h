@@ -1,6 +1,6 @@
 #import "BTTypes.h"
 #import <UIKit/UIKit.h>
-#import "WebViewJavascriptBridge.h"
+#import "WebViewJavascriptBridge_iOS.h"
 #import "WebViewProxy.h"
 #import <AudioToolbox/AudioServices.h>
 
