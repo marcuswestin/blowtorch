@@ -497,9 +497,20 @@ static BTAppDelegate* instance;
 
 - (void)showLoadingOverlay {
     CGRect frame = [[UIScreen mainScreen] bounds];
-    frame.size.height -= 20;
+    frame.origin.y -= 20;
     UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
-    splashScreen.image = [UIImage imageNamed:@"Default"];
+    
+    CGSize screenSize = [[UIScreen mainScreen] bounds].size;
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
+        if (screenSize.height > 480.0f) {
+            splashScreen.image = [UIImage imageNamed:@"Default-568h"];
+        } else {
+            splashScreen.image = [UIImage imageNamed:@"Default"];
+        }
+    } else {
+        // TODO iPad
+        splashScreen.image = [UIImage imageNamed:@"Default"];
+    }
     self.overlay = splashScreen;
     [window.rootViewController.view addSubview:splashScreen];
 }
