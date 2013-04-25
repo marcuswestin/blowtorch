@@ -505,21 +505,18 @@ static BTAppDelegate* instance;
 }
 
 - (void)hideLoadingOverlay:(NSDictionary *)data {
+    if (!self.overlay) { return; }
+    UIView* hideOverlay = self.overlay;
+    self.overlay = nil;
     NSNumber* fade = [data objectForKey:@"fade"];
-    if (fade) {
-        [UIView animateWithDuration:[fade doubleValue] animations:^{
-            self.overlay.alpha = 0;
-        } completion:^(BOOL finished) {
-            [self finishHideOverlay];
-        }];
-    } else {
-        [self finishHideOverlay];
+    if (!fade) {
+        return [hideOverlay removeFromSuperview];
     }
-}
-
-- (void) finishHideOverlay {
-    [self.overlay removeFromSuperview];
-    [self _createStatusBarOverlay];
+    [UIView animateWithDuration:[fade doubleValue] animations:^{
+        hideOverlay.alpha = 0;
+    } completion:^(BOOL finished) {
+        [hideOverlay removeFromSuperview];
+    }];
 }
 
 - (NSDictionary *)keyboardEventInfo:(NSNotification *)notification {
