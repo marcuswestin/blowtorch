@@ -4,6 +4,7 @@
 #import "BTFiles.h"
 #import "BTMedia.h"
 #import "BTAddressBook.h"
+#import "UIImage+Resize.h"
 
 @implementation BTNet
 
@@ -33,7 +34,16 @@ static BTNet* instance;
             NSString* dataString = info[@"data"];
             attachments[name] = [dataString dataUsingEncoding:NSUTF8StringEncoding];
         } else if (info[@"BTAddressBookRecordId"]) { // HACK
-            attachments[name] = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
+            if (info[@"resize"]) {
+                NSString* resize = info[@"resize"];
+                NSData* imageData = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
+                UIImage* image = [UIImage imageWithData:imageData];
+                image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
+                imageData = UIImageJPEGRepresentation(image, 1.0);
+                attachments[name] = imageData;
+            } else {
+                attachments[name] = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
+            }
         } else {
             NSLog(@"Warning: unknown attachment into %@", info);
         }
