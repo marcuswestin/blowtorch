@@ -90,6 +90,6 @@ static NSString* infoFilename = @"BTCacheInfo";
 - (NSString *)_filenameFor:(NSString *)key {
     NSCharacterSet* illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/\\?%*|\"<>"];
     NSString* filename = [[key componentsSeparatedByCharactersInSet:illegalFileNameCharacters] componentsJoinedByString:@""];
-    return filename;
+    return [@"BTCache-" stringByAppendingString:filename];
 }
 @end
