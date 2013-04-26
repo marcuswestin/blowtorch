@@ -23,16 +23,7 @@ static BTCamera* instance;
     instance = self;
     
     [app handleCommand:@"BTCamera.show" handler:^(id params, BTCallback callback) {
-        picker = [self _createPicker:params];
-        picker.view.frame = [[params objectForKey:@"position"] makeRect];
-        if (params[@"modal"]) {
-            [app.window.rootViewController presentViewController:picker animated:YES completion:NULL];
-            captureParams = params;
-            captureCallback = callback;
-        } else {
-            [app.webView.superview insertSubview:picker.view belowSubview:app.webView];
-            callback(nil,nil);
-        }
+        [self _showCamera:params callback:callback];
     }];
     
     [app handleCommand:@"BTCamera.hide" handler:^(id data, BTCallback responseCallback) {
@@ -49,19 +40,41 @@ static BTCamera* instance;
     }];
 }
 
-- (UIImagePickerController*)_createPicker:(NSDictionary*)data {
+- (void)_showCamera:(NSDictionary*)data callback:(BTCallback)callback {
     if (picker) {
         [picker.view removeFromSuperview];
     }
     picker = [[UIImagePickerController alloc] init];
-    picker.sourceType = UIImagePickerControllerSourceTypeCamera;
-    picker.showsCameraControls = !data[@"hideControls"];
-    picker.allowsEditing = !!data[@"allowEditing"];
-    if (!!data[@"frontFacing"] && [UIImagePickerController isCameraDeviceAvailable: UIImagePickerControllerCameraDeviceFront]) {
-        picker.cameraDevice = UIImagePickerControllerCameraDeviceFront;
+    NSString* source = data[@"source"];
+    if (!source) { source = @"camera"; }
+    if ([source isEqualToString:@"photoLibrary"]) {
+        picker.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+    } else if ([source isEqualToString:@"savedPhotosAlbum"]) {
+        picker.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
+    } else if ([source isEqualToString:@"camera"]) {
+        picker.sourceType = UIImagePickerControllerSourceTypeCamera;
+        if (!!data[@"frontFacing"] && [UIImagePickerController isCameraDeviceAvailable: UIImagePickerControllerCameraDeviceFront]) {
+            picker.cameraDevice = UIImagePickerControllerCameraDeviceFront;
+        }
+        picker.showsCameraControls = !data[@"hideControls"];
+    } else {
+        callback([NSString stringWithFormat:@"Unknown source type %@", source], nil);
+        return;
     }
+    
+    picker.allowsEditing = !!data[@"allowEditing"];
     picker.delegate = self;
-    return picker;
+    
+    BTAppDelegate* app = [BTAppDelegate instance];
+    if (data[@"position"]) {
+        picker.view.frame = [data[@"position"] makeRect];
+        [app.webView.superview insertSubview:picker.view belowSubview:app.webView];
+        callback(nil,nil);
+    } else {
+        [app.window.rootViewController presentViewController:picker animated:YES completion:NULL];
+        captureParams = data;
+        captureCallback = callback;
+    }
 }
 
 - (void)imagePickerController:(UIImagePickerController *)thePicker didFinishPickingMediaWithInfo:(NSDictionary *)info {
