@@ -32,7 +32,8 @@ static NSString* infoFilename = @"BTCacheInfo";
     if (instance) { return; }
     instance = self;
     storeScheduled = NO;
-    _cacheInfo = [NSMutableDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:infoFilename]];
+    NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:infoFilename]];
+    _cacheInfo = [NSMutableDictionary dictionaryWithDictionary:dict];
     
     [app handleCommand:@"BTCache.clear" handler:^(id params, BTCallback callback) {
         [_cacheInfo removeObjectForKey:params[@"key"]];
@@ -81,9 +82,9 @@ static NSString* infoFilename = @"BTCacheInfo";
     }
 }
 
-- (bool)has:(NSString *)key {
-    id obj = _cacheInfo[key];
-    return !!obj;
+- (BOOL)has:(NSString *)key {
+    BOOL doesHave = !!_cacheInfo[key];
+    return doesHave;
 }
 
 - (NSString *)_filenameFor:(NSString *)key {
