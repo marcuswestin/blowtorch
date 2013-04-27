@@ -304,9 +304,7 @@ static BTAppDelegate* instance;
 + (void)notify:(NSString *)name { [instance notify:name]; }
 - (void)notify:(NSString *)event { [self notify:event info:NULL]; }
 - (void)notify:(NSString *)event info:(NSDictionary *)info {
-    if (![event isEqualToString:@"device.rotated"]) {
-        NSLog(@"Notify %@ %@", event, info);
-    }
+//    NSLog(@"Notify %@ %@", event, info);
     if (!info) { info = [NSDictionary dictionary]; }
     [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:event object:nil userInfo:info]];
     [_bridge send:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil]];
