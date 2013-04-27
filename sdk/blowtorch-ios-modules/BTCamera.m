@@ -113,7 +113,7 @@ static BTCamera* instance;
 }
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)thePicker {
-    if (captureParams && captureParams[@"modal"]) {
+    if (captureParams && !captureParams[@"position"]) {
         [BTAppDelegate.instance.window.rootViewController dismissViewControllerAnimated:YES completion:NULL];
     }
     [BTAppDelegate notify:@"BTCamera.imagePickerControllerDidCancel"];
