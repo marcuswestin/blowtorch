@@ -101,14 +101,14 @@ static BTCamera* instance;
     if (!success) { return captureCallback(@"Could not store image", nil); }
     
     NSDictionary* response = @{ @"file":file, @"width":[NSNumber numberWithFloat:image.size.width], @"height":[NSNumber numberWithFloat:image.size.height] };
-    if (captureParams[@"modal"]) {
+    if (captureParams[@"position"]) {
+        captureCallback(nil, response);
+        picker = nil;
+    } else {
         [BTAppDelegate.instance.window.rootViewController dismissViewControllerAnimated:YES completion:^{
             captureCallback(nil, response);
             picker = nil;
         }];
-    } else {
-        captureCallback(nil, response);
-        picker = nil;
     }
 }
 
