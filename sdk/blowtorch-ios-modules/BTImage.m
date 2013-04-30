@@ -174,6 +174,7 @@ static BTImage* instance;
 
 - (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {
     NSString* mimeTypeParam = [params objectForKey:@"mimeType"];
+    if (!mimeTypeParam) { mimeTypeParam = @"image/jpg"; }
     res.cachePolicy = NSURLCacheStorageNotAllowed; // we take care of caching ourselves
     [res respondWithData:data mimeType:mimeTypeParam];
 }

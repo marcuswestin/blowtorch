@@ -8,15 +8,6 @@
 #import "DebugUIWebView.h"
 #endif
 
-@interface BTAppDelegate (hidden)
-- (NSURL*) getUrl:(NSString*) path;
-- (void) createWindowAndWebView;
-- (void) showLoadingOverlay;
-- (void) hideLoadingOverlay:(NSDictionary*)data;
-- (void)_respond:(WVPResponse*)res fileName:(NSString *)fileName mimeType:(NSString *)mimeType;
-- (NSDictionary*) keyboardEventInfo:(NSNotification*) notification;
-@end
-
 static BTAppDelegate* instance;
 
 @implementation BTAppDelegate {
@@ -78,29 +69,13 @@ static BTAppDelegate* instance;
 }
 
 -(void)setupApp:(BOOL)useLocalBuild {
-    if (useLocalBuild) {
-        [self handleRequests:@"app" handler:^(NSDictionary *params, WVPResponse *response) {
-            [self _respond:response fileName:@"app.html" mimeType:@"text/html; charset=utf-8"];
-        }];
-        [self handleRequests:@"appJs.js" handler:^(NSDictionary *params, WVPResponse *response) {
-            [self _respond:response fileName:@"appJs.html" mimeType:@"application/javascript"];
-        }];
-        [self handleRequests:@"appCss.css" handler:^(NSDictionary *params, WVPResponse *response) {
-            [self _respond:response fileName:@"appCss.css" mimeType:@"text/css"];
-        }];
-        [self handleRequests:@"lib/jquery-1.8.1.min.js" handler:^(NSDictionary *params, WVPResponse *response) {
-            [self _respond:response fileName:@"jquery-1.8.1.min" mimeType:@"application/javascript"];
-        }];
-    } else {
+    if (!useLocalBuild) {
         [self _renderDevTools];
     }
     
-    [self setupBridgeHandlers:useLocalBuild];
-    [self setupNetHandlers:useLocalBuild];
+    [self setupHandlers:useLocalBuild];
     [self setupModules];
 }
-
-- (void)setupNetHandlers:(BOOL)useLocalBuild {}
 
 -(void)_renderDevTools {
     _reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-100,4,40,40)];
@@ -124,32 +99,13 @@ static BTAppDelegate* instance;
 }
 
 -(void)startApp {
-//    NSString* downloadedVersion = [self getAppInfo:@"downloadedVersion"];
-//    if (downloadedVersion) {
-//        [self setAppInfo:@"installedVersion" value:downloadedVersion];
-//    }
     [_bridge reset];
-    [webView loadRequest:[NSURLRequest requestWithURL:[self getUrl:@"app"]]];
+    NSURL* appHtmlUrl = [NSURL URLWithString:[NSString stringWithFormat:@"%@/resources/app.html", self.serverUrl]];
+    [webView loadRequest:[NSURLRequest requestWithURL:appHtmlUrl]];
     NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
-    NSString* client = [bundleVersion stringByAppendingString:@"-ios"];
-    NSDictionary* appInfo = [NSDictionary dictionaryWithObjectsAndKeys:
-                             config, @"config",
-                             client, @"client",
-                             nil];
-    [self notify:@"app.init" info:appInfo];
+    NSString* client = [@"ios-" stringByAppendingString:bundleVersion];
+    [self notify:@"app.init" info:@{ @"config":config, @"client":client }];
 }
-
-//- (void)setAppInfo:(NSString *)key value:(NSString *)value {
-//    NSMutableDictionary* info = [NSMutableDictionary dictionaryWithDictionary:[state load:@"__btAppInfo"]];
-//    [info setObject:value forKey:key];
-//    [state set:@"__btAppInfo" value:info];
-//}
-
-//- (NSString *)getAppInfo:(NSString *)key {
-//    NSDictionary* info = [state load:@"__btAppInfo"];
-//    if (!info) { return nil; }
-//    return [info objectForKey:key];
-//}
 
 - (void)applicationWillResignActive:(UIApplication *)application {
     [self notify:@"app.willResignActive"];
@@ -203,22 +159,29 @@ static BTAppDelegate* instance;
 }
 
 - (void)keyboardWillShow:(NSNotification *)notification {
-    [self notify:@"keyboard.willShow" info:[self keyboardEventInfo:notification]];
+    [self notify:@"keyboard.willShow" info:[self _keyboardEventInfo:notification]];
 }
-
 - (void)keyboardWillHide:(NSNotification *)notification {
-    [self notify:@"keyboard.willHide" info:[self keyboardEventInfo:notification]];
+    [self notify:@"keyboard.willHide" info:[self _keyboardEventInfo:notification]];
+}
+- (void)keyboardDidHide:(NSNotification*)notification {
+    [self notify:@"keyboard.didHide" info:[self _keyboardEventInfo:notification]];
+}
+- (NSDictionary *)_keyboardEventInfo:(NSNotification *)notification {
+    NSDictionary *userInfo = [notification userInfo];
+    NSValue *keyboardAnimationDurationValue = [userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
+    NSTimeInterval keyboardAnimationDurationInterval;
+    [keyboardAnimationDurationValue getValue:&keyboardAnimationDurationInterval];
+    NSNumber* keyboardAnimationDuration = [NSNumber numberWithDouble:keyboardAnimationDurationInterval];
+    return [NSDictionary dictionaryWithObject:keyboardAnimationDuration forKey:@"keyboardAnimationDuration"];
 }
 
-- (void)keyboardDidHide:(NSNotification*)notification {
-    [self _expandViewport:0.0]; // always return viewport to 0 expansion when keyboard goes away
-}
 
 /* WebView <-> Native API
  ************************/
-- (void)setupBridgeHandlers:(BOOL)useLocalBuild {
+- (void)setupHandlers:(BOOL)useLocalBuild {
     // app.*
-    [self handleCommand:@"app.restart" handler:^(id data, BTCallback responseCallback) {
+    [self handleCommand:@"app.reload" handler:^(id data, BTCallback responseCallback) {
         [self startApp];
     }];
     [self handleCommand:@"app.show" handler:^(id data, BTCallback  responseCallback) {
@@ -237,29 +200,17 @@ static BTAppDelegate* instance;
         responseCallback(nil, [NSDictionary dictionaryWithObject:number forKey:@"number"]);
     }];
     
-    // console.*
-    [self handleCommand:@"console.log" handler:^(id data, BTCallback responseCallback) {
-        
-    }];
-    
-    // menu.*
-    [self handleCommand:@"menu.show" handler:^(id data, BTCallback responseCallback) {
-        [self showMenu:data callback:responseCallback];
-    }];
-    
     // device.*
     [self handleCommand:@"device.vibrate" handler:^(id data, BTCallback responseCallback) {
         AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
     }];
     
-    // version.*
-//    [self handleCommand:@"version.download" handler:^(id data, BTCallback callback) {
-//        [self downloadAppVersion:data callback:callback];
-//    }];
-    
     // viewport.*
     [self handleCommand:@"viewport.expand" handler:^(id data, BTCallback responseCallback) {
-        [self _expandViewport:[[data objectForKey:@"height"] floatValue]];
+        float addHeight = [data[@"height"] floatValue];
+        float normalHeight = [[UIScreen mainScreen] bounds].size.height;
+        CGRect frame = webView.frame;
+        webView.frame = CGRectMake(frame.origin.x, frame.origin.y, frame.size.width, normalHeight + addHeight);
     }];
     [self handleCommand:@"viewport.putOverKeyboard" handler:^(id data, BTCallback responseCallback) {
         [self putWindowOverKeyboard];
@@ -267,37 +218,18 @@ static BTAppDelegate* instance;
     [self handleCommand:@"viewport.putUnderKeyboard" handler:^(id data, BTCallback responseCallback) {
         [self putWindowUnderKeyboard];
     }];
-    
-    
+
     [self handleCommand:@"BTLocale.getCountryCode" handler:^(id data, BTCallback responseCallback) {
         responseCallback(nil, [[NSLocale currentLocale] objectForKey:NSLocaleCountryCode]);
     }];
     
-    
-    [self handleCommand:@"BT.setStatusBar" handler:^(id data, BTCallback responseCallback) {
-        [self _setStatusBar:data responseCallback:responseCallback];
+    [self handleCommand:@"BT.setStatusBar" handler:^(id data, BTCallback callback) {
+        UIStatusBarAnimation animation = UIStatusBarAnimationNone;
+        if ([data[@"animation"] isEqualToString:@"fade"]) { animation = UIStatusBarAnimationFade; }
+        if ([data[@"animation"] isEqualToString:@"slide"]) { animation = UIStatusBarAnimationSlide; }
+        [[UIApplication sharedApplication] setStatusBarHidden:![data[@"visible"] boolValue] withAnimation:animation];
+        callback(nil,nil);
     }];
-    
-    [self handleCommand:@"BT.readResouce" handler:^(id data, BTCallback responseCallback) {
-        NSString *path = [[NSBundle mainBundle] pathForResource:data[@"name"] ofType:data[@"type"]];
-        responseCallback(nil, [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil]);
-    }];
-    
-//    // index.*
-//    [_bridge handleCommand:@"index.build" handler:^(id data, WVJBResponseCallback responseCallback) {
-//        [BTIndex buildIndex:[data objectForKey:@"name"] payloadToStrings:[data objectForKey:@"payloadToStrings"]];
-//    }];
-//    [_bridge handleCommand:@"index.lookup" handler:^(id data, WVJBResponseCallback responseCallback) {
-//        BTIndex* index = [BTIndex indexByName:[data objectForKey:@"name"]];
-//        [index lookup:[data objectForKey:@"searchString"] responseCallback:responseCallback];
-//    }];
-}
-
-- (void) _setStatusBar:(NSDictionary*)data responseCallback:(BTCallback)responseCallback {
-    UIStatusBarAnimation animation = UIStatusBarAnimationNone;
-    if ([data[@"animation"] isEqualToString:@"fade"]) { animation = UIStatusBarAnimationFade; }
-    if ([data[@"animation"] isEqualToString:@"slide"]) { animation = UIStatusBarAnimationSlide; }
-    [[UIApplication sharedApplication] setStatusBarHidden:![data[@"visible"] boolValue] withAnimation:animation];
 }
 
 + (void)notify:(NSString *)name info:(NSDictionary *)info { [instance notify:name info:info]; }
@@ -309,44 +241,6 @@ static BTAppDelegate* instance;
     [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:event object:nil userInfo:info]];
     [_bridge send:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil]];
 }
-
-/* Upgrade API
- *************/
-//- (void)downloadAppVersion:(NSDictionary *)data callback:(BTCallback)callback {
-//    NSString* url = [data objectForKey:@"url"];
-//    NSDictionary* headers = [data objectForKey:@"headers"];
-//    NSString* version = [url urlEncodedString];
-//    NSString* directoryPath = [self getFilePath:[@"versions/" stringByAppendingString:version]];
-//    [BTNet request:url method:@"GET" headers:headers params:nil responseCallback:^(id error, NSData *tarData) {
-//        if (error) {
-//            callback(error,nil);
-//            return;
-//        }
-//        if (!tarData || tarData.length == 0) {
-//            NSLog(@"Received download response with no data");
-//            return;
-//        }
-//        NSError *tarError;
-//        [[NSFileManager defaultManager] createFilesAndDirectoriesAtPath:directoryPath withTarData:tarData error:&tarError];
-//        if (tarError) {
-//            NSLog(@"Error untarring version %@", error);
-//            callback(@"Error untarring version", nil);
-//        } else {
-//            [self setAppInfo:@"downloadedVersion" value:version];
-//            NSLog(@"Success downloading and untarring version %@", version);
-//            callback(nil,nil);
-//        }
-//    }];
-//}
-//
-//- (NSString *)getCurrentVersion {
-//    return [self getAppInfo:@"installedVersion"];
-//}
-//- (NSString *)getFilePath:(NSString *)fileName {
-//    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-//    NSString *documentsDirectory = [paths objectAtIndex:0];
-//    return [documentsDirectory stringByAppendingPathComponent:fileName];
-//}
 
 /* Remote notifications
  **********************/
@@ -364,48 +258,12 @@ static BTAppDelegate* instance;
 
 /* Misc API
  **********/
-- (void)_createStatusBarOverlay {
-    // Put a transparent view on top of the status bar in order to intercept touch 
-    UIView* statusBarOverlay = [[UIView alloc] initWithFrame:[UIApplication sharedApplication].statusBarFrame];
-    statusBarOverlay.backgroundColor = [UIColor clearColor];
-    [statusBarOverlay addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onStatusBarTapped)]];
-    [window addSubview:statusBarOverlay];
-}
-
 - (void)putWindowOverKeyboard {
     // cause the keyboard (and its webview accessory - "prev/next/done" toolbar - to render underneath the webview)
     window.windowLevel = UIWindowLevelStatusBar - 0.1;
 }
-
 - (void)putWindowUnderKeyboard {
     window.windowLevel = UIWindowLevelNormal;
-}
-
-- (void) _expandViewport:(float)addHeight {
-    float normalHeight = [[UIScreen mainScreen] bounds].size.height;
-    CGRect frame = webView.frame;
-    CGRect newFrame = CGRectMake(frame.origin.x, frame.origin.y, frame.size.width, normalHeight + addHeight);
-    webView.frame = newFrame;
-}
-
-- (void)showMenu:(NSDictionary *)data callback:(BTCallback)callback {
-    NSArray* titles = [data objectForKey:@"titles"];
-    NSString* title1 = titles.count > 0 ? [titles objectAtIndex:0] : nil;
-    NSString* title2 = titles.count > 1 ? [titles objectAtIndex:1] : nil;
-    NSString* title3 = titles.count > 2 ? [titles objectAtIndex:2] : nil;
-    NSString* title4 = titles.count > 3 ? [titles objectAtIndex:3] : nil;
-    
-    _menuCallback = callback;
-    UIActionSheet* sheet = [[UIActionSheet alloc] initWithTitle:[data objectForKey:@"title"] delegate:self cancelButtonTitle:[data objectForKey:@"cancelTitle"] destructiveButtonTitle:[data objectForKey:@"destructiveTitle"] otherButtonTitles:title1, title2, title3, title4, nil];
-    [sheet showInView:self.webView];
-}
-
-- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex {
-    _menuCallback(nil, @{ @"index":[NSNumber numberWithInt:buttonIndex] });
-}
-
-- (void)actionSheetCancel:(UIActionSheet *)actionSheet {
-    _menuCallback(nil,nil);
 }
 
 - (void)handleCommand:(NSString *)handlerName handler:(BTCommandHandler)handler {
@@ -427,28 +285,17 @@ static BTAppDelegate* instance;
 
 - (void)handleRequests:(NSString *)command handler:(BTRequestHandler)requestHandler {
     [WebViewProxy handleRequestsWithHost:self.serverHost path:command handler:^(NSURLRequest *req, WVPResponse *res) {
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
             NSDictionary* params = [req.URL.query parseQueryParams];
             requestHandler(params, res);
         });
     }];
 }
 
-@end
-
-/* Private implementations
- *************************/
-
-@implementation BTAppDelegate (hidden)
-
 - (void)_respond:(WVPResponse*)res fileName:(NSString *)fileName mimeType:(NSString *)mimeType {
     NSString* filePath = [[NSBundle mainBundle] pathForResource:fileName ofType:nil];
     NSData* data = [NSData dataWithContentsOfFile:filePath];
     [res respondWithData:data mimeType:mimeType];
-}
-
--(NSURL *)getUrl:(NSString *)path {
-    return [NSURL URLWithString:[NSString stringWithFormat:@"%@/%@", self.serverUrl, path]];
 }
 
 - (void)createWindowAndWebView {
@@ -493,6 +340,14 @@ static BTAppDelegate* instance;
     [self notify:@"statusBar.wasTapped"];
 }
 
+- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
+    if (navigationType == UIWebViewNavigationTypeLinkClicked) {
+        [[UIApplication sharedApplication] openURL:[request URL]];
+        return NO;
+    }
+    return YES;
+}
+
 - (void)showLoadingOverlay {
     CGRect frame = [[UIScreen mainScreen] bounds];
     frame.origin.y -= 20;
@@ -527,14 +382,4 @@ static BTAppDelegate* instance;
         [hideOverlay removeFromSuperview];
     }];
 }
-
-- (NSDictionary *)keyboardEventInfo:(NSNotification *)notification {
-    NSDictionary *userInfo = [notification userInfo];
-    NSValue *keyboardAnimationDurationValue = [userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
-    NSTimeInterval keyboardAnimationDurationInterval;
-    [keyboardAnimationDurationValue getValue:&keyboardAnimationDurationInterval];
-    NSNumber* keyboardAnimationDuration = [NSNumber numberWithDouble:keyboardAnimationDurationInterval];
-    return [NSDictionary dictionaryWithObject:keyboardAnimationDuration forKey:@"keyboardAnimationDuration"];
-}
-
 @end

@@ -21,6 +21,9 @@ static BTFiles* instance;
 + (NSData*)readCache:(NSString*)filename {
     return [instance readCache:filename];
 }
++ (NSData*)read:(NSDictionary*)params {
+    return [instance read:params];
+}
 + (BOOL)writeDocument:(NSString*)filename data:(NSData*)data {
     return [instance writeDocument:filename data:data];
 }
@@ -33,31 +36,40 @@ static BTFiles* instance;
 + (NSString*)documentPath:(NSString*)filename {
     return [instance _documentPath:filename];
 }
++ (NSString*)path:(NSDictionary*)params {
+    if (params[@"file"]) { return params[@"file"]; }
+    if (params[@"filename"]) { return params[@"filename"]; }
+    if (params[@"document"]) { return [BTFiles documentPath:params[@"document"]]; }
+    if (params[@"cache"]) { return [BTFiles cachePath:params[@"cache"]]; }
+    return nil;
+}
 
 - (void) setup:(BTAppDelegate*)app {
     if (instance) { return; }
     instance = self;
     _documentsDirectory = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];
     _cachesDirectory = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-
-    [app handleCommand:@"BTFiles.writeJsonDocument" handler:^(id data, BTCallback responseCallback) {
-        [self _writeJson:[self _documentPath:[data objectForKey:@"filename"]] jsonValue:[data objectForKey:@"jsonValue"] andRespond:responseCallback];
+    
+    
+    [app handleCommand:@"BTFiles.writeJson" handler:^(id data, BTCallback responseCallback) {
+        [self _writeJson:[BTFiles path:data] jsonValue:[data objectForKey:@"jsonValue"] andRespond:responseCallback];
     }];
-    [app handleCommand:@"BTFiles.writeJsonCache" handler:^(id data, BTCallback responseCallback) {
-        [self _writeJson:[self _cachePath:[data objectForKey:@"filename"]] jsonValue:[data objectForKey:@"jsonValue"] andRespond:responseCallback];
-    }];
-    [app handleCommand:@"BTFiles.readJsonDocument" handler:^(id data, BTCallback responseCallback) {
-        [self _readJson:[self _documentPath:[data objectForKey:@"filename"]] andRespond:responseCallback];
-    }];
-    [app handleCommand:@"BTFiles.readJsonCache" handler:^(id data, BTCallback responseCallback) {
-        [self _readJson:[self _cachePath:[data objectForKey:@"filename"]] andRespond:responseCallback];
+    [app handleCommand:@"BTFiles.readJson" handler:^(id data, BTCallback responseCallback) {
+        [self _readJson:[BTFiles path:data] andRespond:responseCallback];
     }];
     [app handleCommand:@"BTFiles.clearAll" handler:^(id data, BTCallback responseCallback) {
         [self _clearAll:data responseCallback:responseCallback];
     }];
-    
-    [app handleRequests:@"BTFiles.getDocument" handler:^(NSDictionary *params, WVPResponse *response) {
-        [response respondWithData:[self readDocument:params[@"document"]] mimeType:params[@"mimeType"]];
+    [app handleRequests:@"BTFiles.read" handler:^(NSDictionary *params, WVPResponse *response) {
+        [response respondWithData:[self read:params] mimeType:params[@"mimeType"]];
+    }];
+    [app handleCommand:@"BTFiles.fetch" handler:^(id params, BTCallback callback) {
+        [self async:^{
+            NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:params[@"url"]]];
+            if (!data) { return callback(@"Could not fetch data", nil); }
+            BOOL success = [data writeToFile:[BTFiles path:params] atomically:YES];
+            callback(success ? nil : @"Coult not write fetched data", nil);
+        }];
     }];
 }
 
@@ -82,6 +94,9 @@ static BTFiles* instance;
     return nil;
 }
 
+- (NSData*)read:(NSDictionary*)params {
+    return [NSData dataWithContentsOfFile:[BTFiles path:params]];
+}
 - (NSData*)readDocument:(NSString*)filename {
     return [NSData dataWithContentsOfFile:[self _documentPath:filename]];
 }

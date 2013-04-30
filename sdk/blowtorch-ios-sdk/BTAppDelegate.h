@@ -26,14 +26,13 @@
 - (void)setupModules;
 - (void)startApp;
 - (void)setupApp:(BOOL)useLocalBuild;
-- (void)setupNetHandlers:(BOOL)useLocalBuild;
+- (void)setupHandlers:(BOOL)useLocalBuild;
 /* Webview API
  *************/
 + (void) notify:(NSString*)name info:(NSDictionary*)info;
 + (void) notify:(NSString*)name;
 - (void) notify:(NSString*)name info:(NSDictionary*)info;
 - (void) notify:(NSString*)name;
-- (void) setupBridgeHandlers:(BOOL)useLocalBuild;
 
 /* Keyboard
  **********/

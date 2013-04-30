@@ -12,6 +12,8 @@
 
 + (NSData*)readDocument:(NSString*)filename;
 + (NSData*)readCache:(NSString*)filename;
++ (NSData*)read:(NSDictionary*)params;
++ (NSString*)path:(NSDictionary*)params;
 + (BOOL)writeDocument:(NSString*)filename data:(NSData*)data;
 + (BOOL)writeCache:(NSString*)filename data:(NSData*)data;
 + (NSString*)cachePath:(NSString*)filename;
