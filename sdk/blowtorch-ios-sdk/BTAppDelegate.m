@@ -17,9 +17,11 @@ static BTAppDelegate* instance;
     UILabel* _reloadView;
     BTCallback _menuCallback;
     NSDictionary* _launchNotification;
+    UIView* _splashScreen;
+
 }
 
-@synthesize window, webView, javascriptBridge=_bridge, overlay, config;
+@synthesize window, webView, javascriptBridge=_bridge, config;
 
 + (BTAppDelegate *)instance { return instance; }
 
@@ -34,7 +36,7 @@ static BTAppDelegate* instance;
     [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:@"WebKitCacheModelPreferenceKey"];
 
     [self createWindowAndWebView];
-    [self showLoadingOverlay];
+    [self showSplashScreen:@{} callback:NULL];
     
 #ifdef DEBUG
     [NSClassFromString(@"WebView") performSelector:@selector(_enableRemoteInspector)];
@@ -184,12 +186,15 @@ static BTAppDelegate* instance;
     [self handleCommand:@"app.reload" handler:^(id data, BTCallback responseCallback) {
         [self startApp];
     }];
-    [self handleCommand:@"app.show" handler:^(id data, BTCallback  responseCallback) {
-        [self hideLoadingOverlay:data];
+    [self handleCommand:@"splashScreen.hide" handler:^(id data, BTCallback  responseCallback) {
+        [self hideSplashScreen:data];
         if (_launchNotification) {
             [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didLaunchWithNotification" object:nil userInfo:@{ @"launchNotification":_launchNotification }];
             _launchNotification = nil;
         }
+    }];
+    [self handleCommand:@"splashScreen.show" handler:^(id params, BTCallback callback) {
+        [self showSplashScreen:params callback:callback];
     }];
     [self handleCommand:@"app.setIconBadgeNumber" handler:^(id data, BTCallback responseCallback) {
         NSNumber* number = [data objectForKey:@"number"];
@@ -235,9 +240,13 @@ static BTAppDelegate* instance;
 + (void)notify:(NSString *)name info:(NSDictionary *)info { [instance notify:name info:info]; }
 + (void)notify:(NSString *)name { [instance notify:name]; }
 - (void)notify:(NSString *)event { [self notify:event info:NULL]; }
-- (void)notify:(NSString *)event info:(NSDictionary *)info {
+- (void)notify:(NSString *)event info:(id)info {
 //    NSLog(@"Notify %@ %@", event, info);
     if (!info) { info = [NSDictionary dictionary]; }
+    
+    if ([info isKindOfClass:[NSError class]]) {
+        info = [NSDictionary dictionaryWithObjectsAndKeys:[info localizedDescription], @"message", nil];
+    }
     [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:event object:nil userInfo:info]];
     [_bridge send:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil]];
 }
@@ -348,10 +357,13 @@ static BTAppDelegate* instance;
     return YES;
 }
 
-- (void)showLoadingOverlay {
+- (void)showSplashScreen:(NSDictionary*)params callback:(BTCallback)callback {
+    if (_splashScreen) { return; }
+    if (!callback) { callback = ^(id err, id responseData) {}; }
     CGRect frame = [[UIScreen mainScreen] bounds];
     frame.origin.y -= 20;
     UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
+    _splashScreen = splashScreen;
     
     CGSize screenSize = [[UIScreen mainScreen] bounds].size;
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
@@ -364,14 +376,26 @@ static BTAppDelegate* instance;
         // TODO iPad
         splashScreen.image = [UIImage imageNamed:@"Default"];
     }
-    self.overlay = splashScreen;
-    [window.rootViewController.view addSubview:splashScreen];
+    
+    NSNumber* fade = params[@"fade"];
+    if (fade) {
+        splashScreen.alpha = 0.0;
+        [window.rootViewController.view addSubview:splashScreen];
+        [UIView animateWithDuration:[fade doubleValue] animations:^{
+            splashScreen.alpha = 1.0;
+        } completion:^(BOOL finished) {
+            callback(nil,nil);
+        }];
+    } else {
+        [window.rootViewController.view addSubview:splashScreen];
+        callback(nil,nil);
+    }
 }
 
-- (void)hideLoadingOverlay:(NSDictionary *)data {
-    if (!self.overlay) { return; }
-    UIView* hideOverlay = self.overlay;
-    self.overlay = nil;
+- (void)hideSplashScreen:(NSDictionary *)data {
+    if (!_splashScreen) { return; }
+    UIView* hideOverlay = _splashScreen;
+    _splashScreen = nil;
     NSNumber* fade = [data objectForKey:@"fade"];
     if (!fade) {
         return [hideOverlay removeFromSuperview];

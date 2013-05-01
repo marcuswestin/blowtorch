@@ -27,6 +27,7 @@
 - (void)startApp;
 - (void)setupApp:(BOOL)useLocalBuild;
 - (void)setupHandlers:(BOOL)useLocalBuild;
+- (void)showSplashScreen:(NSDictionary*)params callback:(BTCallback)callback;
 /* Webview API
  *************/
 + (void) notify:(NSString*)name info:(NSDictionary*)info;
@@ -44,7 +45,6 @@
 @property (strong, nonatomic) UIWindow *window;
 @property (strong, nonatomic) UIWebView *webView;
 @property (strong, nonatomic) WebViewJavascriptBridge *javascriptBridge;
-@property (strong, atomic) UIView* overlay;
 
 @end
 
