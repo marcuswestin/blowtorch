@@ -1,8 +1,8 @@
 #import "BTAppDelegate.h"
 #import "NSFileManager+Tar.h"
 #import "BTViewController.h"
-#import "BTIndex.h"
 #import "UIColor+Util.h"
+#import "NSString+HHUriEncoding.h"
 
 #ifdef DEBUG
 #import "DebugUIWebView.h"

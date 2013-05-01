@@ -2,7 +2,6 @@
 #import "BTCache.h"
 #import "BTAppDelegate.h"
 #import "BTFiles.h"
-#import "BTMedia.h"
 #import "BTAddressBook.h"
 #import "UIImage+Resize.h"
 
