@@ -32,7 +32,7 @@ static NSString* infoFilename = @"BTCacheInfo";
     if (instance) { return; }
     instance = self;
     storeScheduled = NO;
-    NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:infoFilename]];
+    NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:[self _path:infoFilename]];
     _cacheInfo = [NSMutableDictionary dictionaryWithDictionary:dict];
     
     [app handleCommand:@"BTCache.clear" handler:^(id params, BTCallback callback) {
@@ -41,7 +41,7 @@ static NSString* infoFilename = @"BTCacheInfo";
         callback(nil,nil);
     }];
     [app handleCommand:@"BTCache.clearAll" handler:^(id params, BTCallback callback) {
-        _cacheInfo = [NSMutableDictionary dictionaryWithContentsOfFile:[BTFiles cachePath:infoFilename]];
+        _cacheInfo = [NSMutableDictionary dictionaryWithContentsOfFile:[self _path:infoFilename]];
         [self _writeNow];
         callback(nil,nil);
     }];
@@ -52,7 +52,7 @@ static NSString* infoFilename = @"BTCacheInfo";
         NSLog(@"Refusing to cache 0-length data %@", key);
         return;
     }
-    [BTFiles writeCache:[self _filenameFor:key] data:data];
+    [data writeToFile:[self _path:[self _filenameFor:key]] atomically:YES];
     _cacheInfo[key] = [NSNumber numberWithInt:1];
     [self _scheduleWrite];
 }
@@ -67,16 +67,20 @@ static NSString* infoFilename = @"BTCacheInfo";
     });
 }
 
+- (NSString*) _path:(NSString*)filename {
+    return [BTFiles documentPath:filename];
+}
+
 - (void) _writeNow {
     @synchronized(self) {
-        [_cacheInfo writeToFile:[BTFiles cachePath:infoFilename] atomically:YES];
+        [_cacheInfo writeToFile:[self _path:infoFilename] atomically:YES];
         storeScheduled = NO;
     }
 }
 
 - (NSData *)get:(NSString *)key {
     if (_cacheInfo[key]) {
-        return [BTFiles readCache:[self _filenameFor:key]];
+        return [NSData dataWithContentsOfFile:[self _path:[self _filenameFor:key]]];
     } else {
         return nil;
     }
