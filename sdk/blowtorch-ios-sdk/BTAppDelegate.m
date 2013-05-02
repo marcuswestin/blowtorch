@@ -70,13 +70,14 @@ static BTAppDelegate* instance;
     else { return [_serverScheme stringByAppendingFormat:@"//%@", _serverHost]; }
 }
 
--(void)setupApp:(BOOL)useLocalBuild {
-    if (!useLocalBuild) {
-        [self _renderDevTools];
-    }
+-(void)setupApp {
+#ifdef DEBUG
+    [self _renderDevTools];
+#endif
     
-    [self setupHandlers:useLocalBuild];
+    [self setupHandlers];
     [self setupModules];
+    [self startApp];
 }
 
 -(void)_renderDevTools {
@@ -181,7 +182,7 @@ static BTAppDelegate* instance;
 
 /* WebView <-> Native API
  ************************/
-- (void)setupHandlers:(BOOL)useLocalBuild {
+- (void)setupHandlers {
     // app.*
     [self handleCommand:@"app.reload" handler:^(id data, BTCallback responseCallback) {
         [self startApp];

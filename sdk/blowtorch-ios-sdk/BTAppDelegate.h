@@ -25,8 +25,8 @@
  ***************/
 - (void)setupModules;
 - (void)startApp;
-- (void)setupApp:(BOOL)useLocalBuild;
-- (void)setupHandlers:(BOOL)useLocalBuild;
+- (void)setupApp;
+- (void)setupHandlers;
 - (void)showSplashScreen:(NSDictionary*)params callback:(BTCallback)callback;
 /* Webview API
  *************/
