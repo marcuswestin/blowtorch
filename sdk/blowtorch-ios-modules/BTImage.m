@@ -99,18 +99,14 @@ static BTImage* instance;
     }
     
     if (params[@"document"]) {
-        [self async:^{
-            NSData* data = [BTFiles readDocument:params[@"document"]];
-            [self processData:data params:params response:res];
-        }];
+        NSData* data = [BTFiles readDocument:params[@"document"]];
+        [self processData:data params:params response:res];
         return;
     }
     
     if (params[@"file"]) {
-        [self async:^{
-            NSData* data = [NSData dataWithContentsOfFile:params[@"file"]];
-            [self processData:data params:params response:res];
-        }];
+        NSData* data = [NSData dataWithContentsOfFile:params[@"file"]];
+        [self processData:data params:params response:res];
         return;
     }
     
@@ -119,10 +115,6 @@ static BTImage* instance;
         return;
     }
     
-//    UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
-//    bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
-//        [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
-//    }];
     if ([BTCache has:params[@"url"]]) {
         if ([BTCache has:res.request.URL.absoluteString]) {
             [self respondWithData:[BTCache get:res.request.URL.absoluteString] response:res params:params];

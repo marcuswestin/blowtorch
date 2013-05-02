@@ -64,12 +64,10 @@ static BTFiles* instance;
         [response respondWithData:[self read:params] mimeType:params[@"mimeType"]];
     }];
     [app handleCommand:@"BTFiles.fetch" handler:^(id params, BTCallback callback) {
-        [self async:^{
-            NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:params[@"url"]]];
-            if (!data) { return callback([@"Could not fetch data: " stringByAppendingString:params[@"url"]], nil); }
-            BOOL success = [data writeToFile:[BTFiles path:params] atomically:YES];
-            callback(success ? nil : @"Coult not write fetched data", nil);
-        }];
+        NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:params[@"url"]]];
+        if (!data) { return callback([@"Could not fetch data: " stringByAppendingString:params[@"url"]], nil); }
+        BOOL success = [data writeToFile:[BTFiles path:params] atomically:YES];
+        callback(success ? nil : @"Coult not write fetched data", nil);
     }];
 }
 

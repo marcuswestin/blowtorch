@@ -92,7 +92,7 @@ static BTAppDelegate* instance;
     [window.rootViewController.view addSubview:_reloadView];
 }
 -(void)_reloadTap {
-    NSLog(@"\n\n\nRELOAD APP\n\n\n");
+    NSLog(@"\n\n\nRELOAD APP\n\n");
     [self startApp];
     _reloadView.backgroundColor = [UIColor blueColor];
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
@@ -295,10 +295,8 @@ static BTAppDelegate* instance;
 
 - (void)handleRequests:(NSString *)command handler:(BTRequestHandler)requestHandler {
     [WebViewProxy handleRequestsWithHost:self.serverHost path:command handler:^(NSURLRequest *req, WVPResponse *res) {
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-            NSDictionary* params = [req.URL.query parseQueryParams];
-            requestHandler(params, res);
-        });
+        NSDictionary* params = [req.URL.query parseQueryParams];
+        requestHandler(params, res);
     }];
 }
 

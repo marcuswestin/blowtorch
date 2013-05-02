@@ -45,40 +45,34 @@ static BTSql* instance;
 }
 
 - (void)executeQuery:(NSString *)sql arguments:(NSArray *)arguments callback:(BTCallback)callback {
-    [self async:^{
-        [queue inDatabase:^(FMDatabase *db) {
-            FMResultSet* resultSet = [db executeQuery:sql withArgumentsInArray:arguments];
-            NSMutableArray* rows = [NSMutableArray array];
-            while ([resultSet next]) {
-                [rows addObject:[resultSet resultDictionary]];
-            }
-            callback(nil, @{ @"rows":rows });
-        }];
+    [queue inDatabase:^(FMDatabase *db) {
+        FMResultSet* resultSet = [db executeQuery:sql withArgumentsInArray:arguments];
+        NSMutableArray* rows = [NSMutableArray array];
+        while ([resultSet next]) {
+            [rows addObject:[resultSet resultDictionary]];
+        }
+        callback(nil, @{ @"rows":rows });
     }];
 }
 
 - (void)executeUpdate:(NSString *)sql arguments:(NSArray *)arguments ignoreDuplicates:(BOOL)ignoreDuplicates callback:(BTCallback)callback {
-    [self async:^{
-        [queue inDatabase:^(FMDatabase *db) {
-            BOOL success = [db executeUpdate:sql withArgumentsInArray:arguments];
-            if (!success && ignoreDuplicates && db.lastErrorCode == SQLITE_CONSTRAINT) { success = YES; }
-            callback(success ? nil : db.lastError, nil);
-        }];
+    [queue inDatabase:^(FMDatabase *db) {
+        BOOL success = [db executeUpdate:sql withArgumentsInArray:arguments];
+        if (!success && ignoreDuplicates && db.lastErrorCode == SQLITE_CONSTRAINT) { success = YES; }
+        callback(success ? nil : db.lastError, nil);
     }];
 }
 
 - (void)insertMultiple:(NSString*)sql argumentsList:(NSArray*)argumentsList ignoreDuplicates:(BOOL)ignoreDuplicates callback:(BTCallback)callback {
-    [self async:^{
-        [queue inTransaction:^(FMDatabase *db, BOOL *rollback) {
-            for (NSArray* arguments in argumentsList) {
-                BOOL success = [db executeUpdate:sql withArgumentsInArray:arguments];
-                if (!success) {
-                    if (ignoreDuplicates && db.lastErrorCode == SQLITE_CONSTRAINT) { continue; }
-                    return callback(db.lastError, nil);
-                }
+    [queue inTransaction:^(FMDatabase *db, BOOL *rollback) {
+        for (NSArray* arguments in argumentsList) {
+            BOOL success = [db executeUpdate:sql withArgumentsInArray:arguments];
+            if (!success) {
+                if (ignoreDuplicates && db.lastErrorCode == SQLITE_CONSTRAINT) { continue; }
+                return callback(db.lastError, nil);
             }
-            callback(nil,nil);
-        }];
+        }
+        callback(nil,nil);
     }];
 }
 

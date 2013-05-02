@@ -57,7 +57,19 @@ static NSMutableDictionary* modules;
 }
 
 - (void)async:(void (^)())asyncBlock {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), asyncBlock);
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), asyncBlock);
+}
+
+- (void)asyncBackground:(void (^)())asyncBackgroundPriorityBlock {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), asyncBackgroundPriorityBlock);
+}
+
+- (void)asyncHighPriority:(void (^)())asyncHighPriorityBlock {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), asyncHighPriorityBlock);
+}
+
+- (void)asyncLowPriority:(void (^)())asyncLowPriorityBlock {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), asyncLowPriorityBlock);
 }
 
 @end
