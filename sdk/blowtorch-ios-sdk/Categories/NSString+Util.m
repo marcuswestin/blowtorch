@@ -16,3 +16,11 @@
 }
 
 @end
+
+@implementation NSObject (Util)
+
+- (NSString *)toJson {
+    return [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:self options:0 error:nil] encoding:NSUTF8StringEncoding];
+}
+
+@end

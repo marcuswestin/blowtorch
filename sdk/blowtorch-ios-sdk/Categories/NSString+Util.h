@@ -13,3 +13,9 @@
 - (NSString*)urlEncodedString;
 
 @end
+
+@interface NSObject (Util)
+
+- (NSString*)toJson;
+
+@end
