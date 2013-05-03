@@ -1,5 +1,7 @@
 //https://gist.github.com/1184827
 
+#ifdef DEBUG
+
 #import "DebugUIWebView.h"
 #import "BTAppDelegate.h"
 
@@ -160,3 +162,5 @@ static NSString* const kSourceIDMapSourceKey = @"source";
 //- (void)webView:(WebView *)webView willLeaveCallFrame:(WebScriptCallFrame *)frame sourceId:(int)sid line:(int)lineno forWebFrame:(WebFrame *)webFrame;
 
 @end
+
+#endif
