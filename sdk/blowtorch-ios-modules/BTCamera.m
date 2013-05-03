@@ -96,7 +96,7 @@ static BTCamera* instance;
     } else {
         data = UIImagePNGRepresentation(image);
     }
-    NSString* file = [BTFiles documentPath:captureParams[@"document"]];
+    NSString* file = [BTFiles path:captureParams];
     BOOL success = [data writeToFile:file atomically:YES];
     if (!success) { return captureCallback(@"Could not store image", nil); }
     

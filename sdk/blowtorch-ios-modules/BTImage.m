@@ -14,6 +14,7 @@
 
 @implementation BTImage {
     NSOperationQueue* queue;
+    NSMutableDictionary* loading;
 }
 
 static BTImage* instance;
@@ -21,7 +22,6 @@ static BTImage* instance;
 - (id)init {
     if (self = [super init]) {
         queue = [[NSOperationQueue alloc] init];
-        queue.maxConcurrentOperationCount = 5;
     }
     return self;
 }
@@ -29,6 +29,7 @@ static BTImage* instance;
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
+    loading = [NSMutableDictionary dictionary];
     [app handleRequests:@"BTImage.fetchImage" handler:^(NSDictionary *params, WVPResponse *response) {
         [self fetchImage:params response:response];
     }];
@@ -129,24 +130,50 @@ static BTImage* instance;
 
 - (void)_fetchImageData:(NSDictionary*)params response:(WVPResponse*)res {
     NSString* urlParam = params[@"url"];
+    @synchronized(self) {
+        if (loading[urlParam]) {
+            [loading[urlParam] addObject:res];
+            return;
+        }
+        loading[urlParam] = [NSMutableArray arrayWithObject:res];
+    }
+    
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
         if (netData.length && params[@"cache"]) {
             [BTCache store:params[@"url"] data:netData];
         }
-        [self processData:netData params:params response:res];
+        NSArray* responses;
+        @synchronized(self) {
+            responses = loading[urlParam];
+            [loading removeObjectForKey:urlParam];
+        }
+        
+        for (WVPResponse* res in responses) {
+            [self processData:netData params:params response:res];
+        }
     }];
 }
 
 - (void)processData:(NSData*)data params:(NSDictionary*)params response:(WVPResponse*)res {
+    NSString* absoluteUrl = res.request.URL.absoluteString;
+    @synchronized(self) {
+        if (loading[absoluteUrl]) {
+            [loading[absoluteUrl] addObject:res];
+            return;
+        }
+        loading[absoluteUrl] = [NSMutableArray arrayWithObject:res];
+    }
+
     NSString* resizeParam = [params objectForKey:@"resize"];
     NSString* cropParam = [params objectForKey:@"crop"];
+    NSData* resultData;
     if (resizeParam) {
         NSString* radiusParam = [params objectForKey:@"radius"];
         int radius = radiusParam ? [radiusParam intValue] : 0;
         UIImage* image = [UIImage imageWithData:data];
         image = [image thumbnailSize:[resizeParam makeSize] transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
-        data = UIImageJPEGRepresentation(image, 1.0);
+        resultData = UIImageJPEGRepresentation(image, 1.0);
         if (params[@"cache"] && data.length) {
             [BTCache store:res.request.URL.absoluteString data:data];
         }
@@ -156,18 +183,27 @@ static BTImage* instance;
         CGSize deltaSize = CGSizeMake(image.size.width - size.width, image.size.height - size.height);
         CGRect cropRect = CGRectMake(deltaSize.width / 2, deltaSize.height / 2, size.width, size.height);
         image = [image croppedImage:cropRect];
-        data = UIImageJPEGRepresentation(image, 1.0);
+        resultData = UIImageJPEGRepresentation(image, 1.0);
         if (params[@"cache"]) {
             [BTCache store:res.request.URL.absoluteString data:data];
         }
     }
-    [self respondWithData:data response:res params:params];
+    
+    NSArray* responses;
+    @synchronized(self) {
+        responses = loading[absoluteUrl];
+        [loading removeObjectForKey:absoluteUrl];
+    }
+    
+    for (WVPResponse* res in responses) {
+        [self respondWithData:resultData response:res params:params];
+    }
 }
 
 - (void)respondWithData:(NSData *)data response:(WVPResponse *)res params:(NSDictionary *)params {
     NSString* mimeTypeParam = [params objectForKey:@"mimeType"];
     if (!mimeTypeParam) { mimeTypeParam = @"image/jpg"; }
-    res.cachePolicy = NSURLCacheStorageNotAllowed; // we take care of caching ourselves
+    res.cachePolicy = NSURLCacheStorageAllowedInMemoryOnly; // we take care of caching ourselves
     [res respondWithData:data mimeType:mimeTypeParam];
 }
 @end

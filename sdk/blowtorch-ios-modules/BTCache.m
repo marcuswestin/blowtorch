@@ -68,7 +68,7 @@ static NSString* infoFilename = @"BTCacheInfo";
 }
 
 - (NSString*) _path:(NSString*)filename {
-    return [BTFiles documentPath:filename];
+    return [BTFiles cachePath:filename];
 }
 
 - (void) _writeNow {
