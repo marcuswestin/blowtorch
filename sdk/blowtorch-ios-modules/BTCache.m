@@ -12,6 +12,7 @@
 @implementation BTCache {
     NSMutableDictionary* _cacheInfo;
     BOOL storeScheduled;
+    NSObject* cacheInfoWriteLock;
 }
 
 static BTCache* instance;
@@ -31,6 +32,7 @@ static NSString* infoFilename = @"BTCacheInfo";
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
+    cacheInfoWriteLock = [[NSObject alloc] init];
     storeScheduled = NO;
     NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:[self _path:infoFilename]];
     _cacheInfo = [NSMutableDictionary dictionaryWithDictionary:dict];
@@ -47,35 +49,34 @@ static NSString* infoFilename = @"BTCacheInfo";
     }];
 }
 
+- (NSString*) _path:(NSString*)filename {
+    return [BTFiles cachePath:filename];
+}
+
 - (void)store:(NSString *)key data:(NSData *)data {
     if (!data || !data.length) {
         NSLog(@"Refusing to cache 0-length data %@", key);
         return;
     }
-    [data writeToFile:[self _path:[self _filenameFor:key]] atomically:YES];
+    [data writeToFile:[self _path:[self _filenameFor:key]] atomically:NO];
     _cacheInfo[key] = [NSNumber numberWithInt:1];
     [self _scheduleWrite];
 }
 
 - (void) _scheduleWrite {
-    @synchronized(self) {
+    @synchronized(cacheInfoWriteLock) {
         if (storeScheduled) { return; }
         storeScheduled = YES;
     }
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         [self _writeNow];
     });
 }
-
-- (NSString*) _path:(NSString*)filename {
-    return [BTFiles cachePath:filename];
-}
-
 - (void) _writeNow {
-    @synchronized(self) {
-        [_cacheInfo writeToFile:[self _path:infoFilename] atomically:YES];
+    @synchronized(cacheInfoWriteLock) {
         storeScheduled = NO;
     }
+    [_cacheInfo writeToFile:[self _path:infoFilename] atomically:YES];
 }
 
 - (NSData *)get:(NSString *)key {

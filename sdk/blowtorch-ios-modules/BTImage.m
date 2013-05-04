@@ -15,21 +15,18 @@
 @implementation BTImage {
     NSOperationQueue* queue;
     NSMutableDictionary* loading;
+    NSMutableDictionary* processing;
 }
 
 static BTImage* instance;
-
-- (id)init {
-    if (self = [super init]) {
-        queue = [[NSOperationQueue alloc] init];
-    }
-    return self;
-}
 
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
     loading = [NSMutableDictionary dictionary];
+    processing = [NSMutableDictionary dictionary];
+    queue = [[NSOperationQueue alloc] init];
+    queue.maxConcurrentOperationCount = 10;
     [app handleRequests:@"BTImage.fetchImage" handler:^(NSDictionary *params, WVPResponse *response) {
         [self fetchImage:params response:response];
     }];
@@ -111,7 +108,7 @@ static BTImage* instance;
         return;
     }
     
-    if (![params objectForKey:@"cache"]) {
+    if (!params[@"cache"]) {
         [self _fetchImageData:params response:res];
         return;
     }
@@ -130,7 +127,7 @@ static BTImage* instance;
 
 - (void)_fetchImageData:(NSDictionary*)params response:(WVPResponse*)res {
     NSString* urlParam = params[@"url"];
-    @synchronized(self) {
+    @synchronized(loading) {
         if (loading[urlParam]) {
             [loading[urlParam] addObject:res];
             return;
@@ -144,7 +141,7 @@ static BTImage* instance;
             [BTCache store:params[@"url"] data:netData];
         }
         NSArray* responses;
-        @synchronized(self) {
+        @synchronized(loading) {
             responses = loading[urlParam];
             [loading removeObjectForKey:urlParam];
         }
@@ -157,12 +154,12 @@ static BTImage* instance;
 
 - (void)processData:(NSData*)data params:(NSDictionary*)params response:(WVPResponse*)res {
     NSString* absoluteUrl = res.request.URL.absoluteString;
-    @synchronized(self) {
-        if (loading[absoluteUrl]) {
-            [loading[absoluteUrl] addObject:res];
+    @synchronized(processing) {
+        if (processing[absoluteUrl]) {
+            [processing[absoluteUrl] addObject:res];
             return;
         }
-        loading[absoluteUrl] = [NSMutableArray arrayWithObject:res];
+        processing[absoluteUrl] = [NSMutableArray arrayWithObject:res];
     }
 
     NSString* resizeParam = [params objectForKey:@"resize"];
@@ -190,9 +187,9 @@ static BTImage* instance;
     }
     
     NSArray* responses;
-    @synchronized(self) {
-        responses = loading[absoluteUrl];
-        [loading removeObjectForKey:absoluteUrl];
+    @synchronized(processing) {
+        responses = processing[absoluteUrl];
+        [processing removeObjectForKey:absoluteUrl];
     }
     
     for (WVPResponse* res in responses) {
