@@ -9,11 +9,7 @@
 #import "BTCache.h"
 #import "BTFiles.h"
 
-@implementation BTCache {
-    NSMutableDictionary* _cacheInfo;
-    BOOL storeScheduled;
-    NSObject* cacheInfoWriteLock;
-}
+@implementation BTCache
 
 static BTCache* instance;
 
@@ -23,28 +19,25 @@ static BTCache* instance;
 + (NSData*)get:(NSString*)key {
     return [instance get:key];
 }
-+ (bool)has:(NSString*)key {
-    return [instance has:key];
-}
-
-static NSString* infoFilename = @"BTCacheInfo";
 
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
-    cacheInfoWriteLock = [[NSObject alloc] init];
-    storeScheduled = NO;
-    NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:[self _path:infoFilename]];
-    _cacheInfo = [NSMutableDictionary dictionaryWithDictionary:dict];
     
+    [[NSFileManager defaultManager] createDirectoryAtPath:[self _path:@"BTCache"] withIntermediateDirectories:YES attributes:NULL error:NULL];
+
     [app handleCommand:@"BTCache.clear" handler:^(id params, BTCallback callback) {
-        [_cacheInfo removeObjectForKey:params[@"key"]];
-        [self _scheduleWrite];
-        callback(nil,nil);
+        NSError* err;
+        [[NSFileManager defaultManager] removeItemAtPath:[self _path:params[@"key"]] error:&err];
+        callback(err,nil);
     }];
     [app handleCommand:@"BTCache.clearAll" handler:^(id params, BTCallback callback) {
-        _cacheInfo = [NSMutableDictionary dictionaryWithContentsOfFile:[self _path:infoFilename]];
-        [self _writeNow];
+        NSError* err;
+        [[NSFileManager defaultManager] removeItemAtPath:[self _path:@"BTCache/"] error:&err];
+        if (err && err.code != NSFileNoSuchFileError) {
+            return callback(err,nil);
+        }
+        [[NSFileManager defaultManager] createDirectoryAtPath:[self _path:@"BTCache"] withIntermediateDirectories:YES attributes:NULL error:NULL];
         callback(nil,nil);
     }];
 }
@@ -54,47 +47,28 @@ static NSString* infoFilename = @"BTCacheInfo";
 }
 
 - (void)store:(NSString *)key data:(NSData *)data {
+    if (!key || !key.length) {
+        NSLog(@"Refusing to cache 0-length key");
+        return;
+    }
     if (!data || !data.length) {
         NSLog(@"Refusing to cache 0-length data %@", key);
         return;
     }
-    [data writeToFile:[self _path:[self _filenameFor:key]] atomically:NO];
-    _cacheInfo[key] = [NSNumber numberWithInt:1];
-    [self _scheduleWrite];
-}
-
-- (void) _scheduleWrite {
-    @synchronized(cacheInfoWriteLock) {
-        if (storeScheduled) { return; }
-        storeScheduled = YES;
-    }
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        [self _writeNow];
-    });
-}
-- (void) _writeNow {
-    @synchronized(cacheInfoWriteLock) {
-        storeScheduled = NO;
-    }
-    [_cacheInfo writeToFile:[self _path:infoFilename] atomically:YES];
+    [data writeToFile:[self _path:[self _filenameFor:key]] atomically:YES];
 }
 
 - (NSData *)get:(NSString *)key {
-    if (_cacheInfo[key]) {
-        return [NSData dataWithContentsOfFile:[self _path:[self _filenameFor:key]]];
-    } else {
-        return nil;
-    }
-}
-
-- (BOOL)has:(NSString *)key {
-    BOOL doesHave = !!_cacheInfo[key];
-    return doesHave;
+    return [NSData dataWithContentsOfFile:[self _path:[self _filenameFor:key]]];
 }
 
 - (NSString *)_filenameFor:(NSString *)key {
-    NSCharacterSet* illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/\\?%*|\"<>"];
+    static NSCharacterSet* illegalFileNameCharacters = nil;
+    if (!illegalFileNameCharacters) {
+        illegalFileNameCharacters = [NSCharacterSet characterSetWithCharactersInString:@"/\\?%*|\"<>"];
+    }
+    
     NSString* filename = [[key componentsSeparatedByCharactersInSet:illegalFileNameCharacters] componentsJoinedByString:@""];
-    return [@"BTCache-" stringByAppendingString:filename];
+    return [@"BTCache/" stringByAppendingString:filename];
 }
 @end

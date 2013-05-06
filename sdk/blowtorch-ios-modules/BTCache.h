@@ -12,6 +12,5 @@
 
 + (void)store:(NSString*)key data:(NSData*)data;
 + (NSData*)get:(NSString*)key;
-+ (bool)has:(NSString*)key;
 
 @end

@@ -24,6 +24,6 @@
 - (void)asyncBackground:(void (^)())asyncBackgroundPriorityBlock;
 - (void)asyncHighPriority:(void (^)())asyncHighPriorityBlock;
 - (void)asyncLowPriority:(void (^)())asyncLowPriorityBlock;
-
+- (void)asyncMainQueue:(void (^)())asyncMainBlock;
 
 @end

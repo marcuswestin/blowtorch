@@ -72,4 +72,8 @@ static NSMutableDictionary* modules;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), asyncLowPriorityBlock);
 }
 
+- (void)asyncMainQueue:(void (^)())asyncMainBlock {
+    dispatch_async(dispatch_get_main_queue(), asyncMainBlock);
+}
+
 @end

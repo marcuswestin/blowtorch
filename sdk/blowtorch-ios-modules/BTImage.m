@@ -36,8 +36,9 @@ static BTImage* instance;
 }
 
 - (void)withResource:(NSString*)resourceUrl handler:(void(^)(id err, NSData* resource))handler {
-    if ([BTCache has:resourceUrl]) {
-        handler(nil, [BTCache get:resourceUrl]);
+    NSData* cached = [BTCache get:resourceUrl];
+    if (cached) {
+        handler(nil, cached);
     } else {
         [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:resourceUrl]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
             if (netErr || !netData) { return handler(@"Could not get image", nil); }
@@ -113,16 +114,19 @@ static BTImage* instance;
         return;
     }
     
-    if ([BTCache has:params[@"url"]]) {
-        if ([BTCache has:res.request.URL.absoluteString]) {
-            [self respondWithData:[BTCache get:res.request.URL.absoluteString] response:res params:params];
-            return;
-        }
-        NSData* cachedNetData = [BTCache get:params[@"url"]];
-        [self processData:cachedNetData params:params response:res];
-    } else {
-        [self _fetchImageData:params response:res];
+    NSData* cachedProcessed = [BTCache get:res.request.URL.absoluteString];
+    if (cachedProcessed) {
+        [self respondWithData:[BTCache get:res.request.URL.absoluteString] response:res params:params];
+        return;
     }
+    
+    NSData* cachedOriginal = [BTCache get:params[@"url"]];
+    if (cachedOriginal) {
+        [self processData:cachedOriginal params:params response:res];
+        return;
+    }
+    
+    [self _fetchImageData:params response:res];
 }
 
 - (void)_fetchImageData:(NSDictionary*)params response:(WVPResponse*)res {
