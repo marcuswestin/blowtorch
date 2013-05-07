@@ -308,12 +308,13 @@ static BTAppDelegate* instance;
 
 - (void)createWindowAndWebView {
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
+    screenBounds.origin.y -= 20;
     window = [[UIWindow alloc] initWithFrame:screenBounds];
     window.backgroundColor = [UIColor r:146 g:153 b:163];
     [window makeKeyAndVisible];
     window.rootViewController = [[BTViewController alloc] init];
     
-    screenBounds.origin.y -= 20;
+    screenBounds.origin.y += 20;
 #ifdef DEBUG
     webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
 #else
@@ -360,7 +361,6 @@ static BTAppDelegate* instance;
     if (_splashScreen) { return; }
     if (!callback) { callback = ^(id err, id responseData) {}; }
     CGRect frame = [[UIScreen mainScreen] bounds];
-    frame.origin.y -= 20;
     UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
     _splashScreen = splashScreen;
     
