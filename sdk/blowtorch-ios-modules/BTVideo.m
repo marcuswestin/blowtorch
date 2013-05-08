@@ -9,6 +9,7 @@
 #import "BTVideo.h"
 #import <UIKit/UIKit.h>
 #import <MediaPlayer/MediaPlayer.h>
+#import "BTFiles.h"
 
 @implementation BTVideo {
     MPMoviePlayerController* moviePlayer;
@@ -23,7 +24,8 @@ static BTVideo* instance;
     
     [app handleCommand:@"BTVideo.play" handler:^(id params, BTCallback callback) {
         playCallback = callback;
-        NSURL *url = [NSURL URLWithString:params[@"url"]];
+        NSString* file = [BTFiles path:params];
+        NSURL* url = (file ? [NSURL URLWithString:file] : [NSURL URLWithString:params[@"url"]]);
         moviePlayer = [[MPMoviePlayerController alloc] initWithContentURL:url];
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_playbackDidFinish:) name:MPMoviePlayerPlaybackDidFinishNotification object:moviePlayer];
