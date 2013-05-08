@@ -9,11 +9,19 @@
 #import "BTCamera.h"
 #import "BTFiles.h"
 #import "UIImage+Resize.h"
+#import <MobileCoreServices/UTCoreTypes.h>
+#import <AVFoundation/AVFoundation.h>
+#import <CoreMedia/CoreMedia.h>
 
 @implementation BTCamera {
     UIImagePickerController* picker;
     BTCallback captureCallback;
     NSDictionary* captureParams;
+    BTEnumeration* videoQuality;
+    BTEnumeration* cameraCaptureMode;
+    BTEnumeration* sourceType;
+    BTEnumeration* cameraFlashMode;
+    BTEnumeration* cameraDevice;
 }
 
 static BTCamera* instance;
@@ -21,6 +29,32 @@ static BTCamera* instance;
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
+
+    sourceType = [[[BTEnumeration enum:@"sourceType"
+                  default:UIImagePickerControllerSourceTypeCamera string:@"camera"]
+                  add:UIImagePickerControllerSourceTypePhotoLibrary string:@"photoLibrary"]
+                  add:UIImagePickerControllerSourceTypeSavedPhotosAlbum string:@"savedPhotosAlbum"];
+    
+    videoQuality = [[[[[[BTEnumeration enum:@"videoQuality"
+                    default:UIImagePickerControllerQualityTypeMedium string:@"medium"]
+                    add:UIImagePickerControllerQualityTypeLow string:@"low"]
+                    add:UIImagePickerControllerQualityTypeHigh string:@"high"]
+                    add:UIImagePickerControllerQualityType640x480 string:@"640x480"]
+                    add:UIImagePickerControllerQualityTypeIFrame960x540 string:@"iFrame960x540"]
+                    add:UIImagePickerControllerQualityTypeIFrame1280x720 string:@"iFrame1280x720"];
+    
+    cameraCaptureMode = [[BTEnumeration enum:@"cameraCaptureMode"
+                  default:UIImagePickerControllerCameraCaptureModePhoto string:@"photo"]
+                  add:UIImagePickerControllerCameraCaptureModeVideo string:@"video"];
+    
+    cameraFlashMode = [[[BTEnumeration enum:@"cameraFlashMode"
+                 default:UIImagePickerControllerCameraFlashModeAuto string:@"auto"]
+                 add:UIImagePickerControllerCameraFlashModeOff string:@"off"]
+                 add:UIImagePickerControllerCameraFlashModeOn string:@"on"];
+    
+    cameraDevice = [[BTEnumeration enum:@"cameraDevice"
+                    default:UIImagePickerControllerCameraDeviceRear string:@"rear"]
+                    add:UIImagePickerControllerCameraDeviceFront string:@"front"];
     
     [app handleCommand:@"BTCamera.show" handler:^(id params, BTCallback callback) {
         [self _showCamera:params callback:callback];
@@ -36,33 +70,46 @@ static BTCamera* instance;
     [app handleCommand:@"BTCamera.capture" handler:^(id params, BTCallback callback) {
         captureParams = params;
         captureCallback = callback;
-        [picker takePicture];
+        if ([cameraCaptureMode from:params is:@"video"]) {
+            [picker startVideoCapture];
+        } else {
+            [picker takePicture];
+        }
+    }];
+    
+    [app handleCommand:@"BTCamera.stopCapture" handler:^(id params, BTCallback callback) {
+        [picker stopVideoCapture];
     }];
 }
+
+
 
 - (void)_showCamera:(NSDictionary*)data callback:(BTCallback)callback {
     if (picker) {
         [picker.view removeFromSuperview];
     }
     picker = [[UIImagePickerController alloc] init];
-    NSString* source = data[@"source"];
-    if (!source) { source = @"camera"; }
-    if ([source isEqualToString:@"photoLibrary"]) {
-        picker.sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
-    } else if ([source isEqualToString:@"savedPhotosAlbum"]) {
-        picker.sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
-    } else if ([source isEqualToString:@"camera"]) {
-        picker.sourceType = UIImagePickerControllerSourceTypeCamera;
-        if (!!data[@"frontFacing"] && [UIImagePickerController isCameraDeviceAvailable: UIImagePickerControllerCameraDeviceFront]) {
-            picker.cameraDevice = UIImagePickerControllerCameraDeviceFront;
+    picker.sourceType = [sourceType from:data];
+    if ([sourceType value:picker.sourceType is:@"camera"]) {
+        if ([UIImagePickerController isCameraDeviceAvailable:[cameraDevice from:data]]) {
+            picker.cameraDevice = [cameraDevice from:data];
         }
-        picker.showsCameraControls = !data[@"hideControls"];
-    } else {
-        callback([NSString stringWithFormat:@"Unknown source type %@", source], nil);
-        return;
+        
+        if ([cameraCaptureMode from:data is:@"video"]) {
+            [UIImagePickerController availableMediaTypesForSourceType:picker.sourceType];
+            picker.videoQuality = [videoQuality from:data];
+            picker.mediaTypes = @[(NSString*)kUTTypeMovie];
+            NSTimeInterval max = [data[@"videoMaximumDuration"] doubleValue];
+            picker.videoMaximumDuration = max;
+        }
+        picker.cameraCaptureMode = [cameraCaptureMode from:data];
+
+        picker.cameraFlashMode = [cameraFlashMode from:data];
+        
+        picker.showsCameraControls = ![data[@"hideControls"] boolValue];
     }
     
-    picker.allowsEditing = !!data[@"allowEditing"];
+    picker.allowsEditing = [data[@"allowEditing"] boolValue];
     picker.delegate = self;
     
     BTAppDelegate* app = [BTAppDelegate instance];
@@ -78,29 +125,80 @@ static BTCamera* instance;
 }
 
 - (void)imagePickerController:(UIImagePickerController *)thePicker didFinishPickingMediaWithInfo:(NSDictionary *)info {
-    if (captureParams[@"saveToAlbum"]) {
-        UIImageWriteToSavedPhotosAlbum(info[UIImagePickerControllerOriginalImage], nil, nil, nil);
-    }
-    
-    UIImage* image = captureParams[@"allowEditing"] ? info[UIImagePickerControllerEditedImage] : info[UIImagePickerControllerOriginalImage];
+    NSDictionary* response;
+    if ([cameraCaptureMode from:captureParams is:@"video"]) {
+        NSURL* videoUrl = info[UIImagePickerControllerMediaURL];
+        NSString *file = videoUrl.path;
+        if (captureParams[@"saveToAlbum"] && UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(file)) {
+            UISaveVideoAtPathToSavedPhotosAlbum(file, nil, nil, nil);
+        }
+        
+        AVAsset* videoAsset = [AVAsset assetWithURL:videoUrl];
+        AVAssetTrack* videoTrack = [videoAsset tracksWithMediaType:AVMediaTypeVideo][0];
+        CGSize videoSize = [videoTrack naturalSize];
+        AVPlayerItem *playerItem = [AVPlayerItem playerItemWithAsset:videoAsset];
+        float durationInSeconds = CMTimeGetSeconds(playerItem.duration);
+        
+        NSString* thumbnailFile = @"";
+        NSDictionary* thumbParams = captureParams[@"videoThumbnail"];
+        if (thumbParams) {
+            AVAssetImageGenerator *imageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:videoAsset];
+            imageGenerator.appliesPreferredTrackTransform = YES;
+            double time = [thumbParams[@"time"] doubleValue];
+            if (time > durationInSeconds) { time = durationInSeconds; }
+            CMTime thumbTime = CMTimeMakeWithSeconds(time, playerItem.duration.timescale);
+            NSError *error = nil;
+            CGImageRef imageRef = [imageGenerator copyCGImageAtTime:thumbTime actualTime:NULL error:&error];
+            if (error) { return [self _error:error response:nil]; }
+            UIImage *thumbImage = [[UIImage alloc] initWithCGImage:imageRef];
+            NSData *data;
+            if ([@"png" isEqualToString:thumbParams[@"format"]]) {
+                data = UIImagePNGRepresentation(thumbImage);
+            } else {
+                NSNumber* jpegCompressionQuality = thumbParams[@"jpegCompressionQuality"];
+                data = UIImageJPEGRepresentation(thumbImage, jpegCompressionQuality ? [jpegCompressionQuality floatValue] : 0.80);
+            }
+            CGImageRelease(imageRef);
 
-    NSString* resize = captureParams[@"resize"];
-    if (resize) {
-        image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
-    }
-    
-    NSData* data;
-    if ([@"jpg" isEqualToString:captureParams[@"format"]]) {
-        NSNumber* compressionQuality = captureParams[@"compressionQuality"];
-        data = UIImageJPEGRepresentation(image, compressionQuality ? [compressionQuality floatValue] : 1.0);
+            thumbnailFile = [BTFiles path:captureParams];
+            BOOL success = [data writeToFile:thumbnailFile atomically:YES];
+            if (!success) { return [self _error:@"Could not write video thumbnail to file" response:nil]; }
+        }
+        
+        response = @{ @"file":file, @"duration":[NSNumber numberWithFloat:durationInSeconds],
+                      @"width":[NSNumber numberWithFloat:videoSize.width], @"height":[NSNumber numberWithFloat:videoSize.height],
+                      @"thumbnailFile":thumbnailFile };
     } else {
-        data = UIImagePNGRepresentation(image);
+        if (captureParams[@"saveToAlbum"]) {
+            UIImageWriteToSavedPhotosAlbum(info[UIImagePickerControllerOriginalImage], nil, nil, nil);
+        }
+        
+        UIImage* image = captureParams[@"allowEditing"] ? info[UIImagePickerControllerEditedImage] : info[UIImagePickerControllerOriginalImage];
+        
+        NSString* resize = captureParams[@"resize"];
+        if (resize) {
+            image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
+        }
+        
+        NSData* data;
+        if ([@"png" isEqualToString:captureParams[@"format"]]) {
+            data = UIImagePNGRepresentation(image);
+        } else {
+            NSNumber* jpegCompressionQuality = captureParams[@"jpegCompressionQuality"];
+            data = UIImageJPEGRepresentation(image, jpegCompressionQuality ? [jpegCompressionQuality floatValue] : 0.80);
+        }
+        
+        NSString* file = [BTFiles path:captureParams];
+        BOOL success = [data writeToFile:file atomically:YES];
+        if (!success) { return [self _error:@"Could not write result to file" response:nil]; }
+        
+        response = @{ @"file":file, @"width":[NSNumber numberWithFloat:image.size.width], @"height":[NSNumber numberWithFloat:image.size.height] };
     }
-    NSString* file = [BTFiles path:captureParams];
-    BOOL success = [data writeToFile:file atomically:YES];
-    if (!success) { return captureCallback(@"Could not store image", nil); }
     
-    NSDictionary* response = @{ @"file":file, @"width":[NSNumber numberWithFloat:image.size.width], @"height":[NSNumber numberWithFloat:image.size.height] };
+    [self _error:nil response:response];
+}
+
+- (void) _error:(id)error response:(id)response {
     if (captureParams[@"position"]) {
         captureCallback(nil, response);
         picker = nil;

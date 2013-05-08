@@ -37,7 +37,7 @@ function setup(app) {
 						throw new Error("Got no data for " + params.url + " ("+JSON.stringify(headers)+")")
 					}
 					var result = { headers:response.headers, data:data }
-					if (params.cache) { cache[params.url] = result }
+					if (params.store) { cache[params.url] = result }
 					send(res, params, result)
 				}
 			})

@@ -97,19 +97,14 @@ static BTImage* instance;
         return;
     }
     
-    if (params[@"document"]) {
-        NSData* data = [BTFiles readDocument:params[@"document"]];
+    NSString* file = [BTFiles path:params];
+    if (file) {
+        NSData* data = [NSData dataWithContentsOfFile:file];
         [self processData:data params:params response:res];
         return;
     }
     
-    if (params[@"file"]) {
-        NSData* data = [NSData dataWithContentsOfFile:params[@"file"]];
-        [self processData:data params:params response:res];
-        return;
-    }
-    
-    if (!params[@"cache"]) {
+    if (!params[@"store"]) {
         [self _fetchImageData:params response:res];
         return;
     }
@@ -141,7 +136,7 @@ static BTImage* instance;
     
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
-        if (netData.length && params[@"cache"]) {
+        if (netData.length && params[@"store"]) {
             [BTCache store:params[@"url"] data:netData];
         }
         NSArray* responses;
@@ -175,7 +170,7 @@ static BTImage* instance;
         UIImage* image = [UIImage imageWithData:data];
         image = [image thumbnailSize:[resizeParam makeSize] transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
         resultData = UIImageJPEGRepresentation(image, 1.0);
-        if (params[@"cache"] && data.length) {
+        if (params[@"store"] && data.length) {
             [BTCache store:res.request.URL.absoluteString data:data];
         }
     } else if (cropParam) {
@@ -185,7 +180,7 @@ static BTImage* instance;
         CGRect cropRect = CGRectMake(deltaSize.width / 2, deltaSize.height / 2, size.width, size.height);
         image = [image croppedImage:cropRect];
         resultData = UIImageJPEGRepresentation(image, 1.0);
-        if (params[@"cache"]) {
+        if (params[@"store"]) {
             [BTCache store:res.request.URL.absoluteString data:data];
         }
     }

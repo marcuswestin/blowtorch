@@ -4,6 +4,7 @@
 #import "BTFiles.h"
 #import "BTAddressBook.h"
 #import "UIImage+Resize.h"
+#import "Base64.h"
 
 @implementation BTNet
 
@@ -23,15 +24,20 @@ static BTNet* instance;
 }
 
 - (void) _upload:(NSDictionary*)params callback:(BTCallback)callback {
-    NSArray* attachmentsInfo = params[@"attachments"];
+    NSDictionary* attachmentsInfo = params[@"attachments"];
     NSMutableDictionary* attachments = [NSMutableDictionary dictionaryWithCapacity:attachmentsInfo.count];
-    for (NSDictionary* info in attachmentsInfo) {
-        NSString* name = info[@"name"];
-        if (info[@"file"]) {
-            attachments[name] = [NSData dataWithContentsOfFile:info[@"file"]];
+    for (NSString* name in attachmentsInfo) {
+        NSDictionary* info = attachmentsInfo[name];
+        NSData* data;
+
+        NSString* file = [BTFiles path:info];
+        if (file) {
+            data = [NSData dataWithContentsOfFile:file];
+            
         } else if (info[@"data"]) {
             NSString* dataString = info[@"data"];
-            attachments[name] = [dataString dataUsingEncoding:NSUTF8StringEncoding];
+            data = [dataString dataUsingEncoding:NSUTF8StringEncoding];
+            
         } else if (info[@"BTAddressBookRecordId"]) { // HACK
             if (info[@"resize"]) {
                 NSString* resize = info[@"resize"];
@@ -39,12 +45,26 @@ static BTNet* instance;
                 UIImage* image = [UIImage imageWithData:imageData];
                 image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
                 imageData = UIImageJPEGRepresentation(image, 1.0);
-                attachments[name] = imageData;
+                data = imageData;
             } else {
-                attachments[name] = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
+                data = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
             }
+        
+        } else if (info[@"base64Data"]) {
+            NSString* base64String = [info[@"base64Data"] stringByReplacingOccurrencesOfString:@"data:image/jpeg;base64," withString:@""];
+            data = [NSData dataWithBase64EncodedString:base64String];
+            if (info[@"saveToAlbum"]) {
+                UIImageWriteToSavedPhotosAlbum([UIImage imageWithData:data], nil, nil, nil);
+            }
+            
         } else {
             NSLog(@"Warning: unknown attachment into %@", info);
+        }
+        
+        if (data) {
+            attachments[name] = data;
+        } else {
+            callback([@"Attachment with 0 data: " stringByAppendingString:name], nil);
         }
     }
     [BTNet post:params[@"url"] jsonParams:params[@"jsonParams"] attachments:attachments headers:params[@"headers"] boundary:params[@"boundary"] responseCallback:callback];
@@ -134,13 +154,7 @@ static BTNet* instance;
         [request setValue:[headers objectForKey:headerName] forHTTPHeaderField:headerName];
     }
 
-    UIBackgroundTaskIdentifier bgTaskId = UIBackgroundTaskInvalid;
-    bgTaskId = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
-        [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
-    }];
-    
     [NSURLConnection sendAsynchronousRequest:request queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
-        [[UIApplication sharedApplication] endBackgroundTask:bgTaskId];
         if (netErr || ((NSHTTPURLResponse*)netRes).statusCode >= 300) {
             NSString* errorMessage = netData ? [[NSString alloc] initWithData:netData encoding:NSUTF8StringEncoding] : @"Could not complete request";
             responseCallback(errorMessage, nil);

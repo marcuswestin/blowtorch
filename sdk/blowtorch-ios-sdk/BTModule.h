@@ -11,6 +11,7 @@
 #import "NSArray+HHFunctional.h"
 #import "NSArray+NSString+HHMakeStructs.h"
 #import "NSString+HHUriEncoding.h"
+#import "BTEnumeration.h"
 
 @interface BTModule : NSObject
 + (void) setup:(BTAppDelegate*)app;

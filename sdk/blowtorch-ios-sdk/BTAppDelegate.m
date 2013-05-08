@@ -81,7 +81,7 @@ static BTAppDelegate* instance;
 }
 
 -(void)_renderDevTools {
-    _reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-100,27,40,40)];
+    _reloadView = [[UILabel alloc] initWithFrame:CGRectMake(70,27,40,40)];
     _reloadView.userInteractionEnabled = YES;
     _reloadView.text = @"R";
     _reloadView.font = [UIFont fontWithName:@"Open Sans" size:20];
@@ -278,18 +278,25 @@ static BTAppDelegate* instance;
 
 - (void)handleCommand:(NSString *)handlerName handler:(BTCommandHandler)handler {
     [self.javascriptBridge registerHandler:handlerName handler:^(id data, WVJBResponseCallback responseCallback) {
-        handler(data, ^(id err, id responseData) {
-            if (err) {
-                if ([err isKindOfClass:[NSError class]]) {
-                    err = [NSDictionary dictionaryWithObjectsAndKeys:[err localizedDescription], @"message", nil];
+        NSLog(@"Handle command %@", handlerName);
+        @try {
+            handler(data, ^(id err, id responseData) {
+                NSLog(@"Respond command %@", handlerName);
+                if (err) {
+                    if ([err isKindOfClass:[NSError class]]) {
+                        err = @{ @"message":[err localizedDescription] };
+                    }
+                    responseCallback(@{ @"error":err });
+                } else if (responseData) {
+                    responseCallback(@{ @"responseData":responseData });
+                } else {
+                    responseCallback(@{});
                 }
-                responseCallback([NSDictionary dictionaryWithObject:err forKey:@"error"]);
-            } else if (responseData) {
-                responseCallback([NSDictionary dictionaryWithObject:responseData forKey:@"responseData"]);
-            } else {
-                responseCallback([NSDictionary dictionary]);
-            }
-        });
+            });
+        } @catch (NSException *exception) {
+            NSLog(@"WARNING: handleCommand:%@ threw with params:%@ error:%@", handlerName, data, exception);
+            responseCallback(@{ @"error": @{ @"message":exception.name, @"reason":exception.reason }});
+        }
     }];
 }
 
