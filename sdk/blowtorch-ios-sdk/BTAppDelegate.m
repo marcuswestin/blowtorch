@@ -335,8 +335,10 @@ static BTAppDelegate* instance;
     webView.scrollView.scrollsToTop = NO;
     webView.scrollView.clipsToBounds = YES;
     webView.scrollView.scrollEnabled = NO;
-    webView.opaque = NO;
-    webView.backgroundColor = [UIColor clearColor];
+//    webView.opaque = NO;
+//    webView.backgroundColor = [UIColor clearColor];
+    webView.opaque = YES;
+    webView.backgroundColor = [UIColor whiteColor];
     [window.rootViewController.view addSubview:webView];
     _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Received unknown message %@", data);
