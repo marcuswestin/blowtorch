@@ -151,7 +151,12 @@ static BTNet* instance;
     }
     
     for (NSString* headerName in headers) {
-        [request setValue:[headers objectForKey:headerName] forHTTPHeaderField:headerName];
+        id headerValue = headers[headerName];
+        if (![headerValue isKindOfClass:[NSString class]]) {
+            NSLog(@"WARNING bad header value type %@ %@", headerName, headerValue);
+            continue;
+        }
+        [request setValue:headerValue forHTTPHeaderField:headerName];
     }
 
     [NSURLConnection sendAsynchronousRequest:request queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
