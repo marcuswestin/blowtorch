@@ -279,25 +279,48 @@ static BTAppDelegate* instance;
 - (void)handleCommand:(NSString *)handlerName handler:(BTCommandHandler)handler {
     [self.javascriptBridge registerHandler:handlerName handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Handle command %@", handlerName);
-        @try {
-            handler(data, ^(id err, id responseData) {
-                NSLog(@"Respond command %@", handlerName);
-                if (err) {
-                    if ([err isKindOfClass:[NSError class]]) {
-                        err = @{ @"message":[err localizedDescription] };
-                    }
-                    responseCallback(@{ @"error":err });
-                } else if (responseData) {
-                    responseCallback(@{ @"responseData":responseData });
-                } else {
-                    responseCallback(@{});
-                }
+        NSString* async = data ? data[@"async"] : nil;
+        if (async) {
+            dispatch_queue_t queue;
+            if ([async isEqualToString:@"main"]) {
+                queue = dispatch_get_main_queue();
+            } else if ([async isEqualToString:@"high"]) {
+                queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+            } else if ([async isEqualToString:@"low"]) {
+                queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0);
+            } else if ([async isEqualToString:@"background"]) {
+                queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+            } else {
+                queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+            }
+            dispatch_async(queue, ^{
+                [self _doHandleCommand:handlerName handler:handler data:data responseCallback:responseCallback];
             });
-        } @catch (NSException *exception) {
-            NSLog(@"WARNING: handleCommand:%@ threw with params:%@ error:%@", handlerName, data, exception);
-            responseCallback(@{ @"error": @{ @"message":exception.name, @"reason":exception.reason }});
+        } else {
+            [self _doHandleCommand:handlerName handler:handler data:data responseCallback:responseCallback];
         }
     }];
+}
+
+- (void)_doHandleCommand:(NSString*)handlerName handler:(BTCommandHandler)handler data:(NSDictionary*)data responseCallback:(WVJBResponseCallback)responseCallback {
+    @try {
+        handler(data, ^(id err, id responseData) {
+            NSLog(@"Respond command %@", handlerName);
+            if (err) {
+                if ([err isKindOfClass:[NSError class]]) {
+                    err = @{ @"message":[err localizedDescription] };
+                }
+                responseCallback(@{ @"error":err });
+            } else if (responseData) {
+                responseCallback(@{ @"responseData":responseData });
+            } else {
+                responseCallback(@{});
+            }
+        });
+    } @catch (NSException *exception) {
+        NSLog(@"WARNING: handleCommand:%@ threw with params:%@ error:%@", handlerName, data, exception);
+        responseCallback(@{ @"error": @{ @"message":exception.name, @"reason":exception.reason }});
+    }
 }
 
 - (void)handleRequests:(NSString *)command handler:(BTRequestHandler)requestHandler {
