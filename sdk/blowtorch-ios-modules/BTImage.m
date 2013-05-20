@@ -111,7 +111,7 @@ static BTImage* instance;
     
     NSData* cachedProcessed = [BTCache get:res.request.URL.absoluteString];
     if (cachedProcessed) {
-        [self respondWithData:[BTCache get:res.request.URL.absoluteString] response:res params:params];
+        [self respondWithData:cachedProcessed response:res params:params];
         return;
     }
     
@@ -137,7 +137,7 @@ static BTImage* instance;
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
         if (netData.length && params[@"store"]) {
-            [BTCache store:params[@"url"] data:netData];
+            [BTCache store:urlParam data:netData];
         }
         NSArray* responses;
         @synchronized(loading) {
@@ -170,8 +170,8 @@ static BTImage* instance;
         UIImage* image = [UIImage imageWithData:data];
         image = [image thumbnailSize:[resizeParam makeSize] transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
         resultData = UIImageJPEGRepresentation(image, 1.0);
-        if (params[@"store"] && data.length) {
-            [BTCache store:res.request.URL.absoluteString data:data];
+        if (params[@"store"] && resultData.length) {
+            [BTCache store:res.request.URL.absoluteString data:resultData];
         }
     } else if (cropParam) {
         CGSize size = [cropParam makeSize];
@@ -180,8 +180,8 @@ static BTImage* instance;
         CGRect cropRect = CGRectMake(deltaSize.width / 2, deltaSize.height / 2, size.width, size.height);
         image = [image croppedImage:cropRect];
         resultData = UIImageJPEGRepresentation(image, 1.0);
-        if (params[@"store"]) {
-            [BTCache store:res.request.URL.absoluteString data:data];
+        if (params[@"store"] && resultData.length) {
+            [BTCache store:res.request.URL.absoluteString data:resultData];
         }
     }
     
