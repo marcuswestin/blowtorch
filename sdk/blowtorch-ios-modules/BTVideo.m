@@ -14,6 +14,7 @@
 @implementation BTVideo {
     MPMoviePlayerController* moviePlayer;
     BTCallback playCallback;
+    BTEnumeration* movieControlStyle;
 }
 
 static BTVideo* instance;
@@ -21,6 +22,12 @@ static BTVideo* instance;
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
+    
+    movieControlStyle = [[[[BTEnumeration enum:@"movieControlStyle"
+                         default:MPMovieControlStyleDefault string:@"default"]
+                         add:MPMovieControlStyleEmbedded string:@"embedded"]
+                         add:MPMovieControlStyleFullscreen string:@"fullscreen"]
+                         add:MPMovieControlStyleNone string:@"none"];
     
     [app handleCommand:@"BTVideo.play" handler:^(id params, BTCallback callback) {
         playCallback = callback;
@@ -30,7 +37,7 @@ static BTVideo* instance;
         
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_playbackDidFinish:) name:MPMoviePlayerPlaybackDidFinishNotification object:moviePlayer];
         
-        moviePlayer.controlStyle = MPMovieControlModeDefault;
+        moviePlayer.controlStyle = [movieControlStyle from:params];
         moviePlayer.shouldAutoplay = YES;
         [app.window.rootViewController.view addSubview:moviePlayer.view];
         [moviePlayer setFullscreen:YES animated:YES];
