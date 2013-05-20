@@ -107,6 +107,8 @@ static BTCamera* instance;
         picker.cameraFlashMode = [cameraFlashMode from:data];
         
         picker.showsCameraControls = ![data[@"hideControls"] boolValue];
+    } else {
+        picker.mediaTypes = @[(NSString*)kUTTypeAudiovisualContent];
     }
     
     picker.allowsEditing = [data[@"allowEditing"] boolValue];
