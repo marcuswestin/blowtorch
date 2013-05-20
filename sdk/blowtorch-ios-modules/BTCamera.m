@@ -108,7 +108,7 @@ static BTCamera* instance;
         
         picker.showsCameraControls = ![data[@"hideControls"] boolValue];
     } else {
-        picker.mediaTypes = @[(NSString*)kUTTypeAudiovisualContent];
+        picker.mediaTypes = [UIImagePickerController availableMediaTypesForSourceType:picker.sourceType];
     }
     
     picker.allowsEditing = [data[@"allowEditing"] boolValue];
@@ -127,7 +127,7 @@ static BTCamera* instance;
 }
 
 - (void)imagePickerController:(UIImagePickerController *)thePicker didFinishPickingMediaWithInfo:(NSDictionary *)info {
-    if ([cameraCaptureMode from:captureParams is:@"video"]) {
+    if ([info[UIImagePickerControllerMediaType] isEqualToString:(NSString *)kUTTypeMovie]) {
         [self _handleCapturedVideo:info];
     } else {
         [self _handleCapturedPicture:info];
@@ -174,6 +174,7 @@ static BTCamera* instance;
     }
     
     [self _error:nil response:@{
+     @"type":@"video",
      @"file":file, @"duration":[NSNumber numberWithFloat:durationInSeconds],
      @"width":[NSNumber numberWithFloat:videoSize.width], @"height":[NSNumber numberWithFloat:videoSize.height],
      @"thumbnailFile":thumbnailFile
@@ -205,6 +206,7 @@ static BTCamera* instance;
     if (!success) { return [self _error:@"Could not write result to file" response:nil]; }
     
     [self _error:nil response:@{
+     @"type":@"picture",
      @"file":file, @"width":[NSNumber numberWithFloat:image.size.width], @"height":[NSNumber numberWithFloat:image.size.height]
      }];
 }
