@@ -108,6 +108,8 @@ static BTAppDelegate* instance;
     NSString* bundleVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
     NSString* client = [@"ios-" stringByAppendingString:bundleVersion];
     [self notify:@"app.init" info:@{ @"config":config, @"client":client }];
+    
+    [self putWindowUnderKeyboard];
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application {
