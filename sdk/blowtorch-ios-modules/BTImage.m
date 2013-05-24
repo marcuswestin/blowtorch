@@ -183,6 +183,8 @@ static BTImage* instance;
         if (params[@"store"] && resultData.length) {
             [BTCache store:res.request.URL.absoluteString data:resultData];
         }
+    } else {
+        resultData = data;
     }
     
     NSArray* responses;
