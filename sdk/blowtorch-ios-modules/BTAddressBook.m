@@ -9,13 +9,14 @@
 #import "BTAddressBook.h"
 #import <AddressBook/AddressBook.h>
 
-@implementation BTAddressBook
+@implementation BTAddressBook;
 
 static BTAddressBook* instance;
 
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
+    
     [app handleCommand:@"BTAddressBook.authorize" handler:^(id params, BTCallback callback) {
         ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
         if (!addressBook) { return callback(@"Could not open address book", nil); }
@@ -70,13 +71,14 @@ static BTAddressBook* instance;
     ABAuthorizationStatus status = ABAddressBookGetAuthorizationStatus();
     NSString* response = nil;
     
-    if (status == kABAuthorizationStatusNotDetermined) { response = @"not determined"; }
+    if (status == kABAuthorizationStatusNotDetermined) { response = @"notDetermined"; }
     else if (status == kABAuthorizationStatusRestricted) { response = @"restricted"; }
     else if (status == kABAuthorizationStatusDenied) { response = @"denied"; }
     else if (status == kABAuthorizationStatusAuthorized) { response = @"authorized"; }
     
-    if (response) { responseCallback(nil, response); }
-    else { responseCallback(@"Unknown status", nil); }
+    NSDictionary* responseDict = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:response];
+    if (response) { responseCallback(nil, responseDict); }
+    else { responseCallback([NSString stringWithFormat:@"Unknown Address Book authorization status %ld", status], nil); }
 }
 
 + (void)allEntries:(BTCallback)callback {
