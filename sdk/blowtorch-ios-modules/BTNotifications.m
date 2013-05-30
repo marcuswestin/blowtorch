@@ -36,7 +36,14 @@ static BTNotifications* instance;
     }];
     
     [app handleCommand:@"BTNotifications.setBadgeNumber" handler:^(id params, BTCallback callback) {
-        NSInteger number = [params[@"number"] integerValue];
+        NSInteger number = [[UIApplication sharedApplication] applicationIconBadgeNumber];
+        if (params[@"number"]) {
+            number = [params[@"number"] integerValue];
+        } else if (params[@"increment"]) {
+            number += [params[@"increment"] integerValue];
+        } else if (params[@"decrement"]) {
+            number -= [params[@"decrement"] integerValue];
+        }
         [[UIApplication sharedApplication] setApplicationIconBadgeNumber:number];
         callback(nil, nil);
     }];
