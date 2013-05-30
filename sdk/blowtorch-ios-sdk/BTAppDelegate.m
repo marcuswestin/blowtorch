@@ -81,7 +81,7 @@ static BTAppDelegate* instance;
 }
 
 -(void)_renderDevTools {
-    _reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-45,80,40,40)];
+    _reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-45,60,40,40)];
     _reloadView.userInteractionEnabled = YES;
     _reloadView.text = @"R";
     _reloadView.font = [UIFont fontWithName:@"Open Sans" size:20];
