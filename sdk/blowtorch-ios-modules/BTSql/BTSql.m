@@ -59,7 +59,7 @@ static BTSql* instance;
     [queue inDatabase:^(FMDatabase *db) {
         BOOL success = [db executeUpdate:sql withArgumentsInArray:arguments];
         if (!success && ignoreDuplicates && db.lastErrorCode == SQLITE_CONSTRAINT) { success = YES; }
-        callback(success ? nil : db.lastError, nil);
+        callback(success ? nil : db.lastError, @{ @"rowsAffected":[NSNumber numberWithInt:db.changes] });
     }];
 }
 
