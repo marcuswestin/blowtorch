@@ -9,20 +9,25 @@
 #import "BTCache.h"
 #import "BTFiles.h"
 
-@implementation BTCache
+@implementation BTCache {
+    NSMutableDictionary* _memory;
+}
 
 static BTCache* instance;
 
-+ (void)store:(NSString*)key data:(NSData*)data {
-    return [instance store:key data:data];
++ (void)store:(NSString*)key data:(NSData*)data { [self store:key data:data cacheInMemory:NO]; }
++ (void)store:(NSString *)key data:(NSData *)data cacheInMemory:(BOOL)cacheInMemory {
+    return [instance store:key data:data cacheInMemory:cacheInMemory];
 }
-+ (NSData*)get:(NSString*)key {
-    return [instance get:key];
++ (NSData*)get:(NSString*)key { return [self get:key cacheInMemory:NO]; }
++ (NSData *)get:(NSString *)key cacheInMemory:(BOOL)cacheInMemory {
+    return [instance get:key cacheInMemory:cacheInMemory];
 }
 
 - (void)setup:(BTAppDelegate *)app {
     if (instance) { return; }
     instance = self;
+    _memory = [NSMutableDictionary dictionary];
     
     [[NSFileManager defaultManager] createDirectoryAtPath:[self _path:@"BTCache"] withIntermediateDirectories:YES attributes:NULL error:NULL];
 
@@ -46,7 +51,7 @@ static BTCache* instance;
     return [BTFiles cachePath:filename];
 }
 
-- (void)store:(NSString *)key data:(NSData *)data {
+- (void)store:(NSString *)key data:(NSData *)data cacheInMemory:(BOOL)cacheInMemory {
     if (!key || !key.length) {
         NSLog(@"Refusing to cache 0-length key");
         return;
@@ -56,10 +61,18 @@ static BTCache* instance;
         return;
     }
     [data writeToFile:[self _path:[self _filenameFor:key]] atomically:YES];
+    if (cacheInMemory) {
+        _memory[key] = data;
+    }
 }
 
-- (NSData *)get:(NSString *)key {
-    return [NSData dataWithContentsOfFile:[self _path:[self _filenameFor:key]]];
+- (NSData *)get:(NSString *)key cacheInMemory:(BOOL)cacheInMemory {
+    if (_memory[key]) { return _memory[key]; }
+    NSData* data = [NSData dataWithContentsOfFile:[self _path:[self _filenameFor:key]]];
+    if (cacheInMemory && data.length) {
+        _memory[key] = data;
+    }
+    return data;
 }
 
 - (NSString *)_filenameFor:(NSString *)key {

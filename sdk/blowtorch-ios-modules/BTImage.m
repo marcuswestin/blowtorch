@@ -109,13 +109,13 @@ static BTImage* instance;
         return;
     }
     
-    NSData* cachedProcessed = [BTCache get:res.request.URL.absoluteString];
+    NSData* cachedProcessed = [BTCache get:res.request.URL.absoluteString cacheInMemory:params[@"memory"]];
     if (cachedProcessed) {
         [self respondWithData:cachedProcessed response:res params:params];
         return;
     }
     
-    NSData* cachedOriginal = [BTCache get:params[@"url"]];
+    NSData* cachedOriginal = [BTCache get:params[@"url"] cacheInMemory:params[@"memory"]];
     if (cachedOriginal) {
         [self processData:cachedOriginal params:params response:res];
         return;
@@ -137,7 +137,7 @@ static BTImage* instance;
     [NSURLConnection sendAsynchronousRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:urlParam]] queue:queue completionHandler:^(NSURLResponse *netRes, NSData *netData, NSError *netErr) {
         if (!netData) { return [res respondWithError:500 text:@"Error getting image :("]; }
         if (netData.length && params[@"store"]) {
-            [BTCache store:urlParam data:netData];
+            [BTCache store:urlParam data:netData cacheInMemory:params[@"memory"]];
         }
         NSArray* responses;
         @synchronized(loading) {
@@ -171,7 +171,7 @@ static BTImage* instance;
         image = [image thumbnailSize:[resizeParam makeSize] transparentBorder:0 cornerRadius:radius interpolationQuality:kCGInterpolationDefault];
         resultData = UIImageJPEGRepresentation(image, 1.0);
         if (params[@"store"] && resultData.length) {
-            [BTCache store:res.request.URL.absoluteString data:resultData];
+            [BTCache store:res.request.URL.absoluteString data:resultData cacheInMemory:params[@"memory"]];
         }
     } else if (cropParam) {
         CGSize size = [cropParam makeSize];
@@ -181,7 +181,7 @@ static BTImage* instance;
         image = [image croppedImage:cropRect];
         resultData = UIImageJPEGRepresentation(image, 1.0);
         if (params[@"store"] && resultData.length) {
-            [BTCache store:res.request.URL.absoluteString data:resultData];
+            [BTCache store:res.request.URL.absoluteString data:resultData cacheInMemory:params[@"memory"]];
         }
     } else {
         resultData = data;
