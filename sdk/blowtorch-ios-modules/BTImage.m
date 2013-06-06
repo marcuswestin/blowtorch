@@ -33,6 +33,16 @@ static BTImage* instance;
     [app handleRequests:@"BTImage.collage" handler:^(NSDictionary *params, WVPResponse *response) {
         [self collage:params response:response];
     }];
+    [app handleCommand:@"BTImage.saveToPhotosAlbum" handler:^(id params, BTCallback callback) {
+        [self _saveToPhotosAlbum:params callback:callback];
+    }];
+}
+
+- (void)_saveToPhotosAlbum:(NSDictionary*)params callback:(BTCallback)callback {
+    NSData* data = [BTCache get:params[@"url"] cacheInMemory:params[@"memory"]];
+    if (!data.length) { return callback(@"Image has not been downloaded", nil); }
+    UIImageWriteToSavedPhotosAlbum([UIImage imageWithData:data], nil, nil, nil);
+    callback(nil,nil);
 }
 
 - (void)withResource:(NSString*)resourceUrl handler:(void(^)(id err, NSData* resource))handler {
