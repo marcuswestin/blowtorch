@@ -39,14 +39,23 @@ static BTVideo* instance;
         
         moviePlayer.controlStyle = [movieControlStyle from:params];
         moviePlayer.shouldAutoplay = YES;
+
         [app.window.rootViewController.view addSubview:moviePlayer.view];
-        [moviePlayer setFullscreen:YES animated:YES];
+        
+        [self _fullScreen:YES animated:YES];
     }];
+}
+
+- (void) _fullScreen:(BOOL)fullScreen animated:(BOOL)flag {
+    [[UIApplication sharedApplication] setStatusBarHidden:fullScreen withAnimation:flag ? UIStatusBarAnimationFade : NO];
+    [moviePlayer setFullscreen:fullScreen animated:flag];
 }
 
 - (void) _playbackDidFinish:(NSNotification*)notification {
     if (!playCallback) { return; }
-    [moviePlayer setFullscreen:NO animated:YES];
+    [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:NO];
+    [self _fullScreen:NO animated:YES];
+    
     int reason = [[[notification userInfo] valueForKey:MPMoviePlayerPlaybackDidFinishReasonUserInfoKey] intValue];
     if (reason == MPMovieFinishReasonPlaybackEnded) {
         playCallback(nil, @{ @"reason":@"playbackEnded" });
