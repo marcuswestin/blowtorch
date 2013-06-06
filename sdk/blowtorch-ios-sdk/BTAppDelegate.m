@@ -93,7 +93,7 @@ static BTAppDelegate* instance;
 }
 -(void)_reloadTap {
     NSLog(@"\n\n\nRELOAD APP\n\n");
-    [self startApp];
+    [self reloadApp];
     _reloadView.backgroundColor = [UIColor blueColor];
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
@@ -187,7 +187,7 @@ static BTAppDelegate* instance;
 - (void)setupHandlers {
     // app.*
     [self handleCommand:@"app.reload" handler:^(id data, BTCallback responseCallback) {
-        [self startApp];
+        [self reloadApp:data];
     }];
     [self handleCommand:@"splashScreen.hide" handler:^(id data, BTCallback  responseCallback) {
         [self hideSplashScreen:data];
@@ -232,12 +232,25 @@ static BTAppDelegate* instance;
     }];
     
     [self handleCommand:@"BT.setStatusBar" handler:^(id data, BTCallback callback) {
-        UIStatusBarAnimation animation = UIStatusBarAnimationNone;
-        if ([data[@"animation"] isEqualToString:@"fade"]) { animation = UIStatusBarAnimationFade; }
-        if ([data[@"animation"] isEqualToString:@"slide"]) { animation = UIStatusBarAnimationSlide; }
-        [[UIApplication sharedApplication] setStatusBarHidden:![data[@"visible"] boolValue] withAnimation:animation];
-        callback(nil,nil);
+        [self setStatusBar:data callback:callback];
     }];
+}
+
+- (void)reloadApp { [self reloadApp:nil]; }
+- (void)reloadApp:(NSDictionary*)data {
+    [self setStatusBar:@{ @"visible":[NSNumber numberWithBool:NO], @"animation":@"slide" } callback:^(id err, id responseData) {}];
+    [self showSplashScreen:@{ @"fade":[NSNumber numberWithDouble:0.25] } callback:^(id err, id responseData) {
+        [self startApp];
+    }];
+}
+
+- (void)setStatusBar:(NSDictionary*)data callback:(BTCallback)callback {
+    UIStatusBarAnimation animation = UIStatusBarAnimationNone;
+    if ([data[@"animation"] isEqualToString:@"fade"]) { animation = UIStatusBarAnimationFade; }
+    if ([data[@"animation"] isEqualToString:@"slide"]) { animation = UIStatusBarAnimationSlide; }
+    BOOL hidden = ![data[@"visible"] boolValue];
+    [[UIApplication sharedApplication] setStatusBarHidden:hidden withAnimation:animation];
+    callback(nil,nil);
 }
 
 + (void)notify:(NSString *)name info:(NSDictionary *)info { [instance notify:name info:info]; }
@@ -341,11 +354,9 @@ static BTAppDelegate* instance;
 - (void)createWindowAndWebView {
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
     window = [[UIWindow alloc] initWithFrame:screenBounds];
-    window.backgroundColor = [UIColor r:146 g:153 b:163];
     [window makeKeyAndVisible];
     window.rootViewController = [[BTViewController alloc] init];
-    
-    screenBounds.origin.y -= 20;
+
 #ifdef DEBUG
     webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
 #else
@@ -363,7 +374,7 @@ static BTAppDelegate* instance;
 //    webView.opaque = NO;
 //    webView.backgroundColor = [UIColor clearColor];
     webView.opaque = YES;
-    webView.backgroundColor = [UIColor whiteColor];
+    webView.backgroundColor = window.backgroundColor;
     [window.rootViewController.view addSubview:webView];
     _bridge = [WebViewJavascriptBridge bridgeForWebView:webView webViewDelegate:self handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Received unknown message %@", data);
@@ -391,11 +402,11 @@ static BTAppDelegate* instance;
 }
 
 - (void)showSplashScreen:(NSDictionary*)params callback:(BTCallback)callback {
-    if (_splashScreen) { return; }
     if (!callback) { callback = ^(id err, id responseData) {}; }
-    CGRect frame = [[UIScreen mainScreen] bounds];
-    frame.origin.y -= 20;
-    UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:frame];
+    if (_splashScreen) { return callback(nil,nil); }
+    CGRect screenBounds = [[UIScreen mainScreen] bounds];
+
+    UIImageView* splashScreen = [[UIImageView alloc] initWithFrame:screenBounds];
     _splashScreen = splashScreen;
     
     CGSize screenSize = [[UIScreen mainScreen] bounds].size;

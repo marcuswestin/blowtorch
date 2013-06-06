@@ -25,6 +25,7 @@
  ***************/
 - (void)setupModules;
 - (void)startApp;
+- (void)reloadApp;
 - (void)setupApp;
 - (void)setupHandlers;
 - (void)showSplashScreen:(NSDictionary*)params callback:(BTCallback)callback;
