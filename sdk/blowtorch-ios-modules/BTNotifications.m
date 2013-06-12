@@ -50,7 +50,7 @@ static BTNotifications* instance;
     
     NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
     [notifications addObserver:self selector:@selector(handleDidRegister:) name:@"application.didRegisterForRemoteNotifications" object:nil];
-    [notifications addObserver:self selector:@selector(handleDidLaunchWithNotification) name:@"application.didLaunchWithNotification" object:nil];
+    [notifications addObserver:self selector:@selector(handleDidLaunchWithNotification:) name:@"application.didLaunchWithNotification" object:nil];
     [notifications addObserver:self selector:@selector(handleDidReceiveRemoteNotification:) name:@"application.didReceiveRemoteNotification" object:nil];
     [notifications addObserver:self selector:@selector(handleDidFailToRegister:) name:@"application.didFailToRegisterForRemoteNotifications" object:nil];
 }
