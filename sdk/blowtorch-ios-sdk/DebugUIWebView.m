@@ -98,8 +98,8 @@ static NSString* const kSourceIDMapSourceKey = @"source";
 
 - (void)webView:(WebView *)webView exceptionWasRaised:(WebScriptCallFrame *)frame sourceId:(int)sourceID line:(int)lineNumber forWebFrame:(WebFrame *)webFrame {
     WebScriptObject* exception = [frame exception];
-    if ([[exception valueForKey:@"message"] rangeOfString:@"SYNTAX_ERR: DOM Exception 12"].location != NSNotFound) {
-        // jquery test on startup
+    if ([[exception valueForKey:@"message"] rangeOfString:@"DOM Exception 12"].location != NSNotFound) {
+        // jquery test on startup, syntax error
         return;
     }
         
