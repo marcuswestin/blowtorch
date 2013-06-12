@@ -38,7 +38,7 @@ static BTAppDelegate* instance;
     [self createWindowAndWebView];
     [self showSplashScreen:@{} callback:NULL];
     
-#ifdef DEBUG
+#if defined(DEBUG) && defined(__IPHONE_5_0) && !defined(__IPHONE_7_0)
     [NSClassFromString(@"WebView") performSelector:@selector(_enableRemoteInspector)];
 #endif
     
@@ -362,7 +362,7 @@ static BTAppDelegate* instance;
 #else
     webView = [[UIWebView alloc] initWithFrame:screenBounds];
 #endif
-    [webView setSuppressesIncrementalRendering:YES];
+    webView.suppressesIncrementalRendering = YES;
     webView.keyboardDisplayRequiresUserAction = NO;
     webView.dataDetectorTypes = UIDataDetectorTypeNone;
     webView.clipsToBounds = YES;
@@ -387,10 +387,6 @@ static BTAppDelegate* instance;
 
 -(UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
     return nil;
-}
-
-- (void) onStatusBarTapped {
-    [self notify:@"statusBar.wasTapped"];
 }
 
 - (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
