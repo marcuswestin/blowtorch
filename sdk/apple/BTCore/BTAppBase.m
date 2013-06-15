@@ -47,7 +47,7 @@ static BTAppBase* instance;
 - (void)_platformLoadWebView:(NSString *)url {
     [self _baseImpl:@"_platformLoadWebView"];
 }
-- (void)_platformAddSubview:(UIView *)view {
+- (void)_platformAddSubview:(BT_WEBVIEW_TYPE*)view {
     [self _baseImpl:@"_platformLoadWebView"];
 }
 
