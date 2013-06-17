@@ -29,42 +29,37 @@
     [NSClassFromString(@"WebView") performSelector:@selector(_enableRemoteInspector)];
 #endif
 
-//    [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
-//    NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
-//    [notifications addObserver:self selector:@selector(didRotate:) name:@"UIDeviceOrientationDidChangeNotification" object:nil];
-//    [notifications addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
-//    [notifications addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
-//    [notifications addObserver:self selector:@selector(keyboardDidHide:) name:UIKeyboardDidHideNotification object:nil];
-
+    [self _registerNotificationHandlers];
     [self _createWindowAndWebView];
+    [self _renderDevTools];
 //    [BTSplashScreen show];
     
-    NSString* server = @"http://localhost:9000";
+    NSString* server = @"http://10.0.0.10:9000";
     [self _baseStartWithWebView:_webView delegate:self server:server mode:@"DEBUG"];
 
     return YES;
 }
 
 
-/* Platform specific internals
- *****************************/
+
+/* Platform specific implementations
+ ***********************************/
 - (void)_platformLoadWebView:(NSString *)url {
     [_webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
 }
+
 - (void)_platformAddSubview:(UIView *)view {
     [_webView addSubview:view];
 }
 
-
-
-
-
+/* Platform setup
+ ****************/
 - (void)_createWindowAndWebView {
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
     UIWindow* window = _window = [[UIWindow alloc] initWithFrame:screenBounds];
     [window makeKeyAndVisible];
     window.rootViewController = [[BTViewController alloc] init];
-
+    
 #ifdef DEBUG
     UIWebView* webView = _webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
 #else
@@ -84,7 +79,7 @@
     webView.opaque = YES;
     webView.backgroundColor = window.backgroundColor;
     [window.rootViewController.view addSubview:webView];
-
+    
     // we need to handle viewForZoomingInScrollView to avoid shifting the webview contents
     // when a webview text input gains focus and becomes the first responder.
     webView.scrollView.delegate = self;
@@ -94,20 +89,75 @@
     return nil;
 }
 
+/* Notification Center listeners
+ *******************************/
+- (void)_registerNotificationHandlers {
+    NSNotificationCenter* notifications = [NSNotificationCenter defaultCenter];
+    [notifications addObserver:self selector:@selector(_keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+}
+
+/* Dev reload button
+ *******************/
+-(void)_renderDevTools {
+    _reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-45,60,40,40)];
+    _reloadView.userInteractionEnabled = YES;
+    _reloadView.text = @"R";
+    _reloadView.textAlignment = NSTextAlignmentCenter;
+    _reloadView.backgroundColor = [UIColor whiteColor];
+    _reloadView.alpha = 0.07;
+    [_reloadView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(_reloadTap)]];
+    [_window.rootViewController.view addSubview:_reloadView];
+}
+-(void)_reloadTap {
+    [BTApp reload];
+    _reloadView.backgroundColor = [UIColor blueColor];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^(void){
+        _reloadView.backgroundColor = [UIColor whiteColor];
+    });
+}
 
 
+/* Remove the UIWebView keyboard accessory
+ *****************************************/
+- (void)keyboardWillShow:(NSNotification *)notification {
+    [self _putWindowOverKeyboard];
+    [self _removeWebViewKeyboardBar];
+    [self performSelector:@selector(_removeWebViewKeyboardBarAndShow) withObject:nil afterDelay:0];
+}
+- (void) _putWindowOverKeyboard {
+    _window.windowLevel = UIWindowLevelStatusBar - 0.1;
+}
+- (void)_putWindowUnderKeyboard {
+    _window.windowLevel = UIWindowLevelNormal;
+}
+- (void)_removeWebViewKeyboardBarAndShow {
+    [self _removeWebViewKeyboardBar];
+    [self _putWindowUnderKeyboard];
+}
+- (void)_removeWebViewKeyboardBar {
+    UIWindow *keyboardWindow = nil;
+    for (UIWindow *testWindow in [[UIApplication sharedApplication] windows]) {
+        if (![[testWindow class] isEqual:[UIWindow class]]) {
+            keyboardWindow = testWindow;
+            break;
+        }
+    }
+    if (!keyboardWindow) { return; }
+    for (UIView *possibleTarget in [keyboardWindow subviews]) {
+        if ([[possibleTarget description] rangeOfString:@"<UIPeripheralHostView:"].location == NSNotFound) { return; }
+        for (UIView *subviewWhichIsPossibleFormView in [possibleTarget subviews]) {
+            if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"<UIImageView:"].location != NSNotFound) {
+                // ios6 on retina phone adds a drop shadow to the UIWebFormAccessory. Hide it.
+                subviewWhichIsPossibleFormView.frame = CGRectMake(0,0,0,0);
+            } else if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"UIWebFormAccessory"].location != NSNotFound) {
+                // This is the "prev/next/done" bar
+                [subviewWhichIsPossibleFormView removeFromSuperview];
+            }
+        }
+    }
+}
 
-
-
-
-
-
-
-
-
-
-
-
+@end
 
 
 
@@ -189,30 +239,6 @@
 //}
 //
 //
-//-(void)_renderDevTools {
-//    _reloadView = [[UILabel alloc] initWithFrame:CGRectMake(320-45,60,40,40)];
-//    _reloadView.userInteractionEnabled = YES;
-//    _reloadView.text = @"R";
-//    _reloadView.font = [UIFont fontWithName:@"Open Sans" size:20];
-//    _reloadView.textAlignment = NSTextAlignmentCenter;
-//    _reloadView.backgroundColor = [UIColor whiteColor];
-//    _reloadView.alpha = 0.05;
-//    [_reloadView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(_reloadTap)]];
-//    [window.rootViewController.view addSubview:_reloadView];
-//}
-//-(void)_reloadTap {
-//    NSLog(@"\n\n\nRELOAD APP\n\n");
-//    [BTApp reload];
-//    _reloadView.backgroundColor = [UIColor blueColor];
-//    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC));
-//    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-//        _reloadView.backgroundColor = [UIColor whiteColor];
-//    });
-//}
-
-@end
-
-
 
 //
 //- (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
@@ -235,24 +261,6 @@
 //    [alert setMessageText:message];
 //    [alert runModal];
 //}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ////#define TESTFLIGHT
@@ -787,13 +795,6 @@
 //
 ///* Misc API
 // **********/
-//- (void)putWindowOverKeyboard {
-//    // cause the keyboard (and its webview accessory - "prev/next/done" toolbar - to render underneath the webview)
-//    window.windowLevel = UIWindowLevelStatusBar - 0.1;
-//}
-//- (void)putWindowUnderKeyboard {
-//    window.windowLevel = UIWindowLevelNormal;
-//}
 //
 //- (void)handleCommand:(NSString *)handlerName handler:(BTCommandHandler)handler {
 //    [self.javascriptBridge registerHandler:handlerName handler:^(id data, WVJBResponseCallback responseCallback) {
@@ -865,35 +866,6 @@
 //}
 //
 //
-//- (void)_removeWebViewKeyboardBar {
-//    UIWindow *keyboardWindow = nil;
-//    for (UIWindow *testWindow in [[UIApplication sharedApplication] windows]) {
-//        if (![[testWindow class] isEqual:[UIWindow class]]) {
-//            keyboardWindow = testWindow;
-//            break;
-//        }
-//    }
-//    if (!keyboardWindow) { return; }
-//    for (UIView *possibleFormView in [keyboardWindow subviews]) {
-//        if ([[possibleFormView description] rangeOfString:@"<UIPeripheralHostView:"].location != NSNotFound) {
-//            for (UIView *subviewWhichIsPossibleFormView in [possibleFormView subviews]) {
-//                if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"<UIKeyboardAutomatic:"].location != NSNotFound) {
-//                    //                    UIView* view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 320, 2)];
-//                    //                    view.backgroundColor = [UIColor colorWithRed:144/255.0 green:152/255.0 blue:163/255.0 alpha:1];
-//                    //                    [subviewWhichIsPossibleFormView addSubview:view];
-//
-//                } else if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"<UIImageView:"].location != NSNotFound) {
-//                    // ios6 on retina phone adds a drop shadow to the UIWebFormAccessory. Hide it.
-//                    subviewWhichIsPossibleFormView.frame = CGRectMake(0,0,0,0);
-//                } else if ([[subviewWhichIsPossibleFormView description] rangeOfString:@"UIWebFormAccessory"].location != NSNotFound) {
-//                    // This is the "prev/next/done" bar
-//                    [subviewWhichIsPossibleFormView removeFromSuperview];
-//                }
-//            }
-//        }
-//    }
-//    [BTAppDelegate.instance putWindowUnderKeyboard];
-//}
 //
 //
 //@end

@@ -78,6 +78,7 @@ static BTAppBase* instance;
 
 - (void)_reload {
     NSString* appHtmlUrl = [_server.absoluteString stringByAppendingString:@"/resources/app.html"];
+    [_bridge reset];
     [self _platformLoadWebView:appHtmlUrl];
     NSDictionary* config = @{
                              @"serverUrl":_server.absoluteString,
@@ -94,6 +95,10 @@ static BTAppBase* instance;
         }
         NSLog(@"Log: %@", jsonString);
         callback(nil,nil);
+    }];
+    
+    [self _handleCommand:@"app.reload" handler:^(id params, BTCallback callback) {
+        [self _reload];
     }];
 }
 
