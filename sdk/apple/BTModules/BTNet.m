@@ -3,6 +3,7 @@
 #import "BTFiles.h"
 #import "BTAddressBook.h"
 #import "Base64.h"
+#import "BTImage.h"
 
 @implementation BTNet
 
@@ -36,24 +37,24 @@ static BTNet* instance;
             NSString* dataString = info[@"data"];
             data = [dataString dataUsingEncoding:NSUTF8StringEncoding];
             
-        } else if (info[@"BTAddressBookRecordId"]) { // HACK
-            if (info[@"resize"]) {
-                NSString* resize = info[@"resize"];
-                NSData* imageData = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
-                UIImage* image = [UIImage imageWithData:imageData];
-//                image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
-                imageData = UIImageJPEGRepresentation(image, 1.0);
-                data = imageData;
-            } else {
-                data = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
-            }
+//        } else if (info[@"BTAddressBookRecordId"]) { // HACK
+//            if (info[@"resize"]) {
+//                NSString* resize = info[@"resize"];
+//                NSData* imageData = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
+//                BTImage* image = [BTImage imageWithData:imageData];
+////                image = [image thumbnailSize:[resize makeSize] transparentBorder:0 cornerRadius:0 interpolationQuality:kCGInterpolationDefault];
+//                imageData = UIImageJPEGRepresentation(image, 1.0);
+//                data = imageData;
+//            } else {
+//                data = [BTAddressBook getRecordImage:info[@"BTAddressBookRecordId"]];
+//            }
         
         } else if (info[@"base64Data"]) {
             NSString* base64String = [info[@"base64Data"] stringByReplacingOccurrencesOfString:@"data:image/jpeg;base64," withString:@""];
             data = [NSData dataWithBase64EncodedString:base64String];
-            if (info[@"saveToAlbum"]) {
-                UIImageWriteToSavedPhotosAlbum([UIImage imageWithData:data], nil, nil, nil);
-            }
+//            if (info[@"saveToAlbum"]) {
+//                UIImageWriteToSavedPhotosAlbum([UIImage imageWithData:data], nil, nil, nil);
+//            }
             
         } else {
             NSLog(@"Warning: unknown attachment into %@", info);

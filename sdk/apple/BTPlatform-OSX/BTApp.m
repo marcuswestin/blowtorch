@@ -14,13 +14,16 @@
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    NSView* contentView = _window.contentView;
+    NSView* contentView = self.window.contentView;
     _webView = [[WebView alloc] initWithFrame:contentView.frame];
     [_webView setAutoresizingMask:(NSViewHeightSizable | NSViewWidthSizable)];
     [contentView addSubview:_webView];
     
-    NSString* server = @"http://localhost:9000";
-    [self _baseStartWithWebView:_webView delegate:self server:server mode:@"DEBUG"];
+    [self _baseStartWithWebView:_webView delegate:self server:@"https://dogo.co"];
+    
+    [BTApp handleCommand:@"BTNotifications.setBadgeNumber" handler:^(id params, BTCallback callback) {
+        callback(nil,nil);
+    }];
 }
 
 - (void)_platformLoadWebView:(NSString*)url {

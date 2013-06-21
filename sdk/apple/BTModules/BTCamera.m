@@ -27,7 +27,6 @@
 static BTCamera* instance;
 
 - (void)setup {
-    if (instance) { return; }
     instance = self;
 
     sourceType = [[[BTEnumeration enum:@"sourceType"

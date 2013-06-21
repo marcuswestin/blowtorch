@@ -10,6 +10,18 @@
 
 static BTNotifications* instance;
 
+#if defined BT_PLATFORM_OSX
+    #define ApplicationStateActive NSApplicationState
+    #define NotificationTypes (UIRemoteNotificationTypeBadge)
+    #define BT_PUSH_TYPE @"osx"
+#elif defined BT_PLATFORM_IOS
+    #define ApplicationStateActive NSApplicationState
+    #define NotificationTypes (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)
+    #define BT_PUSH_TYPE @"ios"
+#endif
+
+#define RemoteNotificationTypeAlert BT(RemoteNotificationTypeAlert)
+
 @implementation BTNotifications {
     BTCallback registerCallback;
 }
@@ -20,23 +32,22 @@ static BTNotifications* instance;
     
     [BTApp handleCommand:@"BTNotifications.register" handler:^(id params, BTCallback callback) {
         registerCallback = callback;
-        UIRemoteNotificationType types = (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert);
-        [[UIApplication sharedApplication] registerForRemoteNotificationTypes:types];
+        [BTSharedApplication registerForRemoteNotificationTypes:(BT(RemoteNotificationTypeAlert) | BT(RemoteNotificationTypeBadge) | BT(RemoteNotificationTypeSound))];
     }];
     
     [BTApp handleCommand:@"BTNotifications.getAuthorizationStatus" handler:^(id params, BTCallback callback) {
-        UIRemoteNotificationType types = [[UIApplication sharedApplication] enabledRemoteNotificationTypes];
-        if (types == UIRemoteNotificationTypeNone) { return callback(nil, nil); }
+        BT(RemoteNotificationType) types = [BTSharedApplication enabledRemoteNotificationTypes];
+        if (types == BT(RemoteNotificationTypeNone)) { return callback(nil, nil); }
 
         NSMutableDictionary* res = [NSMutableDictionary dictionary];
-        if (types | UIRemoteNotificationTypeAlert) { res[@"alert"] = [NSNumber numberWithBool:YES]; }
-        if (types | UIRemoteNotificationTypeBadge) { res[@"badge"] = [NSNumber numberWithBool:YES]; }
-        if (types | UIRemoteNotificationTypeSound) { res[@"sound"] = [NSNumber numberWithBool:YES]; }
+        if (types | BT(RemoteNotificationTypeAlert)) { res[@"alert"] = [NSNumber numberWithBool:YES]; }
+        if (types | BT(RemoteNotificationTypeBadge)) { res[@"badge"] = [NSNumber numberWithBool:YES]; }
+        if (types | BT(RemoteNotificationTypeSound)) { res[@"sound"] = [NSNumber numberWithBool:YES]; }
         callback(nil, res);
     }];
     
     [BTApp handleCommand:@"BTNotifications.setBadgeNumber" handler:^(id params, BTCallback callback) {
-        NSInteger number = [[UIApplication sharedApplication] applicationIconBadgeNumber];
+        NSInteger number = [self _getBadgeNumber];
         if (params[@"number"]) {
             number = [params[@"number"] integerValue];
         } else if (params[@"increment"]) {
@@ -44,7 +55,8 @@ static BTNotifications* instance;
         } else if (params[@"decrement"]) {
             number -= [params[@"decrement"] integerValue];
         }
-        [[UIApplication sharedApplication] setApplicationIconBadgeNumber:number];
+        [self _setBadgeNumber:number];
+
         callback(nil, nil);
     }];
     
@@ -70,14 +82,10 @@ static BTNotifications* instance;
     NSString * tokenAsString = [[[notification.userInfo[@"deviceToken"] description]
                                  stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]]
                                 stringByReplacingOccurrencesOfString:@" " withString:@""];
-    NSDictionary* info = @{ @"pushToken":tokenAsString, @"pushType":@"ios" };
+    NSDictionary* info = @{ @"pushToken":tokenAsString, @"pushType":BT_PUSH_TYPE };
     [self notify:@"BTNotifications.registered" info:info];
     if (registerCallback) { registerCallback(nil, info); }
     registerCallback = nil;
-}
-
-- (void) handleDidReceiveRemoteNotification:(NSNotification*)notification {
-    [self handlePushNotification:notification.userInfo[@"notification"] didBringAppToForeground:([UIApplication sharedApplication].applicationState != UIApplicationStateActive)];
 }
 
 - (void)handlePushNotification:(NSDictionary *)notification didBringAppToForeground:(BOOL)didBringAppToForeground {
@@ -87,5 +95,30 @@ static BTNotifications* instance;
                            };
     [self notify:@"BTNotifications.notification" info:info];
 }
+
+/* Platform specific OSX
+ ***********************/
+#if defined BT_PLATFORM_OSX
+- (NSInteger) _getBadgeNumber {
+    return 0;
+}
+- (void) _setBadgeNumber:(NSInteger)number {
+}
+- (void) handleDidReceiveRemoteNotification:(NSNotification*)notification {
+    [self handlePushNotification:notification.userInfo[@"notification"] didBringAppToForeground:NO];
+}
+/* Platform specific iOS
+ ***********************/
+#elif defined BT_PLATFORM_IOS
+- (NSInteger) _getBadgeNumber {
+    return [BTSharedApplication applicationIconBadgeNumber];
+}
+- (void) _setBadgeNumber:(NSInteger)number {
+    [BTSharedApplication setApplicationIconBadgeNumber:number];
+}
+- (void) handleDidReceiveRemoteNotification:(NSNotification*)notification {
+    [self handlePushNotification:notification.userInfo[@"notification"] didBringAppToForeground:(BTSharedApplication.applicationState != UIApplicationStateActive)];
+}
+#endif
 
 @end

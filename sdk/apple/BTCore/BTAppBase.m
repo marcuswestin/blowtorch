@@ -40,8 +40,6 @@ static BTAppBase* instance;
     [instance _platformAddSubview:view];
 }
 
-
-
 /* Platform specifc internals
  ****************************/
 - (void)_platformLoadWebView:(NSString *)url {
@@ -52,6 +50,23 @@ static BTAppBase* instance;
 }
 
 
+/* platform agnostic events
+ **************************/
+
+/* Remote notifications
+ **********************/
+- (void)application:(BT(Application) *)app didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didRegisterForRemoteNotifications" object:nil userInfo:@{ @"deviceToken":deviceToken }];
+}
+
+- (void)application:(BT(Application) *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didFailToRegisterForRemoteNotifications" object:nil userInfo:nil];
+}
+
+- (void)application:(BT(Application) *)application didReceiveRemoteNotification:(NSDictionary *)notification {
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didReceiveRemoteNotification" object:nil userInfo:@{ @"notification":notification }];
+}
+
 
 /* Platform agnostic internals
  *****************************/
@@ -60,11 +75,24 @@ static BTAppBase* instance;
     [NSException raise:@"NotImplemented" format:@"NotImplemented"];
 }
 
-- (void)_baseStartWithWebView:(BT_WEBVIEW_TYPE*)webview delegate:(BT_WEBVIEW_DELEGATE_TYPE*)delegate server:(NSString *)server mode:(NSString *)mode {
+- (NSString*) mode { return _mode; }
+
+- (void)_baseStartWithWebView:(BT_WEBVIEW_TYPE*)webview delegate:(BT_WEBVIEW_DELEGATE_TYPE*)delegate server:(NSString *)server {
     instance = self;
+
+#if defined TESTFLIGHT
+    _mode = @"TESTFLIGHT";
     _server = [NSURL URLWithString:server];
-    _mode = mode;
-    
+#elif defined DEBUG
+    _mode = @"DEBUG";
+    NSString* devHostFile = [[NSBundle mainBundle] pathForResource:@"dev-hostname" ofType:@"txt"];
+    NSString* host = [[NSString stringWithContentsOfFile:devHostFile encoding:NSUTF8StringEncoding error:nil] stringByReplacingOccurrencesOfString:@"\n" withString:@""];
+    _server = [NSURL URLWithString:[NSString stringWithFormat:@"http://%@:9000", host]];
+#else
+    _mode = @"DISTRIBUTION";
+    _server = [NSURL URLWithString:server];
+#endif
+
     _bridge = [WebViewJavascriptBridge bridgeForWebView:webview webViewDelegate:delegate handler:^(id data, WVJBResponseCallback responseCallback) {
         NSLog(@"Warning: Received vanilla WVJB message %@", data);
         responseCallback(@{ @"error":@"Vanilla WVJB message" });
@@ -77,29 +105,38 @@ static BTAppBase* instance;
 }
 
 - (void)_reload {
-    NSString* appHtmlUrl = [_server.absoluteString stringByAppendingString:@"/resources/app.html"];
     [_bridge reset];
+    NSString* appHtmlUrl = [_server.absoluteString stringByAppendingString:@"/resources/app.html"];
     [self _platformLoadWebView:appHtmlUrl];
+
     NSDictionary* config = @{
                              @"serverUrl":_server.absoluteString,
-                             @"mode":_mode
+                             @"mode":_mode,
+                             @"locale":[[NSLocale currentLocale ] localeIdentifier]
+//                             @"device": @{
+//                                     @"systemVersion":[[UIDevice currentDevice] systemVersion],
+//                                     @"model":[UIDevice currentDevice].model,
+//                                     @"name":[UIDevice currentDevice].name,
+//                                     }
                              };
     [self _notify:@"app.init" info:@{ @"config":config }];
 }
 
 - (void)_setupHandlers {
     [self _handleCommand:@"log" handler:^(id params, BTCallback callback) {
-        NSString* jsonString = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:params options:0 error:nil] encoding:NSUTF8StringEncoding];
-        if (jsonString.length > 400) {
-            jsonString = [[jsonString substringToIndex:400] stringByAppendingString:@" (...)"];
-        }
-        NSLog(@"Log: %@", jsonString);
-        callback(nil,nil);
+        [self _log:params callback:callback];
     }];
-    
+
     [self _handleCommand:@"app.reload" handler:^(id params, BTCallback callback) {
         [self _reload];
     }];
+    
+    if (![_mode isEqualToString:@"DEBUG"]) {
+        resourceDir = [[NSBundle mainBundle] pathForResource:@"dogo-client-build" ofType:nil];
+        [WebViewProxy handleRequestsWithHost:_server.host pathPrefix:@"/resources/" handler:^(NSURLRequest *req, WVPResponse *res) {
+            [self _serveResource:req res:res];
+        }];
+    }
 }
 
 - (void)_notify:(NSString *)event info:(id)info {
@@ -163,6 +200,26 @@ static BTAppBase* instance;
         NSDictionary* params = [req.URL.query parseQueryParams];
         requestHandler(params, res);
     }];
+}
+
+
+/* Command & Request Handlers
+ ****************************/
+- (void)_log:(NSDictionary*)params callback:(BTCallback)callback {
+    NSString* jsonString = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:params options:0 error:nil] encoding:NSUTF8StringEncoding];
+    if (jsonString.length > 400) {
+        jsonString = [[jsonString substringToIndex:400] stringByAppendingString:@" (...)"];
+    }
+    NSLog(@"Log: %@", jsonString);
+    callback(nil,nil);
+}
+
+static NSString* resourceDir;
+- (void) _serveResource:(NSURLRequest*)req res:(WVPResponse*)res {
+    NSString* resource = req.URL.path;
+    NSString* path = [resourceDir stringByAppendingPathComponent:resource];
+    NSData* data = [NSData dataWithContentsOfFile:path];
+    [res respondWithData:data mimeType:nil];
 }
 
 @end

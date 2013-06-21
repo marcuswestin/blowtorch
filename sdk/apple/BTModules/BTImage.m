@@ -20,7 +20,6 @@
 static BTImage* instance;
 
 - (void)setup {
-    if (instance) { return; }
     instance = self;
     loading = [NSMutableDictionary dictionary];
     processing = [NSMutableDictionary dictionary];
@@ -135,15 +134,16 @@ static BTImage* instance;
         if (netData.length && params[@"store"]) {
             [BTCache store:urlParam data:netData cacheInMemory:!!params[@"memory"]];
         }
-        NSArray* responses;
-        @synchronized(loading) {
-            responses = loading[urlParam];
-            [loading removeObjectForKey:urlParam];
-        }
-        
-        for (WVPResponse* res in responses) {
-            [self processData:netData params:params response:res];
-        }
+//        NSArray* responses;
+//        @synchronized(loading) {
+//            responses = loading[urlParam];
+//            [loading removeObjectForKey:urlParam];
+//        }
+//        
+//        for (WVPResponse* res in responses) {
+//            [self processData:netData params:params response:res];
+//        }
+        [self processData:netData params:params response:res];
     }];
 }
 
@@ -214,11 +214,16 @@ static BTImage* instance;
 }
 
 + (NSData *)resize:(NSImage *)image size:(CGSize)size {
-    image.size = size;
-    NSArray *representations = [image representations];
-    NSNumber *compressionFactor = [NSNumber numberWithFloat:0.9];
-    NSDictionary *imageProps = [NSDictionary dictionaryWithObject:compressionFactor forKey:NSImageCompressionFactor];
-    return [NSBitmapImageRep representationOfImageRepsInArray:representations usingType:NSJPEGFileType properties:imageProps];
+    NSSize originalSize = [image size];
+    NSImage* target = [[NSImage alloc] initWithSize:size];
+    [target lockFocus];
+    [image drawInRect:NSMakeRect(0,0,size.width,size.height) fromRect:NSMakeRect(0,0,originalSize.width,originalSize.height) operation:NSCompositeSourceOver fraction:1.0];
+    [target unlockFocus];
+    return [target TIFFRepresentation];
+//    NSArray *representations = [target representations];
+//    NSNumber *compressionFactor = [NSNumber numberWithFloat:0.9];
+//    NSDictionary *imageProps = @{ NSImageCompressionFactor:compressionFactor };
+//    return [NSBitmapImageRep representationOfImageRepsInArray:representations usingType:NSJPEGFileType properties:imageProps];
 }
 
 + (NSData *)crop:(NSImage *)source size:(CGSize)size {

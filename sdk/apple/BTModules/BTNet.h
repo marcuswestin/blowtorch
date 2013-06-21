@@ -1,4 +1,3 @@
-#import <UIKit/UIKit.h>
 #import "BTModule.h"
 
 @interface BTNet : BTModule

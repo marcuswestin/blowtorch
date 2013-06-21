@@ -13,9 +13,7 @@
 #import "DebugUIWebView.h"
 #endif
 
-
 @implementation BTApp {
-    UIWindow* _window;
     UIWebView* _webView;
     UILabel* _reloadView;
     NSDictionary* _launchNotification;
@@ -29,14 +27,17 @@
     [NSClassFromString(@"WebView") performSelector:@selector(_enableRemoteInspector)];
 #endif
 
+    
     [self _registerNotificationHandlers];
     [self _createWindowAndWebView];
-    [self _renderDevTools];
 //    [BTSplashScreen show];
     
-    NSString* server = @"http://10.0.0.10:9000";
-    [self _baseStartWithWebView:_webView delegate:self server:server mode:@"DEBUG"];
+    [self _baseStartWithWebView:_webView delegate:self server:@"https://dogo.co"];
 
+    if ([self.mode isEqualToString:@"DEBUG"]) {
+        [self _renderDevTools];
+    }
+    
     return YES;
 }
 
@@ -56,14 +57,29 @@
  ****************/
 - (void)_createWindowAndWebView {
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
-    UIWindow* window = _window = [[UIWindow alloc] initWithFrame:screenBounds];
-    [window makeKeyAndVisible];
-    window.rootViewController = [[BTViewController alloc] init];
-    
+
+    CGRect viewRect;
+    if (UIInterfaceOrientationIsPortrait([UIApplication sharedApplication].statusBarOrientation)) {
+        viewRect = screenBounds;
+        NSString *version = [[UIDevice currentDevice] systemVersion];
+        BOOL isBefore7 = [version floatValue] < 7.0;
+        
+        if (isBefore7) {
+            [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleBlackTranslucent];
+        }
+        [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationFade];
+    } else {
+        viewRect = CGRectMake(0, 0, screenBounds.size.height, screenBounds.size.width);
+    }
+
+    self.window = [[UIWindow alloc] initWithFrame:screenBounds];
+    self.window.rootViewController = [[BTViewController alloc] init];
+    self.window.backgroundColor = [UIColor whiteColor];
+
 #ifdef DEBUG
-    UIWebView* webView = _webView = [[DebugUIWebView alloc] initWithFrame:screenBounds];
+    UIWebView* webView = _webView = [[DebugUIWebView alloc] initWithFrame:viewRect];
 #else
-    UIWebView* webView = _webView = [[UIWebView alloc] initWithFrame:screenBounds];
+    UIWebView* webView = _webView = [[UIWebView alloc] initWithFrame:viewRect];
 #endif
     webView.suppressesIncrementalRendering = YES;
     webView.keyboardDisplayRequiresUserAction = NO;
@@ -77,12 +93,12 @@
 //    webView.opaque = NO;
 //    webView.backgroundColor = [UIColor clearColor];
     webView.opaque = YES;
-    webView.backgroundColor = window.backgroundColor;
-    [window.rootViewController.view addSubview:webView];
-    
     // we need to handle viewForZoomingInScrollView to avoid shifting the webview contents
     // when a webview text input gains focus and becomes the first responder.
     webView.scrollView.delegate = self;
+
+    [self.window.rootViewController.view addSubview:webView];
+    [self.window makeKeyAndVisible];
 }
 
 -(UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
@@ -106,7 +122,7 @@
     _reloadView.backgroundColor = [UIColor whiteColor];
     _reloadView.alpha = 0.07;
     [_reloadView addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(_reloadTap)]];
-    [_window.rootViewController.view addSubview:_reloadView];
+    [self.window.rootViewController.view addSubview:_reloadView];
 }
 -(void)_reloadTap {
     [BTApp reload];
@@ -119,16 +135,16 @@
 
 /* Remove the UIWebView keyboard accessory
  *****************************************/
-- (void)keyboardWillShow:(NSNotification *)notification {
+- (void)_keyboardWillShow:(NSNotification *)notification {
     [self _putWindowOverKeyboard];
     [self _removeWebViewKeyboardBar];
     [self performSelector:@selector(_removeWebViewKeyboardBarAndShow) withObject:nil afterDelay:0];
 }
 - (void) _putWindowOverKeyboard {
-    _window.windowLevel = UIWindowLevelStatusBar - 0.1;
+    self.window.windowLevel = UIWindowLevelStatusBar - 0.1;
 }
 - (void)_putWindowUnderKeyboard {
-    _window.windowLevel = UIWindowLevelNormal;
+    self.window.windowLevel = UIWindowLevelNormal;
 }
 - (void)_removeWebViewKeyboardBarAndShow {
     [self _removeWebViewKeyboardBar];
@@ -190,12 +206,6 @@
 //    self.config[@"protocol"] = protocol;
 //    self.config[@"serverHost"] = self.serverHost;
 //    self.config[@"serverUrl"] = self.serverUrl;
-//    self.config[@"device"] = @{ @"systemVersion":[[UIDevice currentDevice] systemVersion],
-//                                @"model":[UIDevice currentDevice].model,
-//                                @"name":[UIDevice currentDevice].name,
-//                                @"platform":[UIDeviceHardware platformString],
-//                                @"locale":[[NSLocale currentLocale ] localeIdentifier]
-//                                };
 //
 //}
 //
@@ -314,7 +324,6 @@
 ////}
 ////
 ////static NSMutableDictionary* resourceCache;
-////static NSString* resourceDir;
 ////static NSString* appVersionDoc;
 ////
 ////- (void) startApp {
@@ -779,19 +788,6 @@
 //    [_bridge send:[NSDictionary dictionaryWithObjectsAndKeys:event, @"event", info, @"info", nil]];
 //}
 //
-///* Remote notifications
-// **********************/
-//- (void)application:(UIApplication *)app didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
-//    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didRegisterForRemoteNotifications" object:nil userInfo:@{ @"deviceToken":deviceToken }];
-//}
-//
-//- (void)application:(UIApplication *)app didFailToRegisterForRemoteNotificationsWithError:(NSError *)err {
-//    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didFailToRegisterForRemoteNotifications" object:nil userInfo:nil];
-//}
-//
-//- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)notification {
-//    [[NSNotificationCenter defaultCenter] postNotificationName:@"application.didReceiveRemoteNotification" object:nil userInfo:@{ @"notification":notification }];
-//}
 //
 ///* Misc API
 // **********/

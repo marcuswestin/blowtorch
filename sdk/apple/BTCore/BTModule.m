@@ -13,7 +13,7 @@
 
 static NSMutableDictionary* modules;
 
-static const NSString* AllModules = @"BTFiles,BTImage,BTCache,BTAddressBook,BTSql,BTNotifications,BTNet,BTVideo,BTSplashScreen";
+static const NSString* AllModules = @"BTFiles,BTImage,BTCache,BTAddressBook,BTSql,BTNotifications,BTNet,BTVideo,BTCamera,BTSplashScreen";
 
 /* Module setup
  **************/

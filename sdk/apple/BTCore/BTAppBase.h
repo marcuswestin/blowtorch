@@ -12,6 +12,8 @@
 
 @interface BTAppBase : BT_APPLICATION_DELEGATE_TYPE
 
+@property (strong, nonatomic) BT(Window) *window;
+
 + (void) handleRequests:(NSString*)path handler:(BTRequestHandler)requestHandler;
 + (void) handleCommand:(NSString*)handlerName handler:(BTCommandHandler)handler;
 
@@ -29,7 +31,8 @@
 - (void) _platformAddSubview:(BT_VIEW_TYPE*)view;
 /* Platform agnostic internals
  *****************************/
-- (void) _baseStartWithWebView:(BT_WEBVIEW_TYPE*)webview delegate:(BT_WEBVIEW_DELEGATE_TYPE*)delegate server:(NSString*)server mode:(NSString*)mode;
+- (void) _baseStartWithWebView:(BT_WEBVIEW_TYPE*)webview delegate:(BT_WEBVIEW_DELEGATE_TYPE*)delegate server:(NSString*)server;
 - (void) _baseImpl:(NSString*)method;
+- (NSString*) mode;
 
 @end

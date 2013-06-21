@@ -27,10 +27,9 @@ static BTCache* instance;
 }
 
 - (void)setup {
-    if (instance) { return; }
     instance = self;
     _memory = [NSMutableDictionary dictionary];
-    _path = [self _pathFor:@"BTCache8"];
+    _path = [self _pathFor:@"com.blowtorch.BTCache5"];
     _dir = [_path stringByAppendingString:@"/"];
     
     [[NSFileManager defaultManager] createDirectoryAtPath:_path withIntermediateDirectories:YES attributes:NULL error:NULL];
@@ -64,7 +63,7 @@ static BTCache* instance;
         NSLog(@"Refusing to cache 0-length data %@", key);
         return;
     }
-    [data writeToFile:[self _pathFor:[self _filenameFor:key]] atomically:YES];
+    [data writeToFile:[self _filenameFor:key] atomically:YES];
     if (cacheInMemory) {
         _memory[key] = data;
     }
@@ -72,9 +71,12 @@ static BTCache* instance;
 
 - (NSData *)get:(NSString *)key cacheInMemory:(BOOL)cacheInMemory {
     if (_memory[key]) { return _memory[key]; }
-    NSData* data = [NSData dataWithContentsOfFile:[self _pathFor:[self _filenameFor:key]]];
+    NSData* data = [NSData dataWithContentsOfFile:[self _filenameFor:key]];
     if (cacheInMemory && data.length) {
         _memory[key] = data;
+    }
+    if (!data || data.length == 0) {
+        NSLog(@"Cache miss %@ %@", key, [self _filenameFor:key]);
     }
     return data;
 }
