@@ -81,8 +81,12 @@
 #else
     UIWebView* webView = _webView = [[UIWebView alloc] initWithFrame:viewRect];
 #endif
-    webView.suppressesIncrementalRendering = YES;
-    webView.keyboardDisplayRequiresUserAction = NO;
+    if ([webView respondsToSelector:@selector(suppressesIncrementalRendering:)]) {
+        webView.suppressesIncrementalRendering = YES;
+    }
+    if ([webView respondsToSelector:@selector(keyboardDisplayRequiresUserAction)]) {
+        webView.keyboardDisplayRequiresUserAction = NO;
+    }
     webView.dataDetectorTypes = UIDataDetectorTypeNone;
     webView.clipsToBounds = YES;
     webView.scrollView.decelerationRate = UIScrollViewDecelerationRateNormal;
